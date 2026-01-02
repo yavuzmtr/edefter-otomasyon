@@ -1,0 +1,44 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.env
+
+# Test and backup files (prevent regeneration)
+BACKUP-*.md
+EMAIL-*.md
+TEST-*.md
+TEKNIK-*.md
+TESLIMAT-*.md
+YAPILAN-*.md
+VERİFİKASYON.md
+TOSTRING-*.md
+YEDEKLEME-*.md
+BEFORE-AFTER-*.md
+SISTEM-*.md
+YARIN-DEVAM-*.md
+
+# Keep only essential docs
+!README.md
+!TEST-KILAVUZU.md
+!SYSTEM-DURUMU-26-ARALIK.md

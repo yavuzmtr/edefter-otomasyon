@@ -1,0 +1,13 @@
+{
+  "name": "edefter-uninstaller",
+  "version": "1.0.0",
+  "main": "main.js",
+  "description": "E-Defter Otomasyon Kaldırıcı",
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "electron": "^28.2.3",
+    "fs-extra": "^11.2.0"
+  }
+}

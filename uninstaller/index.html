@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>E-Defter Otomasyon Kaldırıcı</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #f8fafc; margin: 0; }
+    .container { max-width: 350px; margin: 40px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px #0001; padding: 32px 24px; }
+    h2 { color: #4f46e5; text-align: center; margin-bottom: 18px; }
+    label { display: block; margin: 18px 0 10px; font-weight: 500; }
+    .desc { color: #555; font-size: 14px; margin-bottom: 18px; }
+    .checkbox { margin-right: 8px; }
+    button { background: #ef4444; color: #fff; border: none; border-radius: 6px; padding: 10px 24px; font-size: 16px; cursor: pointer; width: 100%; margin-top: 18px; }
+    button:hover { background: #dc2626; }
+    #status { margin-top: 18px; text-align: center; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Programı Kaldır</h2>
+    <form id="uninstall-form">
+      <div class="desc">Kaldırma türünü seçin:</div>
+      <label><input type="radio" name="uninstall-type" id="full-uninstall" class="checkbox" checked> Tam Kaldır (Tüm dosyalar, ayarlar ve loglar silinir)</label>
+      <label><input type="radio" name="uninstall-type" class="checkbox"> Kısmi Kaldır (Sadece program dosyaları silinir, kullanıcı verileri kalır)</label>
+      <button type="submit">Kaldır</button>
+      <div id="status"></div>
+    </form>
+  </div>
+  <script src="renderer.js"></script>
+</body>
+</html>

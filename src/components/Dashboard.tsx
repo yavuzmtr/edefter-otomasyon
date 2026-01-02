@@ -1,0 +1,385 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Users, 
+  AlertTriangle, 
+  CheckCircle, 
+  Clock,
+  TrendingUp
+} from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { ElectronService } from '../services/electronService';
+import { logService } from '../services/logService';
+
+interface Activity {
+  type: 'success' | 'warning' | 'error';
+  message: string;
+  time: string;
+}
+
+interface MonitoringItem {
+  status: 'complete' | 'incomplete' | 'missing';
+  companyName: string;
+  companyId?: string;
+  year: number;
+  month: number;
+  lastCheck: string | Date;
+  folderExists?: boolean;
+  requiredFiles?: number;
+  existingFiles?: number;
+  missingFiles?: number;
+}
+
+export const Dashboard: React.FC = () => {
+  const [stats, setStats] = useState({
+    totalCompanies: 0,
+    completedFolders: 0,
+    missingFiles: 0,
+    lastScan: 'Henüz tarama yapılmadı'
+  });
+
+  const [pieData, setPieData] = useState([
+    { name: 'Tamamlanan', value: 0, color: '#059669' },
+    { name: 'Eksik Dosya', value: 0, color: '#ea580c' },
+    { name: 'Beklemede', value: 0, color: '#6b7280' }
+  ]);
+
+  const [recentActivity, setRecentActivity] = useState<Activity[]>([]);
+
+  const [barData, setBarData] = useState([
+    { month: 'Oca', complete: 0, missing: 0 },
+    { month: 'Şub', complete: 0, missing: 0 },
+    { month: 'Mar', complete: 0, missing: 0 },
+    { month: 'Nis', complete: 0, missing: 0 },
+    { month: 'May', complete: 0, missing: 0 },
+    { month: 'Haz', complete: 0, missing: 0 },
+    { month: 'Tem', complete: 0, missing: 0 },
+    { month: 'Ağu', complete: 0, missing: 0 },
+    { month: 'Eyl', complete: 0, missing: 0 },
+    { month: 'Eki', complete: 0, missing: 0 },
+    { month: 'Kas', complete: 0, missing: 0 },
+    { month: 'Ara', complete: 0, missing: 0 }
+  ]);
+
+  // Zaman formatı yardımcı fonksiyonu
+  const formatTimeAgo = (timestamp: string): string => {
+    try {
+      const now = new Date();
+      const logTime = new Date(timestamp);
+      const diffInMinutes = Math.floor((now.getTime() - logTime.getTime()) / (1000 * 60));
+      
+      if (diffInMinutes < 1) return 'Az önce';
+      if (diffInMinutes < 60) return `${diffInMinutes} dakika önce`;
+      
+      const diffInHours = Math.floor(diffInMinutes / 60);
+      if (diffInHours < 24) return `${diffInHours} saat önce`;
+      
+      const diffInDays = Math.floor(diffInHours / 24);
+      return `${diffInDays} gün önce`;
+    } catch {
+      return 'Bilinmeyen zaman';
+    }
+  };
+
+  useEffect(() => {
+    loadDashboardData();
+    logService.logSystemAction('Dashboard Yüklendi', 'Kontrol paneli açıldı', 'info');
+  }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      // Şirket verilerini yükle
+      const companiesResult = await ElectronService.loadData('companies', []);
+      if (companiesResult.success) {
+        const activeCompanies = (companiesResult.data || []).filter((company: any) => company.status === 'active');
+        setStats(prev => ({ ...prev, totalCompanies: activeCompanies.length }));
+      }
+
+      // Monitoring verilerini yükle
+      const monitoringResult = await ElectronService.loadData('monitoring-data', []);
+      
+      if (monitoringResult.success) {
+        const monitoringData: MonitoringItem[] = Array.isArray(monitoringResult.data) ? monitoringResult.data : [];
+        
+        const completed = monitoringData.filter(item => item.status === 'complete').length;
+        const missing = monitoringData.filter(item => item.status === 'missing' || item.status === 'incomplete').length;
+        const total = monitoringData.length;
+
+        // En son tarama zamanını bul
+        let lastScanText = 'Henüz tarama yapılmadı';
+        if (monitoringData.length > 0) {
+          const latestScan = monitoringData.reduce<string | Date | null>((latest, item) => {
+            if (item.lastCheck) {
+              const checkTime = new Date(item.lastCheck);
+              const latestTime = latest ? new Date(latest as string | Date) : new Date(0);
+              return checkTime > latestTime ? item.lastCheck : latest;
+            }
+            return latest;
+          }, null);
+          
+          if (latestScan) {
+            lastScanText = formatTimeAgo(latestScan.toString());
+          }
+        }
+
+        setStats(prev => ({
+          ...prev,
+          completedFolders: completed,
+          missingFiles: missing,
+          lastScan: lastScanText
+        }));
+
+        // Pie chart verilerini güncelle
+        if (total > 0) {
+          const completedPercent = Math.round((completed / total) * 100);
+          const missingPercent = Math.round((missing / total) * 100);
+          const pendingPercent = 100 - completedPercent - missingPercent;
+
+          setPieData([
+            { name: 'Tamamlanan', value: completedPercent, color: '#059669' },
+            { name: 'Eksik Dosya', value: missingPercent, color: '#ea580c' },
+            { name: 'Beklemede', value: pendingPercent, color: '#6b7280' }
+          ]);
+        }
+
+        // Aylık bar chart verilerini oluştur - sadece mevcut yıl (2025) için
+        const currentYear = new Date().getFullYear(); // 2025
+        const currentYearData = monitoringData.filter(item => item.year === currentYear);
+        
+        // Mevcut yıl verilerinin aylık dağılımını hesapla
+        const monthlyDistribution: Record<number, { complete: number; missing: number }> = {};
+        for (let i = 1; i <= 12; i++) {
+          monthlyDistribution[i] = { complete: 0, missing: 0 };
+        }
+        
+        currentYearData.forEach(item => {
+          if (item.month >= 1 && item.month <= 12) {
+            if (item.status === 'complete') {
+              monthlyDistribution[item.month].complete++;
+            } else if (item.status === 'missing' || item.status === 'incomplete') {
+              monthlyDistribution[item.month].missing++;
+            }
+          }
+        });
+        
+        const monthNames = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+        const monthlyStats = monthNames.map((month, index) => {
+          const monthNumber = index + 1;
+          const monthData = monthlyDistribution[monthNumber];
+          
+          return {
+            month,
+            complete: monthData.complete,
+            missing: monthData.missing
+          };
+        });
+        
+        setBarData(monthlyStats);
+      }
+
+      // Gerçek aktivite loglarını yükle
+      const logsResult = await ElectronService.loadData('activity-logs', []);
+      if (logsResult.success && logsResult.data && Array.isArray(logsResult.data)) {
+        // Son 10 aktiviteyi al ve formatla
+        const recentLogs: Activity[] = logsResult.data
+          .slice(-10) // Son 10 aktivite
+          .reverse() // En yeni başta olsun
+          .map((log: any) => ({
+            type: (log.status === 'success' ? 'success' : 
+                   log.status === 'error' ? 'error' : 'warning') as 'success' | 'warning' | 'error',
+            message: `${log.title}: ${log.description}`,
+            time: formatTimeAgo(log.timestamp)
+          }));
+        setRecentActivity(recentLogs);
+      } else {
+        // Veri yoksa varsayılan mesaj göster
+        setRecentActivity([]);
+      }
+
+    } catch (error) {
+      logService.logSystemAction('Dashboard Hata', `Veriler yüklenirken hata: ${error}`, 'error');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <div className="container mx-auto px-6 py-8 space-y-6 animate-fade-in">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl shadow-lg">
+              <TrendingUp className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">📊 Kontrol Paneli</h1>
+              <p className="text-gray-600 dark:text-gray-300">E-defter GIB sisteminin güncel durumu</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 bg-gradient-to-r from-green-100 to-emerald-100 px-4 py-2 rounded-xl border border-green-200">
+            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-green-700 font-medium">Sistem Aktif</span>
+          </div>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 hover:shadow-xl transition-all overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-3 -m-6 mb-4">
+              <div className="flex items-center justify-between">
+                <Users className="w-6 h-6" />
+                <div className="text-right">
+                  <p className="text-2xl font-bold">{stats.totalCompanies}</p>
+                  <p className="text-sm text-blue-100">Kayıtlı</p>
+                </div>
+              </div>
+            </div>
+            <p className="text-gray-700 dark:text-gray-300 font-medium">📋 Toplam Şirket</p>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 hover:shadow-xl transition-all overflow-hidden">
+            <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white p-3 -m-6 mb-4">
+              <div className="flex items-center justify-between">
+                <CheckCircle className="w-6 h-6" />
+                <div className="text-right">
+                  <p className="text-2xl font-bold">{stats.completedFolders}</p>
+                  <p className="text-sm text-green-100">Tamamlandı</p>
+                </div>
+              </div>
+            </div>
+            <p className="text-gray-700 dark:text-gray-300 font-medium">✅ Tamamlanan Klasörler</p>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 hover:shadow-xl transition-all overflow-hidden">
+            <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white p-3 -m-6 mb-4">
+              <div className="flex items-center justify-between">
+                <AlertTriangle className="w-6 h-6" />
+                <div className="text-right">
+                  <p className="text-2xl font-bold">{stats.missingFiles}</p>
+                  <p className="text-sm text-orange-100">Eksik/Yok</p>
+                </div>
+              </div>
+            </div>
+            <p className="text-gray-700 dark:text-gray-300 font-medium">⚠️ Eksik Dosyalar</p>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 hover:shadow-xl transition-all overflow-hidden">
+            <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-3 -m-6 mb-4">
+              <div className="flex items-center justify-between">
+                <Clock className="w-6 h-6" />
+                <div className="text-right">
+                  <p className="text-lg font-bold">{stats.lastScan}</p>
+                  <p className="text-sm text-purple-100">Güncel</p>
+                </div>
+              </div>
+            </div>
+            <p className="text-gray-700 dark:text-gray-300 font-medium">🕒 Son Tarama</p>
+          </div>
+        </div>
+
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Completion Status Pie Chart */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white p-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold flex items-center">
+                  <TrendingUp className="w-5 h-5 mr-2" />
+                  📈 Tamamlanma Durumu
+                </h3>
+              </div>
+            </div>
+            <div className="p-6">
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={90}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => `${value}%`} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex justify-center space-x-6 mt-4">
+                {pieData.map((entry, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }}></div>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">{entry.name} ({entry.value}%)</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Monthly Progress Bar Chart */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="bg-gradient-to-r from-teal-500 to-green-500 text-white p-4">
+              <h3 className="text-lg font-bold flex items-center">
+                <TrendingUp className="w-5 h-5 mr-2" />
+                📊 Aylık İlerleme
+              </h3>
+            </div>
+            <div className="p-6">
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={barData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="complete" fill="#059669" name="Tamamlanan" />
+                    <Bar dataKey="missing" fill="#ea580c" name="Eksik" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Activity */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-gradient-to-r from-gray-600 to-gray-800 text-white p-4">
+            <h3 className="text-lg font-bold flex items-center">
+              <Clock className="w-5 h-5 mr-2" />
+              🕒 Son Aktiviteler
+            </h3>
+          </div>
+          <div className="p-6">
+            <div className="space-y-4">
+              {recentActivity.length > 0 ? recentActivity.map((activity, index) => (
+                <div key={index} className="flex items-center space-x-4 p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                  <div className={`w-3 h-3 rounded-full ${
+                    activity.type === 'success' ? 'bg-green-500' :
+                    activity.type === 'warning' ? 'bg-orange-500' :
+                    'bg-red-500'
+                  }`}></div>
+                  <div className="flex-1">
+                    <p className="text-gray-900 dark:text-gray-100">{activity.message}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{activity.time}</p>
+                  </div>
+                </div>
+              )) : (
+                <div className="text-center text-gray-500 py-8">
+                  <Clock className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                  <p>Henüz aktivite bulunmuyor</p>
+                  <p className="text-sm">Klasör izlemeyi başlatın ve GIB dosyalarını kontrol edin</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+

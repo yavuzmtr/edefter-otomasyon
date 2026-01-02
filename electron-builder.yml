@@ -1,0 +1,47 @@
+appId: com.edefter-otomasyon.app
+productName: E-Defter Otomasyon
+directories:
+  buildResources: assets
+  output: dist-win
+
+files:
+  - from: .
+    to: .
+    filter:
+      - '!**/.vscode'
+      - '!**/.git'
+      - '!**/node_modules'
+      - '!**/dist'
+      - '!**/dist-win'
+      - '!**/.env'
+      - '!**/README.md'
+
+win:
+  target:
+    - nsis
+    - portable
+  certificateFile: null
+  certificatePassword: null
+  signingHashAlgorithms:
+    - sha256
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: E-Defter Otomasyon
+  installerIcon: assets/icon.ico
+  uninstallerIcon: assets/icon.ico
+  installerHeaderIcon: assets/icon.ico
+  installerSidebar: null
+  include: scripts/installer.nsh
+  # Uninstall handler
+  uninstallAppx: false
+  deleteAppDataOnUninstall: true
+  # Uninstall script
+  uninstallerScript: null
+
+# Post-install script
+afterSign: null
+publish: null

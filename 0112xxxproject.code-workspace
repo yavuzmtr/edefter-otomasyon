@@ -1,0 +1,31 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/BACKUP-*.md": true,
+      "**/EMAIL-*.md": true,
+      "**/SYSTEM-*.md": false,
+      "**/TEST-*.md": true,
+      "**/TEKNIK-*.md": true,
+      "**/TESLIMAT-*.md": true,
+      "**/YAPILAN-*.md": true,
+      "**/VERİFİKASYON.md": true,
+      "**/TOSTRING-*.md": true,
+      "**/YEDEKLEME-*.md": true
+    },
+    "files.watcherExclude": {
+      "**/TEST-*.md": true,
+      "**/BACKUP-*.md": true
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "ms-vscode.vscode-typescript-next",
+      "bradlc.vscode-tailwindcss"
+    ]
+  }
+}
