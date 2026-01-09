@@ -53,9 +53,16 @@ export const ReportSystem: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    loadReportData();
-    if (activeReportTab === 'system' || activeReportTab === 'email') {
+    // ✅ GIB tab'ı açıldığında rapor verilerini yükle
+    if (activeReportTab === 'gib') {
+      loadReportData();
+    }
+    // ✅ Sistem/Email tab'ları açıldığında sistem raporlarını yükle
+    else if (activeReportTab === 'system' || activeReportTab === 'email') {
       loadSystemReports();
+      // Eğer system/email'den GIB'a geçince reportData'yı temizle ki karışmasın
+      setReportData([]);
+      setFilteredData([]);
     }
   }, [activeReportTab]);
 
@@ -201,28 +208,26 @@ export const ReportSystem: React.FC = () => {
           return;
         }
         
-        const saveResult = await ElectronService.selectSaveLocation(`gib-raporu-${new Date().toISOString().split('T')[0]}.xlsx`);
-        if (!saveResult.success || !saveResult.filePath) {
-          showNotification('error', 'Kayıt yeri seçilmedi');
-          return;
-        }
+        // Excel veri formatına dönüştür (başlık satırı + veri satırları)
+        const headerRow = ['Şirket Adı', 'Vergi/TC No', 'Yıl', 'Ay', 'Dönem', 'KB Dosyası', 'KB Dosya Adı', 'YB Dosyası', 'YB Dosya Adı', 'Durum', 'Son Güncelleme'];
+        const excelData = [
+          headerRow,
+          ...(Array.isArray(filteredData) ? filteredData : []).map(item => [
+            item.company || '',
+            item.taxNumber || '',
+            item.year || '',
+            item.month.toString().padStart(2, '0') || '',
+            item.period || '',
+            item.gibFileStatus?.hasKB ? 'Mevcut' : 'Eksik',
+            item.gibFileStatus?.kbFile || 'Dosya bulunamadı',
+            item.gibFileStatus?.hasYB ? 'Mevcut' : 'Eksik',
+            item.gibFileStatus?.ybFile || 'Dosya bulunamadı',
+            item.status === 'complete' ? 'Tamamlandı' : item.status === 'incomplete' ? 'Eksik Dosya' : 'Klasör/Dosya Yok',
+            item.lastUpdate || ''
+          ])
+        ];
         
-        const excelData = (Array.isArray(filteredData) ? filteredData : []).map(item => ({
-          'Şirket Adı': item.company,
-          'Vergi/TC No': item.taxNumber,
-          'Yıl': item.year,
-          'Ay': item.month.toString().padStart(2, '0'),
-          'Dönem': item.period,
-          'KB Dosyası Durumu': item.gibFileStatus?.hasKB ? 'Mevcut' : 'Eksik',
-          'KB Dosya Adı': item.gibFileStatus?.kbFile || 'Dosya bulunamadı',
-          'YB Dosyası Durumu': item.gibFileStatus?.hasYB ? 'Mevcut' : 'Eksik', 
-          'YB Dosya Adı': item.gibFileStatus?.ybFile || 'Dosya bulunamadı',
-          'Durum': item.status === 'complete' ? 'Tamamlandı' : 
-                   item.status === 'incomplete' ? 'Eksik Dosya' : 'Klasör/Dosya Yok',
-          'Son Güncelleme': item.lastUpdate
-        }));
-        
-        const reportResult = await ElectronService.generateDetailedGIBReport(excelData, saveResult.filePath, {
+        const reportResult = await ElectronService.generateDetailedGIBReport(excelData, '', {
           totalRecords: reportData.length,
           filteredRecords: filteredData.length,
           filters: { year: selectedYear, month: selectedMonth, type: reportType, search: searchTerm }
@@ -252,7 +257,7 @@ export const ReportSystem: React.FC = () => {
         const reportResult = await ElectronService.generateActivitiesReport(emailActivities, { 
           category: 'email',
           reportType: 'E-posta Aktiviteleri'
-        });
+        }, 'E-Posta_Raporu');
         
         if (reportResult.success) {
           showNotification('success', `E-posta raporu oluşturuldu (${emailActivities.length} aktivite)`);
@@ -286,7 +291,7 @@ export const ReportSystem: React.FC = () => {
           category: activityFilter,
           search: activitySearch,
           reportType: 'Sistem Aktiviteleri'
-        });
+        }, 'Sistem_Aktiviteleri_Raporu');
         
         if (reportResult.success) {
           showNotification('success', `Sistem aktiviteleri raporu oluşturuldu (${filteredActivities.length} aktivite)`);

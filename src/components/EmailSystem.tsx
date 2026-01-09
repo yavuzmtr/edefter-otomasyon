@@ -123,8 +123,6 @@ export const EmailSystem: React.FC = () => {
   useEffect(() => {
     // ✅ KALıCI BENZERSİZ KOD SİSTEMİ: Her şirket-dönem için benzersiz hash
     let emailDebounceTimer: NodeJS.Timeout | null = null;
-    
-    // ✅ Gönderilmiş email'leri kalıcı storage'dan yükle
     const loadSentEmails = async (): Promise<Set<string>> => {
       try {
         const result = await ElectronService.loadData('sent-emails-registry', []);
@@ -174,8 +172,8 @@ export const EmailSystem: React.FC = () => {
         const automationSettings = await ElectronService.loadData('automation-settings', {});
         const emailSettings = await ElectronService.loadData('email-settings', {});
         
-        if (!automationSettings.success || !emailSettings.success) {
-          logService.log('error', 'E-posta', 'Ayarlar yüklenemedi');
+        if (!automationSettings.success) {
+          logService.log('error', 'E-posta', 'Otomasyon ayarları yüklenemedi');
           return;
         }
         
@@ -188,44 +186,54 @@ export const EmailSystem: React.FC = () => {
         }
         
         // ✅ CRİTİCAL FİX: Companies'i her seferinde fresh olarak yükle
-        // ✅ CRİTİCAL FİX: Companies'i her seferinde fresh olarak yükle
-        // State'e bağımlılık yaratma!
         const companiesResult = await ElectronService.loadData('companies', []);
         const freshCompanies = companiesResult.success ? 
           (companiesResult.data || []).filter((company: any) => company.status === 'active') : [];
         
-        // Email ayarlarından seçili şirketler ve dönemler al
-        const savedSettings = emailSettings.data;
-        const selectedCompanies = savedSettings?.selectedCompanies || [];
-        const selectedPeriods = savedSettings?.selectedPeriods || [];
-        const emailSubject = savedSettings?.subject || 'E-Defter Klasörleri';
-        const emailEnabled = savedSettings?.enabled;
+        // ✅ FİX: Kaydedilmiş ayarları kullan, yoksa mevcut state'i kullan
+        let selectedComps: string[] = [];
+        let selectedPers: SelectedPeriod[] = [];
+        let emailSubject_final: string = 'E-Defter Klasörleri';
         
-        logService.log('info', 'E-posta', `Kaydedilen ayarlar: ${selectedCompanies.length} şirket, ${selectedPeriods.length} dönem, etkin: ${emailEnabled}`);
+        // İlk olarak kaydedilmiş ayarları yükle
+        if (emailSettings.success && emailSettings.data) {
+          selectedComps = emailSettings.data.selectedCompanies || [];
+          selectedPers = emailSettings.data.selectedPeriods || [];
+          emailSubject_final = emailSettings.data.subject || 'E-Defter Klasörleri';
+        }
+        
+        // Eğer kaydedilmiş ayarlar boşsa, mevcut state'ten kullan
+        if (selectedComps.length === 0 && selectedCompanies.length > 0) {
+          selectedComps = selectedCompanies;
+          logService.log('info', 'E-posta', 'Kaydedilmiş ayarlar boş, mevcut UI seçimleri kullanılıyor');
+        }
+        
+        if (selectedPers.length === 0 && selectedPeriods.length > 0) {
+          selectedPers = selectedPeriods;
+          logService.log('info', 'E-posta', 'Kaydedilmiş dönemler boş, mevcut UI seçimleri kullanılıyor');
+        }
+        
+        logService.log('info', 'E-posta', `Kaydedilen ayarlar: ${selectedComps.length} şirket, ${selectedPers.length} dönem`);
         
         // ✅ DEBUGGING: Seçili dönemleri detaylı logla
-        if (selectedPeriods && selectedPeriods.length > 0) {
-          const periodsStr = selectedPeriods.map((p: SelectedPeriod) => `${p.month}/${p.year}`).join(', ');
+        if (selectedPers && selectedPers.length > 0) {
+          const periodsStr = selectedPers.map((p: SelectedPeriod) => `${p.month}/${p.year}`).join(', ');
           logService.log('info', 'E-posta', `Seçili dönemler: [${periodsStr}]`);
         } else {
           logService.log('warning', 'E-posta', 'Seçili dönem listesi boş veya null!');
         }
-        if (!selectedCompanies?.length) {
-          logService.log('warning', 'E-posta', 'Kaydedilmiş seçili şirket yok');
+        
+        if (!selectedComps?.length) {
+          logService.log('warning', 'E-posta', 'Seçilmiş şirket yok');
           return;
         }
         
-        if (!selectedPeriods?.length) {
-          logService.log('warning', 'E-posta', 'Kaydedilmiş seçili dönem yok');
+        if (!selectedPers?.length) {
+          logService.log('warning', 'E-posta', 'Seçilmiş dönem yok');
           return;
         }
         
-        if (!emailEnabled) {
-          logService.log('warning', 'E-posta', 'Email otomasyonu kaydedilmiş ayarlarda kapalı');
-          return;
-        }
-        
-        logService.log('info', 'E-posta', `Otomatik email gönderimi başlatılıyor: ${selectedCompanies.length} şirket, ${selectedPeriods.length} dönem`);
+        logService.log('info', 'E-posta', `Otomatik email gönderimi başlatılıyor: ${selectedComps.length} şirket, ${selectedPers.length} dönem`);
         
         // ✅ KALıCI BENZERSİZ KOD KONTROLÜ: Daha önce gönderilmiş mi?
         const sentEmailsRegistry = await loadSentEmails();
@@ -233,14 +241,14 @@ export const EmailSystem: React.FC = () => {
         // Gönderilmemiş şirket-dönem kombinasyonlarını filtrele
         const pendingEmails: Array<{companyId: string, periods: Array<{month: number, year: number}>, recipients: Array<{email: string, name: string}>}> = [];
         
-        for (const companyId of selectedCompanies) {
+        for (const companyId of selectedComps) {
           const company = freshCompanies.find((c: any) => c.id === companyId);
           if (!company) continue;
 
           const recipient = { email: company.email, name: company.name };
           const availablePeriods: Array<{month: number, year: number}> = [];
 
-          for (const period of selectedPeriods) {
+          for (const period of selectedPers) {
             const emailHash = createEmailHash(companyId, period, recipient.email);
             
             if (sentEmailsRegistry.has(emailHash)) {
@@ -324,9 +332,9 @@ export const EmailSystem: React.FC = () => {
               // Email gönder
               logService.log('info', 'E-posta', `Email gönderiliyor: ${recipient.email}`);
               const emailResult = await ElectronService.sendEmail(
-                savedSettings,
+                emailSettings,
                 [recipient.email],
-                emailSubject,
+                emailSubject_final,
                 [zipResult.zipPath], // Artık string olarak garanti
                 professionalEmailContent, // ✅ Profesyonel HTML şablonu kullan
                 emailGroup.periods
@@ -385,11 +393,20 @@ export const EmailSystem: React.FC = () => {
       }
     }; // ✅ performEmailSending fonksiyonu kapanışı
 
-    // perform-automated-scan event'ini dinle
+    // ✅ YENİ: trigger-scan event'ini dinle (yeni dosya eklendiğinde watcher tarafından tetiklenir)
+    ElectronService.onTriggerScan(handleAutomatedScan);
+    
+    // perform-automated-scan event'ini dinle (30 saniyede bir background service tarafından)
     ElectronService.onPerformAutomatedScan(handleAutomatedScan);
 
+    // ✅ CLEANUP FUNCTION: Memory leak engellemek için
     return () => {
-      // Cleanup
+      if (emailDebounceTimer) {
+        clearTimeout(emailDebounceTimer);
+        emailDebounceTimer = null;
+      }
+      ElectronService.removeAllListeners('perform-automated-scan');
+      logService.log('info', 'E-posta', 'Email automation listener\'ları temizlendi');
     };
   }, []); // ✅ CRITICAL FIX: Empty dependency - no companies dependency!
 
@@ -1361,7 +1378,7 @@ export const EmailSystem: React.FC = () => {
                             
                             const result = await ElectronService.createExcelTemplate(reportData);
                             if (result.success) {
-                              showNotification('success', 'Excel raporu oluşturuldu');
+                              showNotification('success', `✅ Excel raporu kaydedildi!\n📁 ${result.filePath?.split('\\').pop() || 'Dosya'}`);
                               logService.log('success', 'E-posta', 'Excel raporu başarıyla oluşturuldu');
                             } else {
                               showNotification('error', 'Excel raporu oluşturulamadı');

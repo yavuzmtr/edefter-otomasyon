@@ -1,4 +1,4 @@
-import { ElectronService } from './electronService';
+﻿import { ElectronService } from './electronService';
 import { Company } from '../types';
 
 interface CompanyDeadlineInfo {
@@ -282,6 +282,52 @@ class EmailNotificationService {
   getAccountantEmail(): string | null {
     return this.config?.accountantEmail || null;
   }
+
+  // ✅ TEST EMAIL GÖNDER - Email bildirimleri sistemini test et
+  async sendTestEmailNotification(accountantEmail: string): Promise<{success: boolean, error?: string}> {
+    try {
+      console.log('🧪 Test email gönderiliyor:', accountantEmail);
+
+      // GIB verisi yüklenmemiş dönemleri bul
+      const companiesResult = await ElectronService.loadData('companies', []);
+      const monitoringResult = await ElectronService.loadData('monitoring-data', []);
+      const emailConfigResult = await ElectronService.loadData('email-config', null);
+
+      if (!companiesResult.success || !emailConfigResult.success) {
+        return { success: false, error: 'Veri yükleme hatası' };
+      }
+
+      const companies: Company[] = companiesResult.data?.filter((c: Company) => c.status === 'active') || [];
+      const monitoringData = monitoringResult.data || [];
+      const emailConfig = emailConfigResult.data;
+
+      // Son 3 gündeki dönemleri kontrol et
+      const testPeriods = this.findCompaniesByDeadlineProximity(companies, monitoringData, 3);
+      
+      if (testPeriods.length === 0) {
+        return { success: false, error: 'Test için yüklenmemiş dönem bulunamadı' };
+      }
+
+      // Test email gönder
+      await this.sendProactiveAlertEmail(testPeriods, 3, emailConfig, accountantEmail);
+      
+      console.log('✅ Test email başarıyla gönderildi');
+      return { success: true };
+    } catch (error: any) {
+      console.error('❌ Test email gönderme hatası:', error);
+      return { success: false, error: error.message || 'Test email gönderilemedi' };
+    }
+  }
+
+  private getAlertLevelText(daysBeforeDeadline: number): string {
+    switch (daysBeforeDeadline) {
+      case 7: return '📋 7 Gün Öncesi';
+      case 3: return '⚠️ 3 Gün Öncesi';
+      case 1: return '🚀 1 Gün Öncesi';
+      case 0: return '🔴 Son Gün (Bugün)';
+      default: return `${daysBeforeDeadline} Gün Uyarısı`;
+    }
+  }
 }
 
 const emailNotificationService = new EmailNotificationService();
@@ -289,3 +335,4 @@ const emailNotificationService = new EmailNotificationService();
 export default emailNotificationService;
 export { EmailNotificationService };
 export type { EmailNotificationConfig, CompanyDeadlineInfo };
+

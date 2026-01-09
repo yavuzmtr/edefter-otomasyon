@@ -160,6 +160,37 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
+  // ✅ TEST EMAIL GÖNDER - Sistem test et
+  const sendTestEmailNotification = async () => {
+    try {
+      setLoading(true);
+      
+      // Validasyon
+      if (!emailNotificationConfig.accountantEmail) {
+        showNotification('error', 'Mali müşavir email adresini girin');
+        return;
+      }
+
+      console.log('📧 Test email gönderiliyor:', emailNotificationConfig.accountantEmail);
+
+      // ElectronService vasıtasıyla test email gönder
+      const result = await ElectronService.sendTestEmailNotification(emailNotificationConfig.accountantEmail);
+      
+      if (result.success) {
+        showNotification('success', `Test email başarıyla gönderildi: ${emailNotificationConfig.accountantEmail}`);
+        console.log('✅ Test email gönderildi:', result);
+      } else {
+        showNotification('error', `Email gönderilemedi: ${result.error}`);
+        console.error('❌ Test email hatası:', result.error);
+      }
+    } catch (error: any) {
+      console.error('❌ Test email gönder hatası:', error);
+      showNotification('error', `Hata: ${error?.message || 'Test email gönderilemedi'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Bildirim yönetimi
   useEffect(() => {
     if (notification) {
@@ -541,6 +572,24 @@ export const SettingsPage: React.FC = () => {
               className="px-6 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
             >
               İptal
+            </button>
+            <button
+              onClick={sendTestEmailNotification}
+              disabled={loading || !emailNotificationConfig.accountantEmail}
+              className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:bg-gray-400 transition-colors flex items-center space-x-2"
+              title="Test email göndererek sistemi test et"
+            >
+              {loading ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Gönderiliyor...</span>
+                </>
+              ) : (
+                <>
+                  <Mail className="w-4 h-4" />
+                  <span>Test Email Gönder</span>
+                </>
+              )}
             </button>
             <button
               onClick={saveEmailNotificationConfig}

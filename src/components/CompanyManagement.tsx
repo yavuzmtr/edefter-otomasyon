@@ -156,51 +156,78 @@ export const CompanyManagement: React.FC = () => {
 
   const downloadExcelTemplate = async () => {
     try {
-      // Excel şablonu için örnek veri - başındaki sıfırlar korunacak şekilde
+      // ✅ Profesyonel Excel şablonu - Tüm açıklamalar ve formatlar dahil
       const templateData = [
+        // Başlık satırı
         ['Şirket Adı', 'Vergi Numarası', 'T.C. Kimlik Numarası', 'E-posta', 'Şirket Türü', 'Raporlama Dönemi'],
-        ['ÖNEMLİ NOT: Vergi ve TC numaralarını Excel\'de TEXT formatında yazın!', '', '', '', 'Bkz. açıklama', 'Bkz. açıklama'],
-        ['Başındaki sıfırları korumak için numarayı \'0721114162 şeklinde yazın', '', '', '', '', ''],
-        ['Şirket Türü: gelir-vergisi (TC var) veya kurumlar-vergisi (Vergi No var)', '', '', '', '', ''],
-        ['Raporlama Dönemi: aylık veya 3-aylık', '', '', '', '', ''],
+        
+        // Boş satır
         ['', '', '', '', '', ''],
+        
+        // ÖNEMLI NOTLAR
+        ['🚨 ÖNEMLİ NOTLAR - Lütfen Dikkatle Okuyunuz:', '', '', '', '', ''],
+        
+        // Bölüm 1: Sıfır Sorunu
+        ['📌 1️⃣ BAŞINDA SIFIR OLAN NUMARA SORUNU:', '', '', '', '', ''],
+        ['• Vergi Numarası başında sıfır varsa: \'0721114162 şeklinde yazın', '', '', '', '', ''],
+        ['• T.C. Kimlik Numarası başında sıfır varsa: \'01234567890 şeklinde yazın', '', '', '', '', ''],
+        ['• Sistem artık başındaki sıfırları otomatik düzeltiyor', '', '', '', '', ''],
+        
+        ['', '', '', '', '', ''],
+        
+        // Bölüm 2: Gerekli Alanlar
+        ['📌 2️⃣ GEREKLİ ALANLAR:', '', '', '', '', ''],
+        ['• Şirket Adı: ZORUNLU (boş bırakmayınız)', '', '', '', '', ''],
+        ['• Vergi Numarası VEYA T.C. Kimlik Numarası: ZORUNLU (en az biri dolu olmalı)', '', '', '', '', ''],
+        ['• E-posta: ZORUNLU (kullanıcıya başarı/hata bildirimi gönderilecek)', '', '', '', '', ''],
+        
+        ['', '', '', '', '', ''],
+        
+        // Bölüm 3: Şirket Türü
+        ['📌 3️⃣ ŞİRKET TÜRÜ SEÇENEKLERI:', '', '', '', '', ''],
+        ['• gelir-vergisi: Bireysel işletmeci (T.C. Kimlik No olan)', '', '', '', '', ''],
+        ['• kurumlar-vergisi: Limited/Anonim şirket (Vergi No olan)', '', '', '', '', ''],
+        ['• Eğer T.C. Kimlik No varsa, sistem otomatik "gelir-vergisi" olarak işaretler', '', '', '', '', ''],
+        
+        ['', '', '', '', '', ''],
+        
+        // Bölüm 4: Raporlama Dönemi
+        ['📌 4️⃣ RAPORLAMA DÖNEMİ SEÇENEKLERİ:', '', '', '', '', ''],
+        ['• aylık: Aylık muhasebe raporlaması yapan şirketler', '', '', '', '', ''],
+        ['• 3-aylık: Üç aylık (dönemlik) muhasebe raporlaması yapan şirketler', '', '', '', '', ''],
+        
+        ['', '', '', '', '', ''],
+        
+        // Bölüm 5: İPUÇLARI
+        ['💡 ÖZEL İPUÇLARI:', '', '', '', '', ''],
+        ['• Her şirket için en az bir numara (Vergi No veya TC No) gereklidir', '', '', '', '', ''],
+        ['• E-posta adresini doğru yazınız, sistem bundan sonuç iletecek', '', '', '', '', ''],
+        ['• Şirket adını tam ve açık şekilde yazınız', '', '', '', '', ''],
+        
+        ['', '', '', '', '', ''],
+        ['', '', '', '', '', ''],
+        
+        // ÖRNEK VERİLER
+        ['✅ ÖRNEK VERİLER - Bu satırları silin ve yerine kendi verilerinizi yazınız:', '', '', '', '', ''],
         ['ABC Şirketi Ltd. Şti.', "'1234567890", '', 'info@abcsirketi.com', 'kurumlar-vergisi', 'aylık'],
         ['XYZ Ticaret A.Ş.', "'0987654321", '', 'iletisim@xyzticaret.com', 'kurumlar-vergisi', '3-aylık'],  
         ['DEF İnşaat Ltd.', "'0721114162", '', 'def@insaat.com', 'kurumlar-vergisi', 'aylık'],
         ['Ahmet Yılmaz', '', "'12345678901", 'ahmet.yilmaz@email.com', 'gelir-vergisi', 'aylık'],
-        ['Fatma Demir', '', "'01234567890", 'fatma.demir@email.com', 'gelir-vergisi', 'aylık']
+        ['Fatma Demir', '', "'01234567890", 'fatma.demir@email.com', 'gelir-vergisi', '3-aylık']
       ];
 
-      // Electron ortamında Excel dosyası oluştur
-      if (ElectronService.isElectron()) {
-        const result = await ElectronService.createExcelTemplate(templateData);
-        if (result.success) {
-          showNotification('success', `Excel şablonu oluşturuldu: ${result.filePath}`);
-        } else {
-          showNotification('error', result.error || 'Şablon oluşturulamadı');
-        }
+      // Electron ortamında Excel dosyası oluştur (XLSX formatında)
+      const result = await ElectronService.createExcelTemplate(templateData, { isTemplate: true });
+      if (result.success) {
+        showNotification('success', `✅ Excel şablonu başarıyla oluşturuldu!\n📁 Dosya: sirket-sablonu.xlsx`);
+        logService.logManualAction('Excel Şablonu İndirme', `Şablon başarıyla oluşturuldu: ${result.filePath}`, 'success');
       } else {
-        // Browser fallback - CSV olarak indir
-        const csvContent = templateData.map(row => 
-          row.map(cell => `"${cell}"`).join(',')
-        ).join('\n');
-
-        const BOM = '\uFEFF';
-        const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
-        
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', 'sirket-sablonu.csv');
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        showNotification('success', 'Excel şablonu indirildi (CSV formatında)');
+        showNotification('error', result.error || 'Şablon oluşturulamadı');
+        logService.logManualAction('Excel Şablonu İndirme', `Şablon oluşturma hatası: ${result.error}`, 'error');
       }
-    } catch {
+    } catch (error) {
       showNotification('error', 'Şablon indirilemedi');
+      logService.logManualAction('Excel Şablonu İndirme', `Şablon indirme hatası: ${error}`, 'error');
     }
   };
 
@@ -482,10 +509,15 @@ export const CompanyManagement: React.FC = () => {
         return;
       }
 
+      console.log('📊 Monitoring-data yapısı (ilk item):', result.data[0]);
+      console.log('📊 Toplam monitoring verileri:', result.data.length);
+      console.log('📊 isUnregistered ile filtrele:', result.data.filter((item: MonitoringData) => item.isUnregistered === true).length);
+      console.log('📊 isUnregistered undefined olan veriler:', result.data.filter((item: MonitoringData) => item.isUnregistered === undefined).length);
+
       // Benzersiz şirket ID'lerini topla (aynı vergi numarasından sadece 1 tane)
       const uniqueCompanyIds = new Set<string>();
       const unregisteredCompanies = result.data
-        .filter((item: MonitoringData) => item.isUnregistered === true)
+        .filter((item: MonitoringData) => item.isUnregistered === true || item.isUnregistered === undefined)
         .reduce((acc: Company[], curr: MonitoringData) => {
           // Aynı company ID'den sadece bir tane ekle
           if (!uniqueCompanyIds.has(curr.companyId)) {
@@ -503,7 +535,8 @@ export const CompanyManagement: React.FC = () => {
         }, []);
 
       if (unregisteredCompanies.length === 0) {
-        showNotification('success', 'Tanımlanmamış şirket bulunamadı');
+        showNotification('error', 'Tanımlanmamış şirket bulunamadı - Monitoring verilerinde tanımlanmamış şirket yok');
+        console.warn('⚠️ İçe aktarılacak tanımlanmamış şirket yok');
         return;
       }
 

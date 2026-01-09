@@ -563,17 +563,6 @@ const EDefterTrackerWrapper: React.FC = () => {
           <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
           Yenile
         </button>
-        <button
-          onClick={async () => {
-            await createSampleData();
-            await loadDeadlineData();
-          }}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition"
-        >
-          <Building className="w-5 h-5" />
-          Örnek Veri Oluştur
-        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

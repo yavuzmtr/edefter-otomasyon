@@ -43,7 +43,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   generateDetailedGIBReport: (data, filePath, metadata) => ipcRenderer.invoke('generate-detailed-gib-report', data, filePath, metadata),
   
   // Excel şablon oluşturma
-  createExcelTemplate: (data) => ipcRenderer.invoke('create-excel-template', data),
+  createExcelTemplate: (data, options) => ipcRenderer.invoke('create-excel-template', data, options),
   
   // Event listeners
   onFolderAdded: (callback) => ipcRenderer.on('folder-added', callback),
@@ -78,5 +78,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getEmailActivities: () => ipcRenderer.invoke('get-email-activities'),
   
   // ✅ YENİ: E-posta bağlantı testi
-  testEmailConnection: (emailConfig) => ipcRenderer.invoke('test-email-connection', emailConfig)
+  testEmailConnection: (emailConfig) => ipcRenderer.invoke('test-email-connection', emailConfig),
+  
+  // ✅ Test Email Notification - Email bildirimleri sistemini test et
+  sendTestEmailNotification: (accountantEmail) => ipcRenderer.invoke('send-test-email-notification', accountantEmail)
 });

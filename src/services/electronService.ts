@@ -28,7 +28,7 @@ declare global {
       loadData: (key: string, defaultValue?: any) => Promise<{success: boolean, data?: any, error?: string}>;
       generateReport: (data: any[], filePath: string) => Promise<{success: boolean, filePath?: string, error?: string}>;
       generateDetailedGIBReport: (data: any[], filePath: string, metadata: any) => Promise<{success: boolean, filePath?: string, error?: string}>;
-      createExcelTemplate: (data: any[][]) => Promise<{success: boolean, filePath?: string, error?: string}>;
+      createExcelTemplate: (data: any[][], options?: any) => Promise<{success: boolean, filePath?: string, error?: string}>;
       onFolderAdded: (callback: (event: any, path: string) => void) => void;
       onFileAdded: (callback: (event: any, path: string) => void) => void;
       onTriggerScan: (callback: (event: any) => void) => void;
@@ -47,6 +47,7 @@ declare global {
       getEmailActivities: () => Promise<{success: boolean, data?: any[], error?: string}>;
       runPowerShellScript: (scriptPath: string, args?: string[]) => Promise<{success: boolean, data?: any, error?: string}>;
       testEmailConnection: (emailConfig: any) => Promise<{success: boolean, message: string}>;
+      sendTestEmailNotification: (accountantEmail: string) => Promise<{success: boolean, error?: string}>;
     };
   }
 }
@@ -203,14 +204,45 @@ export class ElectronService {
     }
   }
 
-  static async createExcelTemplate(data: any[][]): Promise<{success: boolean, filePath?: string, error?: string}> {
+  static async createExcelTemplate(data: any[][], options?: any): Promise<{success: boolean, filePath?: string, error?: string}> {
     if (!this.isElectron()) {
       throw new Error('Excel şablonu oluşturma sadece Electron uygulamasında çalışır');
     }
     try {
-      return await window.electronAPI.createExcelTemplate(data);
+      return await window.electronAPI.createExcelTemplate(data, options);
     } catch (error: unknown) {
       console.error('Excel şablonu oluşturma hatası:', error);
+      return { success: false, error: getErrorMessage(error) };
+    }
+  }
+
+  static async generateDetailedGIBReport(data: any[], _filePath: string, _metadata: any): Promise<{success: boolean, filePath?: string, error?: string}> {
+    if (!this.isElectron()) {
+      throw new Error('GIB raporu oluşturma sadece Electron uygulamasında çalışır');
+    }
+    try {
+      return await window.electronAPI.createExcelTemplate(data, { isTemplate: false, reportName: 'GIB_Dosyalari_Raporu' });
+    } catch (error: unknown) {
+      console.error('GIB raporu oluşturma hatası:', error);
+      return { success: false, error: getErrorMessage(error) };
+    }
+  }
+
+  static async generateActivitiesReport(activities: any[], _filters: any, reportType: string = 'Sistem_Aktiviteleri_Raporu'): Promise<{success: boolean, filePath?: string, error?: string}> {
+    if (!this.isElectron()) {
+      throw new Error('Aktivite raporu oluşturma sadece Electron uygulamasında çalışır');
+    }
+    try {
+      const reportData = activities.map((activity: any) => [
+        activity.category || 'N/A',
+        activity.message || activity.operation || 'N/A',
+        activity.details || '',
+        activity.dateStr || activity.date || 'N/A',
+        activity.level || activity.status || 'N/A'
+      ]);
+      return await window.electronAPI.createExcelTemplate(reportData, { isTemplate: false, reportName: reportType });
+    } catch (error: unknown) {
+      console.error('Aktivite raporu oluşturma hatası:', error);
       return { success: false, error: getErrorMessage(error) };
     }
   }
@@ -371,6 +403,18 @@ export class ElectronService {
     }
   }
 
+  static async createCompanyZip(companyData: any, selectedMonths: any[], customMessage: string): Promise<{success: boolean, zipPath?: string, fileName?: string, error?: string}> {
+    if (!this.isElectron()) {
+      return { success: false, error: 'ZIP oluşturma sadece Electron uygulamasında çalışır' };
+    }
+    try {
+      return await window.electronAPI.createCompanyZip(companyData, selectedMonths, customMessage);
+    } catch (error: unknown) {
+      console.error('Şirket ZIP oluşturma hatası:', error);
+      return { success: false, error: getErrorMessage(error) };
+    }
+  }
+
   static async sendEmail(emailConfig: any, recipients: string[], subject: string, attachments: string[], customMessage: string, selectedMonths: any[]): Promise<{success: boolean, results?: any[], error?: string}> {
     if (!this.isElectron()) {
       return { success: false, error: 'Email gönderimi sadece Electron uygulamasında çalışır' };
@@ -383,14 +427,15 @@ export class ElectronService {
     }
   }
 
-  static async createCompanyZip(companyData: any, selectedMonths: any[], customMessage: string): Promise<{success: boolean, zipPath?: string, fileName?: string, error?: string}> {
+  static async sendTestEmailNotification(accountantEmail: string): Promise<{success: boolean, error?: string}> {
     if (!this.isElectron()) {
-      return { success: false, error: 'ZIP oluşturma sadece Electron uygulamasında çalışır' };
+      return { success: false, error: 'Test email gönderimi sadece Electron uygulamasında çalışır' };
     }
     try {
-      return await window.electronAPI.createCompanyZip(companyData, selectedMonths, customMessage);
+      const result = await window.electronAPI.sendTestEmailNotification?.(accountantEmail);
+      return result || { success: false, error: 'Test email fonksiyonu bulunmuyor' };
     } catch (error: unknown) {
-      console.error('ZIP oluşturma hatası:', error);
+      console.error('Test email gönderimi hatası:', error);
       return { success: false, error: getErrorMessage(error) };
     }
   }

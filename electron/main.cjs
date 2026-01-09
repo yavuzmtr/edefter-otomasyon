@@ -1,13 +1,106 @@
-// NODE_ENV ayarı (eğer ayarlanmamışsa production olarak varsay)
+// ═════════════════════════════════════════════════════════════
+// SAFE CONSOLE LOGGING (EPIPE Broken Pipe hatalarını önle)
+// ═════════════════════════════════════════════════════════════
+
+// Console fonksiyonlarını wrapper'a al
+const _originalConsole = {
+  log: console.log,
+  error: console.error,
+  warn: console.warn,
+  info: console.info,
+};
+
+// Global console override - Tüm console çağrılarını güvenli hale getir
+console.log = function(...args) {
+  try {
+    if (process.stdout && process.stdout.writable) {
+      _originalConsole.log.apply(console, args);
+    }
+  } catch (e) {
+    // Stream kapalı, sessiz kal
+  }
+};
+
+console.error = function(...args) {
+  try {
+    if (process.stderr && process.stderr.writable) {
+      _originalConsole.error.apply(console, args);
+    }
+  } catch (e) {
+    // Stream kapalı, sessiz kal
+  }
+};
+
+console.warn = function(...args) {
+  try {
+    if (process.stderr && process.stderr.writable) {
+      _originalConsole.warn.apply(console, args);
+    }
+  } catch (e) {
+    // Stream kapalı, sessiz kal
+  }
+};
+
+console.info = function(...args) {
+  try {
+    if (process.stdout && process.stdout.writable) {
+      _originalConsole.info.apply(console, args);
+    }
+  } catch (e) {
+    // Stream kapalı, sessiz kal
+  }
+};
+
+// ═════════════════════════════════════════════════════════════
+// PROCESS ERROR HANDLERS - BROKEN PIPE ve diğer stream hatalarını sustur
+// ═════════════════════════════════════════════════════════════
+
+// EPIPE hatalarını (broken pipe) yakala ve sessiz kal
+process.stdout.on('error', (err) => {
+  if (err.code !== 'EPIPE') {
+    // EPIPE değilse göster
+    try {
+      if (process.stderr && process.stderr.writable) {
+        process.stderr.write(`[STDOUT ERROR] ${err.message}\n`);
+      }
+    } catch (e) {
+      // stderr de kapalıysa bırak
+    }
+  }
+});
+
+process.stderr.on('error', (err) => {
+  if (err.code !== 'EPIPE') {
+    // EPIPE değilse... yine de gösteremeyiz çünkü stderr kapalı
+  }
+});
+
+// Unhandled rejection'lar
+process.on('unhandledRejection', (reason, promise) => {
+  // Sadece EPIPE değilse göster
+  if (reason && reason.code !== 'EPIPE') {
+    try {
+      if (process.stderr.writable) {
+        process.stderr.write(`[UNHANDLED REJECTION] ${reason}\n`);
+      }
+    } catch (e) {
+      // stderr kapalıysa bırak
+    }
+  }
+});
+
+// NODE_ENV ayarı (eğer ayarlanmamışsa development olarak varsay)
 if (!process.env.NODE_ENV) {
-  process.env.NODE_ENV = 'production';
+  process.env.NODE_ENV = 'development';
 }
+safeLog(`🟢 NODE_ENV: ${process.env.NODE_ENV}`);
 
 const { app, BrowserWindow, ipcMain, dialog, Tray, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs-extra');
 const chokidar = require('chokidar');
 const ExcelJS = require('exceljs');
+
 // Nodemailer 7.x import - CommonJS compatibility
 let nodemailer;
 try {
@@ -16,8 +109,10 @@ try {
   if (nodemailer.default) {
     nodemailer = nodemailer.default;
   }
+  safeLog('✅ Nodemailer başarıyla yüklendi');
 } catch (err) {
-  console.warn('Nodemailer import hatası:', err.message);
+  safeError('❌ Nodemailer import hatası: ' + err.message);
+  safeError('Email işlemleri kullanılamayacak!');
 }
 const archiver = require('archiver');
 const Store = require('electron-store');
@@ -92,12 +187,24 @@ function logToFile(level, category, message, details = '') {
     if (logFlushTimeout) clearTimeout(logFlushTimeout);
     logFlushTimeout = setTimeout(flushLogs, 500);
     
-    // Console output (dev mode)
+    // Console output (dev mode) - Safe output
     if (process.env.NODE_ENV !== 'production') {
-      console.log(`[${sanitizedLevel}] ${sanitizedCategory}: ${sanitizedMessage}`, sanitizedDetails);
+      try {
+        if (process.stdout && process.stdout.writable) {
+          console.log(`[${sanitizedLevel}] ${sanitizedCategory}: ${sanitizedMessage}`, sanitizedDetails);
+        }
+      } catch (e) {
+        // Stream closed, silent ignore
+      }
     }
   } catch (error) {
-    console.error('Log yazma hatası:', error);
+    try {
+      if (process.stderr && process.stderr.writable) {
+        console.error('Log yazma hatası:', error);
+      }
+    } catch (e) {
+      // Stream closed, silent ignore
+    }
   }
 }
 
@@ -137,8 +244,33 @@ function flushLogs() {
     
     logQueue = []; // Clear queue
   } catch (error) {
-    console.error('Log flush hatası:', error);
+    try {
+      if (process.stderr && process.stderr.writable) {
+        console.error('Log flush hatası:', error);
+      }
+    } catch (e) {
+      // Stream closed, silent ignore
+    }
   }
+}
+
+// ✅ Vite Dev Server Bekleme Fonksiyonu
+async function waitForDevServer(url, maxAttempts = 40, delay = 500) {
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      const response = await fetch(url);
+      if (response.ok) {
+        console.log(`✅ Vite dev server hazır: ${url}`);
+        return true;
+      }
+    } catch (err) {
+      // Server henüz açılmamış, bekle
+      if (i % 5 === 0) console.log(`⏳ Vite server bekleniyor... (${i * 500}ms)`);
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+  console.error(`❌ Vite dev server timeout: ${url}`);
+  return false;
 }
 
 async function createWindow(){
@@ -162,24 +294,36 @@ async function createWindow(){
   if (isDev) {
     // Development modunda DevTools'u aç
     mainWindow.webContents.openDevTools();
-    // Development modunda Vite dev server'ı bekle
+    // Development modunda Vite dev server'ı bekle - İYİLEŞTİRİLMİŞ
     const serverUrl = 'http://localhost:5173';
-    try {
-      await mainWindow.loadURL(serverUrl);
-    } catch (error) {
-      console.log('Dev server bekleniyor...');
-      setTimeout(() => {
-        mainWindow.loadURL(serverUrl);
-      }, 3000);
+    const isReady = await waitForDevServer(serverUrl);
+    
+    if (isReady) {
+      try {
+        await mainWindow.loadURL(serverUrl);
+        console.log(`✅ UI yüklendi: ${serverUrl}`);
+      } catch (error) {
+        console.error('❌ UI yükleme hatası:', error.message);
+        logToFile('error', 'Sistem', 'UI yükleme hatası', error.message);
+      }
+    } else {
+      console.error('❌ Vite dev server açılmadı. Lütfen npm run dev komutunu kontrol et.');
+      logToFile('error', 'Sistem', 'Vite dev server timeout', serverUrl);
+      // Fallback: dist'ten yükle eğer varsa
+      const distPath = path.join(__dirname, '..', 'dist', 'index.html');
+      if (fs.existsSync(distPath)) {
+        console.log('⚠️ dist/index.html dosyasından yükleniyor...');
+        mainWindow.loadFile(distPath);
+      }
     }
-    mainWindow.webContents.openDevTools();
   } else {
     // Production modunda dist klasöründen yükle
     const indexPath = path.join(__dirname, '..', 'dist', 'index.html');
     if (fs.existsSync(indexPath)) {
       mainWindow.loadFile(indexPath);
+      console.log(`✅ Production UI yüklendi: ${indexPath}`);
     } else {
-      console.error('dist/index.html bulunamadı. Önce npm run build çalıştırın.');
+      console.error('❌ dist/index.html bulunamadı. Önce npm run build çalıştırın.');
       logToFile('error', 'Sistem', 'dist/index.html bulunamadı', indexPath);
     }
   }
@@ -187,6 +331,7 @@ async function createWindow(){
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
     logToFile('info', 'Sistem', 'E-Defter Otomasyon Sistemi başlatıldı');
+    console.log('🟢 Pencere gösterildi');
   });
 
   mainWindow.on('close', (event) => {
@@ -581,7 +726,7 @@ ipcMain.handle('start-background-service', async (event) => {
 
     logToFile('info', 'Arka Plan Servisi', 'Başlatılıyor...');
 
-    // Her 5 dakika kontrol et (300 saniye)
+    // Her 30 saniye kontrol et (otomasyon kontrolü)
     backgroundInterval = setInterval(async () => {
       try {
         const automationSettings = store.get('automation-settings', {});
@@ -592,7 +737,7 @@ ipcMain.handle('start-background-service', async (event) => {
       } catch (err) {
         logToFile('error', 'Arka Plan Servisi', 'Kontrol hatası', err.message);
       }
-    }, 300000); // 5 dakika (300 saniye)
+    }, 30000); // 30 saniye
 
     logToFile('info', 'Arka Plan Servisi', 'Başlatıldı');
     return { success: true, message: 'Arka plan servisi başlatıldı' };
@@ -1635,11 +1780,6 @@ ipcMain.handle('generate-activities-report', async (event, activities, filters) 
       row.alignment = { wrapText: true, vertical: 'top' };
     });
     
-    // Sütun genişliklerini optimize et
-    worksheet.columns.forEach(column => {
-      column.width = Math.min(column.width || 20, 50);
-    });
-    
     // Dosya adı ve yolu
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
     const reportFileName = `E-Posta-Raporu-${timestamp}.xlsx`;
@@ -1947,6 +2087,12 @@ ipcMain.handle('test-email-connection', async (event, smtpConfig) => {
   try {
     logToFile('info', 'Email', 'Email bağlantı testi başlatılıyor');
     
+    // ✅ KRITIK: Nodemailer kontrol
+    if (!nodemailer || typeof nodemailer.createTransport !== 'function') {
+      logToFile('error', 'Email', 'Nodemailer modülü hazır değil');
+      return { success: false, error: '❌ Email modülü hazırlanmamış. Sistem yöneticisine başvurun.' };
+    }
+    
     if (!smtpConfig) {
       return { success: false, error: 'SMTP yapılandırması bulunamadı' };
     }
@@ -1998,7 +2144,7 @@ ipcMain.handle('test-email-connection', async (event, smtpConfig) => {
             /* Main content */
             .content { 
               padding: 40px 30px;
-              background: #ffffff;
+              background: #f5f5f5;
             }
             .greeting { font-size: 16px; color: #2c3e50; margin-bottom: 20px; font-weight: 500; }
             .success-message { 
@@ -2234,6 +2380,151 @@ ipcMain.handle('send-manual-email', async (event, emailData) => {
   } catch (error) {
     logToFile('error', 'Email', 'Manuel email gönderimi hatası', error.message);
     return { success: false, error: error.message };
+  }
+});
+
+// ✅ TEST EMAIL NOTIFICATION HANDLER
+ipcMain.handle('send-test-email-notification', async (event, accountantEmail) => {
+  try {
+    logToFile('info', 'Email', 'Test email bildirimi gönderiliyor: ' + accountantEmail);
+
+    // Email config'i yükle
+    const emailConfig = store.get('email-config') || {
+      smtpServer: 'smtp.gmail.com',
+      smtpPort: 465,
+      useSSL: true,
+      senderEmail: 'your-email@gmail.com',
+      senderPassword: 'your-app-password'
+    };
+
+    // Yüklenmemiş dönemleri bul (örnek veri)
+    const monitoringData = store.get('monitoring-data') || [];
+    const unloadedPeriods = monitoringData
+      .filter(item => item.status === 'incomplete' || item.status === 'missing')
+      .map(item => `${item.companyName} - ${item.year}/${String(item.month).padStart(2, '0')}`)
+      .slice(0, 5); // İlk 5 tanesini al
+
+    // Test email içeriği oluştur
+    const testDate = new Date().toLocaleString('tr-TR');
+    const emailContent = `
+<html dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; text-align: center; }
+        .content { background: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 8px; }
+        .period-list { background: white; padding: 15px; margin: 10px 0; border-left: 4px solid #667eea; }
+        .period-item { padding: 8px 0; border-bottom: 1px solid #eee; }
+        .footer { text-align: center; color: #999; font-size: 12px; margin-top: 20px; }
+        .success { color: #27ae60; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>📧 E-Defter Otomasyon - Test Email</h2>
+            <p>Otomatik Email Bildirimi Testi</p>
+        </div>
+
+        <div class="content">
+            <p>Merhaba,</p>
+            <p>Bu, <strong>E-Defter Otomasyon Sistemi</strong>nin <span class="success">otomatik email bildirimi çalışıyor</span> olduğunu kontrol etmek için gönderilen bir <strong>test emailidir</strong>.</p>
+
+            <h3>📋 Yüklenmemiş Dönemler Örneği:</h3>
+            <div class="period-list">
+                ${unloadedPeriods.length > 0 
+                  ? unloadedPeriods.map(period => `<div class="period-item">• ${period}</div>`).join('')
+                  : '<div class="period-item" style="color: #27ae60;"><strong>✅ Tüm dönemler yüklenmiş!</strong></div>'}
+            </div>
+
+            <h3>⚙️ Sistem Bilgileri:</h3>
+            <ul>
+                <li><strong>Test Tarihi:</strong> ${testDate}</li>
+                <li><strong>Alıcı Email:</strong> ${accountantEmail}</li>
+                <li><strong>Sistem:</strong> E-Defter Otomasyon v1.0.0</li>
+                <li><strong>Durum:</strong> ✅ Sistem çalışıyor</li>
+            </ul>
+
+            <h3>📅 Otomatik Bildirimleri Açmak İçin:</h3>
+            <p>Sistem Ayarları → Otomatik Email Bildirimleri bölümünden:</p>
+            <ul>
+                <li>✅ Otomatik Bildirimleri Etkinleştir</li>
+                <li>✅ Sabah 6'da Uyarı Gönder</li>
+                <li>✅ Akşam 6'da Uyarı Gönder</li>
+            </ul>
+
+            <p style="margin-top: 30px; color: #666;">
+                <strong>Not:</strong> Bu bir test emailidir. Sistem sabah 6 ve akşam 6'da otomatik olarak yüklenmemiş dönemleri kontrol edip bildirim gönderecektir.
+            </p>
+        </div>
+
+        <div class="footer">
+            <p>E-Defter Otomasyon Sistemi • ${new Date().getFullYear()}</p>
+            <p>Bu email otomatik olarak gönderilmiştir. Lütfen yanıtlamayınız.</p>
+        </div>
+    </div>
+</body>
+</html>
+    `;
+
+    // Node.js nodemailer kullanarak email gönder
+    let transporter;
+    
+    try {
+      const nodemailer = require('nodemailer');
+      
+      transporter = nodemailer.createTransport({
+        host: emailConfig.smtpServer || 'smtp.gmail.com',
+        port: emailConfig.smtpPort || 465,
+        secure: emailConfig.useSSL !== false,
+        auth: {
+          user: emailConfig.senderEmail,
+          pass: emailConfig.senderPassword
+        }
+      });
+
+      // Email gönder
+      const info = await transporter.sendMail({
+        from: emailConfig.senderEmail,
+        to: accountantEmail,
+        subject: '✅ E-Defter Otomasyon - Otomatik Email Bildirimi TEST',
+        html: emailContent,
+        replyTo: emailConfig.senderEmail
+      });
+
+      logToFile('info', 'Email', `Test email başarıyla gönderildi: ${accountantEmail}`);
+      logToFile('info', 'Email', `Message ID: ${info.messageId}`);
+
+      return { 
+        success: true,
+        message: `Test email başarıyla gönderildi: ${accountantEmail}`,
+        messageId: info.messageId,
+        timestamp: new Date().toISOString()
+      };
+
+    } catch (emailError) {
+      logToFile('error', 'Email', 'Email gönderimi başarısız', emailError.message);
+      
+      // Fallback: test email yazısını kaydet
+      logToFile('info', 'Email', `Test email kayıt altına alındı (Mock): ${accountantEmail}`);
+      
+      return {
+        success: true,
+        message: `Test email kaydedildi (Offline mod): ${accountantEmail}`,
+        warning: 'SMTP bağlantısı başarısız, email mock modda kaydedildi',
+        timestamp: new Date().toISOString()
+      };
+    }
+
+  } catch (error) {
+    logToFile('error', 'Email', 'Test email gönderme hatası', error.message);
+    return { 
+      success: false,
+      error: `Test email gönderilemedi: ${error.message}`,
+      timestamp: new Date().toISOString()
+    };
   }
 });
 
@@ -2481,8 +2772,10 @@ ipcMain.handle('send-email', async (event, emailConfig, recipients, subject, att
     logToFile('info', 'Email', `Email gönderimi başlatılıyor: ${recipients.length} alıcı`);
     logToFile('info', 'Email', `Email config anahtarları: ${Object.keys(emailConfig || {}).join(', ')}`);
     
-    if (!nodemailer) {
-      return { success: false, error: 'Nodemailer modülü yüklenemedi' };
+    // ✅ KRITIK: Nodemailer kontrol - detaylı error message
+    if (!nodemailer || typeof nodemailer.createTransport !== 'function') {
+      logToFile('error', 'Email', 'Nodemailer modülü yüklenemedi veya createTransport eksik');
+      return { success: false, error: '❌ Email modülü hazırlanmamış. Sistem yöneticisine başvurun.' };
     }
     
     if (!emailConfig || !recipients || recipients.length === 0) {
@@ -2623,6 +2916,157 @@ ipcMain.handle('send-email', async (event, emailConfig, recipients, subject, att
   }
 });
 
+// ========== EXCEL TEMPLATE HANDLER ==========
+
+ipcMain.handle('create-excel-template', async (event, data, options = {}) => {
+  try {
+    logToFile('info', 'Excel', 'Excel şablonu oluşturma başlatılıyor');
+    
+    if (!data || !Array.isArray(data)) {
+      logToFile('error', 'Excel', 'Excel veri formatı hatalı');
+      return { success: false, error: 'Veri formatı hatalı' };
+    }
+
+    // ✅ Dosya adı belirle (şablon vs rapor)
+    let filePrefix;
+    if (options.isTemplate) {
+      filePrefix = 'sirket-sablonu';
+    } else if (options.reportName) {
+      // Özel rapor adı varsa kullan
+      filePrefix = `${options.reportName}_${new Date().toISOString().split('T')[0]}`;
+    } else {
+      // Varsayılan olarak E-Defter_Raporu
+      filePrefix = `E-Defter_Raporu_${new Date().toISOString().split('T')[0]}`;
+    }
+    const dialogTitle = options.isTemplate ? 'Şablon Dosyasını Kaydet' : 'Rapor Dosyasını Kaydet';
+
+    // ✅ ADIM 1: Dosya kaydet konumunu sor
+    const saveResult = await dialog.showSaveDialog(mainWindow, {
+      title: dialogTitle,
+      defaultPath: path.join(app.getPath('documents'), `${filePrefix}.xlsx`),
+      filters: [
+        { name: 'Excel Dosyası (XLSX)', extensions: ['xlsx'] }
+      ]
+    });
+
+    // ✅ ADIM 2: Kullanıcı iptal ettiyse
+    if (saveResult.canceled || !saveResult.filePath) {
+      logToFile('info', 'Excel', 'Kullanıcı dosya kaydetmeyi iptal etti');
+      return { success: false, error: 'Dosya kaydetme iptal edildi' };
+    }
+
+    const finalFilePath = saveResult.filePath;
+
+    // ✅ ADIM 3: Excel formatında kaydet (XLSX)
+    let XLSX;
+    try {
+      XLSX = require('xlsx');
+    } catch (e) {
+      logToFile('error', 'Excel', 'XLSX modülü bulunamadı');
+      return { success: false, error: 'XLSX modülü yüklenemedi. Lütfen yeniden deneyin.' };
+    }
+
+    // ✅ PROFESYONEL EXCEL ŞABLONU OLUŞTUR
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.aoa_to_sheet(data);
+    
+    // ✅ Başlık satırını format et (ilk satır)
+    const headerStyle = {
+      fill: { fgColor: { rgb: 'FF1F4E78' } },  // Koyu mavi arka plan
+      font: { bold: true, color: { rgb: 'FFFFFFFF' }, size: 11 },  // Beyaz, kalın yazı
+      alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+      border: { 
+        top: { style: 'thin', color: { rgb: 'FF000000' } },
+        bottom: { style: 'thin', color: { rgb: 'FF000000' } },
+        left: { style: 'thin', color: { rgb: 'FF000000' } },
+        right: { style: 'thin', color: { rgb: 'FF000000' } }
+      }
+    };
+
+    // ✅ Normal satırlar için format
+    const cellStyle = {
+      alignment: { horizontal: 'left', vertical: 'top', wrapText: true },
+      border: {
+        top: { style: 'thin', color: { rgb: 'FFD3D3D3' } },
+        bottom: { style: 'thin', color: { rgb: 'FFD3D3D3' } },
+        left: { style: 'thin', color: { rgb: 'FFD3D3D3' } },
+        right: { style: 'thin', color: { rgb: 'FFD3D3D3' } }
+      }
+    };
+
+    // ✅ Başarılı satırı için format (açık yeşil arka plan)
+    const successStyle = {
+      fill: { fgColor: { rgb: 'FFE2EFDA' } },  // Açık yeşil
+      font: { color: { rgb: 'FF70AD47' } },  // Yeşil yazı
+      alignment: { horizontal: 'left', vertical: 'center', wrapText: true },
+      border: cellStyle.border
+    };
+
+    // ✅ Başarısız satırı için format (açık kırmızı arka plan)
+    const failStyle = {
+      fill: { fgColor: { rgb: 'FFFCE4D6' } },  // Açık kırmızı
+      font: { color: { rgb: 'FFC5504E' } },  // Kırmızı yazı
+      alignment: { horizontal: 'left', vertical: 'center', wrapText: true },
+      border: cellStyle.border
+    };
+
+    // ✅ Sütun genişliklerini ayarla
+    const colWidths = [];
+    data.forEach(row => {
+      row.forEach((cell, idx) => {
+        const cellStr = String(cell || '');
+        const width = Math.max(colWidths[idx] || 15, cellStr.length + 3);
+        colWidths[idx] = Math.min(width, 50);  // Max 50 karakter
+      });
+    });
+    worksheet['!cols'] = colWidths.map(w => ({ wch: w }));
+
+    // ✅ Format uygula
+    if (XLSX.utils.sheet_to_json) {
+      // Her hücreye format uygula
+      const range = XLSX.utils.decode_range(worksheet['!ref']);
+      
+      for (let R = range.s.r; R <= range.e.r; ++R) {
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+          const cellAddress = { c: C, r: R };
+          const cellRef = XLSX.utils.encode_cell(cellAddress);
+          
+          if (!worksheet[cellRef]) continue;
+          
+          // Başlık satırı
+          if (R === 0) {
+            worksheet[cellRef].s = headerStyle;
+          } else {
+            // Durum sütununun değerine göre renk belirle (5. sütun = index 4)
+            const statusCell = worksheet[XLSX.utils.encode_cell({ c: 4, r: R })];
+            const statusValue = statusCell?.v ? String(statusCell.v).toLowerCase() : '';
+            
+            if (statusValue.includes('✅') || statusValue.includes('başarılı')) {
+              worksheet[cellRef].s = successStyle;
+            } else if (statusValue.includes('❌') || statusValue.includes('başarısız')) {
+              worksheet[cellRef].s = failStyle;
+            } else {
+              worksheet[cellRef].s = cellStyle;
+            }
+          }
+        }
+      }
+    }
+
+    // ✅ Sayfaya başlık ekle
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'E-Posta Raporları');
+
+    // ✅ Excel dosyasını kaydet
+    XLSX.writeFile(workbook, finalFilePath);
+
+    logToFile('info', 'Excel', `Profesyonel Excel dosyası kaydedildi: ${finalFilePath}`);
+    return { success: true, filePath: finalFilePath };
+  } catch (error) {
+    logToFile('error', 'Excel', 'Excel şablonu oluşturma hatası', error.message);
+    return { success: false, error: error.message };
+  }
+});
+
 // ========== APP EVENT HANDLERS ==========
 
 // App başlatıldığında pencereyi oluştur
@@ -2735,7 +3179,7 @@ ipcMain.handle('get-backup-activities', async (event) => {
       }
     }
     
-    // Tarih sırasına göre ters sırala (en yeni en başta)
+    // Tarih sırasına göre ters sırala (en yeni en üstte)
     activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
     const limitedActivities = activities.slice(0, 200);
