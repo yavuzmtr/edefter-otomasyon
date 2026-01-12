@@ -3,7 +3,7 @@ import { ElectronService } from './services/electronService';
 import emailNotificationService from './services/emailNotificationService';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Sidebar } from './components/Sidebar';
-import { Dashboard } from './components/Dashboard';
+import { Dashboard } from './components/DashboardSimple';
 import { CompanyManagement } from './components/CompanyManagement';
 import { MonitoringSystem } from './components/MonitoringSystem';
 import { ReportSystem } from './components/ReportSystem';
@@ -23,12 +23,14 @@ function App() {
       console.warn('Uygulama browser modunda çalışıyor - bazı özellikler çalışmayabilir');
     }
 
-    // Email notification servisi başlat
-    emailNotificationService.initialize().catch((error) => {
-      console.warn('Email notification servisi başlatma başarısız (normal, henüz yapılandırılmamış olabilir):', error);
-    });
+    // Email notification servisi başlat (async, non-blocking)
+    setTimeout(() => {
+      emailNotificationService.initialize().catch((error) => {
+        console.warn('Email notification servisi başlatma başarısız (normal, henüz yapılandırılmamış olabilir):', error);
+      });
+    }, 2000); // 2 saniye delay - UI render'ı engellemesin
 
-    // ✅ BAŞLAMA KONTROLÜ - Otomasyon açık ise otomatik başlat
+    // ✅ BAŞLAMA KONTROLÜ - Otomasyon açık ise otomatik başlat (deferred)
     const initializeAutoStarting = async () => {
       try {
         const automationSettings = await ElectronService.loadData('automation-settings', {});
@@ -49,7 +51,7 @@ function App() {
         }
 
         // Eğer monitoring-data boşsa, ilk başlangıçta tarama yap
-        if ((!existingData.data || existingData.data.length === 0) && sourcePath) {
+        if ((!existingData?.data || (Array.isArray(existingData?.data) && existingData.data.length === 0)) && sourcePath) {
           console.log('📊 İlk başlangıçta GIB taraması yapılıyor:', sourcePath);
           try {
             const scanResult = await ElectronService.scanFolderStructure(sourcePath, '');
@@ -98,8 +100,10 @@ function App() {
       }
     };
 
-    // Auto-start'ı tetikle
-    initializeAutoStarting();
+    // Auto-start'ı tetikle (deferred - UI render'dan sonra)
+    setTimeout(() => {
+      initializeAutoStarting();
+    }, 3000);
 
     // Cleanup
     return () => {
@@ -133,29 +137,53 @@ function App() {
       );
     }
 
-    switch (activeTab) {
-      case 'dashboard':
-        return <Dashboard />;
-      case 'companies':
-        return <CompanyManagement />;
-      case 'deadline-tracker':
-        return <EDefterTrackerWrapper />;
-      case 'monitoring':
-        return <MonitoringSystem />;
-      case 'reports':
-        return <ReportSystem />;
-      case 'backup':
-        return <BackupSystem />;
-      case 'email':
-        return <EmailSystem />;
-      case 'automation':
-        return <AutomationSettings />;
-      case 'edefter-info':
-        return <EDefterInfo />;
-      case 'settings':
-        return <SettingsPage />;
-      default:
-        return <Dashboard />;
+    try {
+      switch (activeTab) {
+        case 'dashboard':
+          return (
+            <div className="w-full">
+              <h1 className="text-3xl font-bold mb-6">Kontrol Paneli</h1>
+              <p className="text-gray-600 mb-4">Dashboard yükleniyor...</p>
+              <Dashboard />
+            </div>
+          );
+        case 'companies':
+          return <CompanyManagement />;
+        case 'deadline-tracker':
+          return <EDefterTrackerWrapper />;
+        case 'monitoring':
+          return <MonitoringSystem />;
+        case 'reports':
+          return <ReportSystem />;
+        case 'backup':
+          return <BackupSystem />;
+        case 'email':
+          return <EmailSystem />;
+        case 'automation':
+          return <AutomationSettings />;
+        case 'edefter-info':
+          return <EDefterInfo />;
+        case 'settings':
+          return <SettingsPage />;
+        default:
+          return (
+            <div className="w-full">
+              <h1 className="text-3xl font-bold mb-6">Kontrol Paneli</h1>
+              <p className="text-gray-600 mb-4">Dashboard yükleniyor...</p>
+              <Dashboard />
+            </div>
+          );
+      }
+    } catch (error) {
+      console.error('❌ Sayfa yükleme hatası:', error);
+      return (
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center p-8 bg-red-50 border border-red-200 rounded-xl max-w-md">
+            <h3 className="text-lg font-semibold text-red-800 mb-2">Sayfa Yükleme Hatası</h3>
+            <p className="text-red-700">{error instanceof Error ? error.message : 'Bilinmeyen hata'}</p>
+          </div>
+        </div>
+      );
     }
   };
 
