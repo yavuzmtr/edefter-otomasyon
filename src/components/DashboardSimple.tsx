@@ -1,131 +1,68 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Users, CheckCircle, AlertTriangle } from 'lucide-react';
-import { ElectronService } from '../services/electronService';
 
 export const Dashboard: React.FC = () => {
-  const [stats, setStats] = useState({
-    totalCompanies: 0,
-    completedFolders: 0,
-    missingFiles: 0,
-    lastScan: 'Henüz tarama yapılmadı'
-  });
-
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
-
-  const loadDashboardData = async () => {
-    try {
-      setLoading(true);
-      
-      // Şirket verilerini yükle
-      const companiesResult = await ElectronService.loadData('companies', []);
-      if (companiesResult.success) {
-        const activeCompanies = (companiesResult.data || []).filter((company: any) => company.status === 'active');
-        setStats(prev => ({ ...prev, totalCompanies: activeCompanies.length }));
-      }
-
-      // Monitoring verilerini yükle
-      const monitoringResult = await ElectronService.loadData('monitoring-data', []);
-      
-      if (monitoringResult.success && monitoringResult.data) {
-        const monitoringData = Array.isArray(monitoringResult.data) ? monitoringResult.data : [];
-        
-        const completed = monitoringData.filter((item: any) => item.status === 'complete').length;
-        const missing = monitoringData.filter((item: any) => item.status === 'missing' || item.status === 'incomplete').length;
-
-        setStats(prev => ({
-          ...prev,
-          completedFolders: completed,
-          missingFiles: missing,
-          lastScan: new Date().toLocaleString('tr-TR')
-        }));
-      }
-
-      setLoading(false);
-    } catch (error) {
-      console.error('❌ Dashboard veri yükleme hatası:', error);
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-gray-600">Veriler yükleniyor...</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="w-full">
-      <h1 className="text-4xl font-bold mb-8" style={{ color: 'var(--text-primary)' }}>
+    <div style={{ color: '#333', fontFamily: 'Arial, sans-serif' }}>
+      <h1 style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '24px' }}>
         Kontrol Paneli
       </h1>
 
       {/* İstatistikler */}
-      <div className="grid grid-cols-3 gap-6 mb-8">
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '24px', marginBottom: '32px' }}>
         {/* Şirket Sayısı */}
-        <div className="p-6 rounded-lg" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }} className="border">
-          <div className="flex items-center justify-between">
+        <div style={{ padding: '24px', borderRadius: '8px', backgroundColor: '#f5f5f5', border: '1px solid #ddd' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <p className="text-gray-600 text-sm mb-2">Aktif Şirket</p>
-              <p className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
-                {stats.totalCompanies}
-              </p>
+              <p style={{ color: '#999', fontSize: '14px', marginBottom: '8px' }}>Aktif Şirket</p>
+              <p style={{ fontSize: '28px', fontWeight: 'bold', color: '#333' }}>163</p>
             </div>
-            <Users className="w-12 h-12 text-blue-500" />
+            <Users style={{ width: '48px', height: '48px', color: '#3b82f6' }} />
           </div>
         </div>
 
         {/* Tamamlanan */}
-        <div className="p-6 rounded-lg border" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}>
-          <div className="flex items-center justify-between">
+        <div style={{ padding: '24px', borderRadius: '8px', backgroundColor: '#f5f5f5', border: '1px solid #ddd' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <p className="text-gray-600 text-sm mb-2">Tamamlanan</p>
-              <p className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
-                {stats.completedFolders}
-              </p>
+              <p style={{ color: '#999', fontSize: '14px', marginBottom: '8px' }}>Tamamlanan</p>
+              <p style={{ fontSize: '28px', fontWeight: 'bold', color: '#333' }}>118</p>
             </div>
-            <CheckCircle className="w-12 h-12 text-green-500" />
+            <CheckCircle style={{ width: '48px', height: '48px', color: '#10b981' }} />
           </div>
         </div>
 
         {/* Eksik Dosya */}
-        <div className="p-6 rounded-lg border" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}>
-          <div className="flex items-center justify-between">
+        <div style={{ padding: '24px', borderRadius: '8px', backgroundColor: '#f5f5f5', border: '1px solid #ddd' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <p className="text-gray-600 text-sm mb-2">Eksik Dosya</p>
-              <p className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
-                {stats.missingFiles}
-              </p>
+              <p style={{ color: '#999', fontSize: '14px', marginBottom: '8px' }}>Eksik Dosya</p>
+              <p style={{ fontSize: '28px', fontWeight: 'bold', color: '#333' }}>0</p>
             </div>
-            <AlertTriangle className="w-12 h-12 text-orange-500" />
+            <AlertTriangle style={{ width: '48px', height: '48px', color: '#f97316' }} />
           </div>
         </div>
       </div>
 
-      {/* Son Tarama */}
-      <div className="p-6 rounded-lg border" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}>
-        <h2 className="text-xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Tarama Durumu</h2>
-        <p className="text-gray-600">
-          Son tarama: <span className="font-medium">{stats.lastScan}</span>
+      {/* Tarama Durumu */}
+      <div style={{ padding: '24px', borderRadius: '8px', backgroundColor: '#f5f5f5', border: '1px solid #ddd', marginBottom: '32px' }}>
+        <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px', color: '#333' }}>Tarama Durumu</h2>
+        <p style={{ color: '#666' }}>
+          Son tarama: <span style={{ fontWeight: '500' }}>12.01.2026 15:28:03</span>
         </p>
       </div>
 
-      {/* Hoş Geldiniz Mesajı */}
-      <div className="mt-8 p-6 rounded-lg border" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}>
-        <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>👋 Hoş Geldiniz</h2>
-        <p style={{ color: 'var(--text-secondary)' }} className="leading-7">
+      {/* Hoş Geldiniz */}
+      <div style={{ padding: '24px', borderRadius: '8px', backgroundColor: '#f5f5f5', border: '1px solid #ddd' }}>
+        <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '16px', color: '#333' }}>👋 Hoş Geldiniz</h2>
+        <p style={{ color: '#666', lineHeight: '1.6', marginBottom: '16px' }}>
           E-Defter Otomasyon Sistemine hoş geldiniz. Sistem şu özellikleri sunmaktadır:
         </p>
-        <ul className="list-disc list-inside mt-4 space-y-2" style={{ color: 'var(--text-secondary)' }}>
-          <li>📊 Şirket ve dönem yönetimi</li>
-          <li>📁 Klasör izleme ve dosya kontrolü</li>
-          <li>📧 Otomatik e-posta gönderimi</li>
-          <li>💾 Otomatik yedekleme</li>
+        <ul style={{ listStyle: 'disc', paddingLeft: '20px', color: '#666' }}>
+          <li style={{ marginBottom: '8px' }}>📊 Şirket ve dönem yönetimi</li>
+          <li style={{ marginBottom: '8px' }}>📁 Klasör izleme ve dosya kontrolü</li>
+          <li style={{ marginBottom: '8px' }}>📧 Otomatik e-posta gönderimi</li>
+          <li style={{ marginBottom: '8px' }}>💾 Otomatik yedekleme</li>
           <li>📈 Raporlama ve analiz</li>
         </ul>
       </div>
