@@ -93,7 +93,7 @@ process.on('unhandledRejection', (reason, promise) => {
 if (!process.env.NODE_ENV) {
   process.env.NODE_ENV = 'development';
 }
-safeLog(`🟢 NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(`🟢 NODE_ENV: ${process.env.NODE_ENV}`);
 
 const { app, BrowserWindow, ipcMain, dialog, Tray, Menu } = require('electron');
 const path = require('path');
@@ -109,10 +109,10 @@ try {
   if (nodemailer.default) {
     nodemailer = nodemailer.default;
   }
-  safeLog('✅ Nodemailer başarıyla yüklendi');
+  console.log('✅ Nodemailer başarıyla yüklendi');
 } catch (err) {
-  safeError('❌ Nodemailer import hatası: ' + err.message);
-  safeError('Email işlemleri kullanılamayacak!');
+  console.error('❌ Nodemailer import hatası: ' + err.message);
+  console.error('Email işlemleri kullanılamayacak!');
 }
 const archiver = require('archiver');
 const Store = require('electron-store');
