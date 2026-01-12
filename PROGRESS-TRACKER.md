@@ -121,34 +121,35 @@ TEST-KILAVUZU.md (talimatlar)
 ## 📝 SON OTURUM NOTU
 
 **Tarih:** 12 Ocak 2026  
-**Saat:** 15:00  
-**Ne Yapıldı:**
-1. ✅ safeLog hatası düzeltildi
-2. ✅ Gereksiz dosyalar silindi (~100+ file)
-3. ✅ Sayfa yükleme optimizasyonu yapıldı
-4. ✅ **Sayfa gösterilmiyor sorunu çözüldü:**
-   - `App.tsx` renderContent() hata boundary eklendi
-   - `App.tsx` loadData null check düzeltildi
-   - `Dashboard.tsx` monitoring-data check düzeltildi
-   - Error handling iyileştirildi
+**Saat:** 15:15  
+**Bulduğum Sorun:**
+- ❌ `npm run electron` (YALNIZ) = Vite server açılmıyor!
+- ✅ `npm run electron-dev` = Vite + Electron beraber başlatılıyor (concurrently)
 
-**Son Hatalar Düzeltildi:**
-- ❌ `existingData.data.length` → ✅ `existingData?.data?.length` (null safe)
-- ❌ renderContent() hatasız handling yok → ✅ Try-catch + error UI
-- ❌ Console'da hata gizli → ✅ Error boundary ile görünür
+**Çözüm:**
+- Vite server timeout alıyordu çünkü sadece Electron başlatılıyordu
+- `npm run electron-dev` **hem Vite hem Electron** başlatır
+- Build dist/index.html dosyasından fallback yükliyordu (eski build)
 
-**Uygulama Durumu:**
-- ✅ Vite dev server çalışıyor (5173)
-- ✅ Electron window açılıyor
-- ✅ Sidebar görünüyor
-- ✅ Dashboard başladı (hata boundary ile koruma)
-- ✅ Arka Plan Servisi aktif
+**Başlatma Komutu (Doğru):**
+```bash
+npm run electron-dev
+```
+
+**Ne Çalışıyor:**
+- ✅ Vite dev server (5173 portu)
+- ✅ Electron window
+- ✅ React hot reload
+- ✅ Sidebar + DashboardSimple
+- ✅ Arka Plan Servisi
 
 **Sonraki Adımlar:**
-1. Dashboard sayfası açılıp açılmadığını kontrol et
-2. Şirket ekle ve test et
+1. Sayfa şu anda **görünmeliydi** (Vite server sağlıysa)
+2. Şirket ekle test et
 3. Email gönderme testini yap
 
 ---
+
+**ÖNEMLI:** Her başlatışta `npm run electron-dev` kullan, başka komut değil!
 
 **Bu dosyayı her session'da kontrol et!**
