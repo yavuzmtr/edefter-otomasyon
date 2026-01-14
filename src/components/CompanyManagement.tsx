@@ -612,7 +612,7 @@ export const CompanyManagement: React.FC = () => {
           <button
             onClick={handleFileUpload}
             disabled={loading}
-            className="bg-secondary-600 text-white px-4 py-2 rounded-lg hover:bg-secondary-700 disabled:bg-gray-400 transition-colors cursor-pointer flex items-center space-x-2"
+            className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:bg-gray-400 transition-colors cursor-pointer flex items-center space-x-2"
           >
             <Upload className="w-4 h-4" />
             <span>{loading ? 'Yükleniyor...' : 'Excel Yükle'}</span>
@@ -626,7 +626,7 @@ export const CompanyManagement: React.FC = () => {
           </button>
           <button
             onClick={() => setShowAddModal(true)}
-            className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors flex items-center space-x-2"
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
           >
             <Plus className="w-4 h-4" />
             <span>Şirket Ekle</span>

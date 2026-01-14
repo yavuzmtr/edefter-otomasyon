@@ -1,20 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Users, 
-  AlertTriangle, 
+  AlertTriangle,
   CheckCircle, 
-  Clock,
   TrendingUp
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { ElectronService } from '../services/electronService';
 import { logService } from '../services/logService';
-
-interface Activity {
-  type: 'success' | 'warning' | 'error';
-  message: string;
-  time: string;
-}
 
 interface MonitoringItem {
   status: 'complete' | 'incomplete' | 'missing';
@@ -43,8 +36,6 @@ export const Dashboard: React.FC = () => {
     { name: 'Beklemede', value: 0, color: '#6b7280' }
   ]);
 
-  const [recentActivity, setRecentActivity] = useState<Activity[]>([]);
-
   const [barData, setBarData] = useState([
     { month: 'Oca', complete: 0, missing: 0 },
     { month: 'Şub', complete: 0, missing: 0 },
@@ -59,26 +50,6 @@ export const Dashboard: React.FC = () => {
     { month: 'Kas', complete: 0, missing: 0 },
     { month: 'Ara', complete: 0, missing: 0 }
   ]);
-
-  // Zaman formatı yardımcı fonksiyonu
-  const formatTimeAgo = (timestamp: string): string => {
-    try {
-      const now = new Date();
-      const logTime = new Date(timestamp);
-      const diffInMinutes = Math.floor((now.getTime() - logTime.getTime()) / (1000 * 60));
-      
-      if (diffInMinutes < 1) return 'Az önce';
-      if (diffInMinutes < 60) return `${diffInMinutes} dakika önce`;
-      
-      const diffInHours = Math.floor(diffInMinutes / 60);
-      if (diffInHours < 24) return `${diffInHours} saat önce`;
-      
-      const diffInDays = Math.floor(diffInHours / 24);
-      return `${diffInDays} gün önce`;
-    } catch {
-      return 'Bilinmeyen zaman';
-    }
-  };
 
   useEffect(() => {
     loadDashboardData();
@@ -117,7 +88,9 @@ export const Dashboard: React.FC = () => {
           }, null);
           
           if (latestScan) {
-            lastScanText = formatTimeAgo(latestScan.toString());
+            // Tarih formatı: DD.MM.YYYY HH:MM:SS
+            const date = new Date(latestScan);
+            lastScanText = date.toLocaleString('tr-TR');
           }
         }
 
@@ -174,25 +147,6 @@ export const Dashboard: React.FC = () => {
         });
         
         setBarData(monthlyStats);
-      }
-
-      // Gerçek aktivite loglarını yükle
-      const logsResult = await ElectronService.loadData('activity-logs', []);
-      if (logsResult.success && logsResult.data && Array.isArray(logsResult.data)) {
-        // Son 10 aktiviteyi al ve formatla
-        const recentLogs: Activity[] = logsResult.data
-          .slice(-10) // Son 10 aktivite
-          .reverse() // En yeni başta olsun
-          .map((log: any) => ({
-            type: (log.status === 'success' ? 'success' : 
-                   log.status === 'error' ? 'error' : 'warning') as 'success' | 'warning' | 'error',
-            message: `${log.title}: ${log.description}`,
-            time: formatTimeAgo(log.timestamp)
-          }));
-        setRecentActivity(recentLogs);
-      } else {
-        // Veri yoksa varsayılan mesaj göster
-        setRecentActivity([]);
       }
 
     } catch (error) {
@@ -264,7 +218,7 @@ export const Dashboard: React.FC = () => {
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 hover:shadow-xl transition-all overflow-hidden">
             <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-3 -m-6 mb-4">
               <div className="flex items-center justify-between">
-                <Clock className="w-6 h-6" />
+                <span className="text-2xl">🕒</span>
                 <div className="text-right">
                   <p className="text-lg font-bold">{stats.lastScan}</p>
                   <p className="text-sm text-purple-100">Güncel</p>
@@ -340,39 +294,6 @@ export const Dashboard: React.FC = () => {
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Recent Activity */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="bg-gradient-to-r from-gray-600 to-gray-800 text-white p-4">
-            <h3 className="text-lg font-bold flex items-center">
-              <Clock className="w-5 h-5 mr-2" />
-              🕒 Son Aktiviteler
-            </h3>
-          </div>
-          <div className="p-6">
-            <div className="space-y-4">
-              {recentActivity.length > 0 ? recentActivity.map((activity, index) => (
-                <div key={index} className="flex items-center space-x-4 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                  <div className={`w-3 h-3 rounded-full ${
-                    activity.type === 'success' ? 'bg-green-500' :
-                    activity.type === 'warning' ? 'bg-orange-500' :
-                    'bg-red-500'
-                  }`}></div>
-                  <div className="flex-1">
-                    <p className="text-gray-900 dark:text-gray-100">{activity.message}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{activity.time}</p>
-                  </div>
-                </div>
-              )) : (
-                <div className="text-center text-gray-500 py-8">
-                  <Clock className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                  <p>Henüz aktivite bulunmuyor</p>
-                  <p className="text-sm">Klasör izlemeyi başlatın ve GIB dosyalarını kontrol edin</p>
-                </div>
-              )}
             </div>
           </div>
         </div>

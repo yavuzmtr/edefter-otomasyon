@@ -255,7 +255,7 @@ function flushLogs() {
 }
 
 // ✅ Vite Dev Server Bekleme Fonksiyonu
-async function waitForDevServer(url, maxAttempts = 40, delay = 500) {
+async function waitForDevServer(url, maxAttempts = 30, delay = 300) {
   for (let i = 0; i < maxAttempts; i++) {
     try {
       const response = await fetch(url);
@@ -265,7 +265,7 @@ async function waitForDevServer(url, maxAttempts = 40, delay = 500) {
       }
     } catch (err) {
       // Server henüz açılmamış, bekle
-      if (i % 5 === 0) console.log(`⏳ Vite server bekleniyor... (${i * 500}ms)`);
+      if (i % 5 === 0) console.log(`⏳ Vite server bekleniyor... (${i * 300}ms)`);
       await new Promise(r => setTimeout(r, delay));
     }
   }
@@ -278,8 +278,10 @@ async function createWindow(){
   cleanupOldLogs();
   
   mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 900,
+    width: 1280,
+    height: 800,
+    minWidth: 800,
+    minHeight: 600,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -302,9 +304,15 @@ async function createWindow(){
       try {
         await mainWindow.loadURL(serverUrl);
         console.log(`✅ UI yüklendi: ${serverUrl}`);
+        // UI yüklendikten sonra pencereyi göster
+        mainWindow.show();
+        logToFile('info', 'Sistem', 'E-Defter Otomasyon Sistemi başlatıldı');
+        console.log('🟢 Pencere gösterildi');
       } catch (error) {
         console.error('❌ UI yükleme hatası:', error.message);
         logToFile('error', 'Sistem', 'UI yükleme hatası', error.message);
+        // Hata durumunda yine de pencereyi göster (boş olsa da)
+        mainWindow.show();
       }
     } else {
       console.error('❌ Vite dev server açılmadı. Lütfen npm run dev komutunu kontrol et.');
@@ -314,6 +322,11 @@ async function createWindow(){
       if (fs.existsSync(distPath)) {
         console.log('⚠️ dist/index.html dosyasından yükleniyor...');
         mainWindow.loadFile(distPath);
+        mainWindow.show();
+      } else {
+        // En son çare: boş pencereyi göster
+        mainWindow.loadURL('about:blank');
+        mainWindow.show();
       }
     }
   } else {
@@ -322,16 +335,18 @@ async function createWindow(){
     if (fs.existsSync(indexPath)) {
       mainWindow.loadFile(indexPath);
       console.log(`✅ Production UI yüklendi: ${indexPath}`);
+      mainWindow.show();
     } else {
       console.error('❌ dist/index.html bulunamadı. Önce npm run build çalıştırın.');
       logToFile('error', 'Sistem', 'dist/index.html bulunamadı', indexPath);
+      mainWindow.loadURL('about:blank');
+      mainWindow.show();
     }
   }
 
-  mainWindow.once('ready-to-show', () => {
-    mainWindow.show();
-    logToFile('info', 'Sistem', 'E-Defter Otomasyon Sistemi başlatıldı');
-    console.log('🟢 Pencere gösterildi');
+  // ready-to-show event yerine loadURL başarılı olduğunda göster
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log('✅ İçerik yükleme tamamlandı');
   });
 
   mainWindow.on('close', (event) => {
@@ -2320,11 +2335,13 @@ ipcMain.handle('test-email-connection', async (event, smtpConfig) => {
       return { success: true, message: 'Test maili başarıyla gönderildi! (Gelen kutunuzu kontrol edin)' };
     } else {
       logToFile('error', 'Email', 'Test maili gönderilemedi');
-      return { success: false, error: 'Test maili gönderilemedi' };
+      return { success: false, message: 'Test maili gönderilemedi' };
     }
   } catch (error) {
-    logToFile('error', 'Email', 'Email bağlantı test hatası', error.message);
-    return { success: false, error: error.message };
+    const errorMsg = error?.message || error?.toString() || 'Bilinmeyen SMTP hatası';
+    logToFile('error', 'Email', 'Email bağlantı test hatası', errorMsg);
+    console.error('[EMAIL TEST ERROR]', error);
+    return { success: false, message: `SMTP Bağlantı Hatası: ${errorMsg}` };
   }
 });
 

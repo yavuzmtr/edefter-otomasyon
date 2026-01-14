@@ -858,13 +858,11 @@ export const ReportSystem: React.FC = () => {
                 </div>
 
                 {/* E-posta Aktiviteleri Tablosu */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                  <div className="px-6 py-4 border-b border-gray-200">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      Detaylı E-posta Aktiviteleri ({emailActivities.length} aktivite)
-                    </h3>
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl shadow-sm border border-blue-200 overflow-hidden">
+                  <div className="px-6 py-4 bg-white border-b border-gray-200">
+                    <h3 className="text-lg font-semibold text-gray-800">Detaylı E-posta Aktiviteleri ({emailActivities.length} aktivite)</h3>
                   </div>
-                  <div className="overflow-x-auto overflow-y-auto max-h-96">
+                  <div className="max-h-96 overflow-y-auto">
                     <table className="w-full">
                       <thead className="bg-gray-50 sticky top-0 z-10">
                         <tr>
@@ -874,7 +872,7 @@ export const ReportSystem: React.FC = () => {
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Detaylar</th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
+                      <tbody className="divide-y divide-gray-200">
                         {emailActivities.map((activity, index) => (
                           <tr key={activity.id || index} className="hover:bg-gray-50 transition-colors">
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
@@ -890,10 +888,10 @@ export const ReportSystem: React.FC = () => {
                                  activity.level === 'error' ? '❌ Başarısız' : '📧 Bilgi'}
                               </span>
                             </td>
-                            <td className="px-6 py-4 text-sm text-gray-900 dark:text-white max-w-sm truncate">
+                            <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
                               {activity.message || 'Mesaj yok'}
                             </td>
-                            <td className="px-6 py-4 text-sm max-w-sm">
+                            <td className="px-6 py-4 text-sm">
                               {activity.details ? (
                                 <span className={`${activity.level === 'error' ? 'text-red-600' : 'text-gray-600'} break-words`}>
                                   {activity.details.substring(0, 100)}

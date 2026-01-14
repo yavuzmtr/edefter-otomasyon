@@ -3,7 +3,7 @@ import { ElectronService } from './services/electronService';
 import emailNotificationService from './services/emailNotificationService';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Sidebar } from './components/Sidebar';
-import { Dashboard } from './components/DashboardSimple';
+import { Dashboard } from './components/Dashboard';
 import { CompanyManagement } from './components/CompanyManagement';
 import { MonitoringSystem } from './components/MonitoringSystem';
 import { ReportSystem } from './components/ReportSystem';

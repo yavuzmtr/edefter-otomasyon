@@ -67,6 +67,7 @@ export const SettingsPage: React.FC = () => {
         console.error('Email notification config yükleme hatası:', error);
       }
     };
+    
     loadEmailNotificationConfig();
   }, []);
 
@@ -358,8 +359,6 @@ export const SettingsPage: React.FC = () => {
           </div>
         </div>
       </div>
-
-
 
       {/* Email Notification Settings */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">

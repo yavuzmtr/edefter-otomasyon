@@ -22,6 +22,25 @@ class LogService {
   
   // Sistem aktivitesi ekleme
   addSystemActivity(type: string, title: string, description: string, status: 'success' | 'error' | 'info' = 'info', details?: any) {
+    // Gereksiz logları filtrele - sadece önemli işlemleri kaydet
+    const irrelevantPatterns = [
+      /Veri yüklendi:/i,
+      /Dashboard/i,
+      /Sistem Başlatıldı/i,
+      /LogService/i,
+      /monitoring-data/i,
+      /email-notification/i,
+      /activity-logs/i
+    ];
+
+    const shouldIgnore = irrelevantPatterns.some(pattern => 
+      pattern.test(title) || pattern.test(description)
+    );
+
+    if (shouldIgnore) {
+      return;
+    }
+
     const activity = {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
       timestamp: new Date(),
@@ -61,21 +80,20 @@ class LogService {
   private async saveActivityToFile(activity: any) {
     try {
       if (typeof window !== 'undefined' && window.electronAPI && typeof window.electronAPI.saveLogEntry === 'function') {
-        // Activity details'i güvenli şekilde stringify yap
-        let safeDetails = {};
+        // Activity details'i güvenli şekilde stringify yap (error handling için)
         try {
-          safeDetails = JSON.parse(JSON.stringify(activity.details || {}));
+          JSON.parse(JSON.stringify(activity.details || {}));
         } catch (e) {
-          safeDetails = { error: 'Details serialization failed' };
+          // Details serialization hatası - görmezden gel
         }
         
+        // Sadece başlık ve açıklama kaydet, teknik detayları hariç tut
         const activityData = {
           timestamp: activity.timestamp?.toISOString?.() || new Date().toISOString(),
           type: String(activity.type || ''),
           title: String(activity.title || ''),
           description: String(activity.description || ''),
-          status: String(activity.status || 'info'),
-          details: safeDetails
+          status: String(activity.status || 'info')
         };
         
         await window.electronAPI.saveLogEntry({
@@ -86,8 +104,7 @@ class LogService {
         });
       }
     } catch (error) {
-      // Sessiz kalın - log kaydetme başarısız olsa da uygulama çalışmaya devam etsin
-      // console.error('Aktivite dosyaya kaydedilemedi:', error);
+      // Sessiz kalın
     }
   }
 

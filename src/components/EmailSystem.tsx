@@ -22,7 +22,8 @@ import {
   FileText,
   Search,
   CheckSquare,
-  Square
+  Square,
+  Download
 } from 'lucide-react';
 import { ElectronService } from '../services/electronService';
 import { logService } from '../services/logService';
@@ -102,6 +103,7 @@ export const EmailSystem: React.FC = () => {
     periods: string;
     attachmentCount: number;
     errorMessage?: string;
+    isAutomated?: boolean;
   }
   const [emailReports, setEmailReports] = useState<EmailReport[]>([]);
 
@@ -344,6 +346,18 @@ export const EmailSystem: React.FC = () => {
                 successCount++;
                 logService.log('success', 'E-posta', `Email gönderildi: ${recipient.name} (${emailGroup.periods.length} dönem)`);
                 
+                // ✅ RAPORA EKLE: Otomatik gönderilen maili rapora kaydet
+                const periodsText = emailGroup.periods.map(p => `${p.month}/${p.year}`).join(', ');
+                setEmailReports(prev => [...prev, {
+                  timestamp: new Date().toLocaleString('tr-TR'),
+                  recipientEmail: recipient.email,
+                  recipientName: recipient.name,
+                  status: 'success',
+                  periods: periodsText,
+                  attachmentCount: zipResult?.zipPath ? 1 : 0,
+                  isAutomated: true
+                }]);
+                
                 // ✅ BAŞARILI GÖNDERİM: Hash'leri kayıt için ekle
                 for (const period of emailGroup.periods) {
                   const emailHash = createEmailHash(emailGroup.companyId, period, recipient.email);
@@ -351,7 +365,21 @@ export const EmailSystem: React.FC = () => {
                 }
               } else {
                 failCount++;
-                logService.log('error', 'E-posta', `Email gönderilemedi: ${recipient.name} - ${emailResult?.error || 'Bilinmeyen hata'}`);
+                const errorMsg = emailResult?.error || 'Bilinmeyen hata';
+                logService.log('error', 'E-posta', `Email gönderilemedi: ${recipient.name} - ${errorMsg}`);
+                
+                // ✅ RAPORA EKLE: Başarısız otomatik e-postayı rapora kaydet
+                const periodsText = emailGroup.periods.map(p => `${p.month}/${p.year}`).join(', ');
+                setEmailReports(prev => [...prev, {
+                  timestamp: new Date().toLocaleString('tr-TR'),
+                  recipientEmail: recipient.email,
+                  recipientName: recipient.name,
+                  status: 'failed',
+                  periods: periodsText,
+                  attachmentCount: 0,
+                  errorMessage: errorMsg,
+                  isAutomated: true
+                }]);
               }
               
             } catch (error) {
@@ -418,10 +446,30 @@ export const EmailSystem: React.FC = () => {
 
   const loadEmailSettings = async () => {
     try {
-      const result = await ElectronService.loadData('email-settings', {});
+      // ✅ SettingsPage.tsx ile aynı key kullan: email-config
+      // İlk olarak yeni key'i (email-config) kontrol et
+      let result = await ElectronService.loadData('email-config', null);
+      
+      if (result.success && result.data) {
+        // email-config formatını EmailSettings formatına dönüştür
+        const config = result.data;
+        setEmailSettings({
+          smtpServer: config.smtpServer || '',
+          port: config.smtpPort || 465,
+          username: config.senderEmail || '',
+          password: config.senderPassword || '',
+          fromEmail: config.senderEmail || '',
+          fromName: 'E-Defter Otomasyon'
+        });
+        logService.log('success', 'E-posta', 'E-posta ayarları yüklendi (Sistem Ayarları\'ndan)');
+        return;
+      }
+      
+      // Fallback: Eski email-settings key'ini kontrol et (compatibility)
+      result = await ElectronService.loadData('email-settings', null);
       if (result.success && result.data) {
         setEmailSettings(result.data);
-        logService.log('success', 'E-posta', 'E-posta ayarları yüklendi');
+        logService.log('success', 'E-posta', 'E-posta ayarları yüklendi (legacy)');
       }
     } catch (error) {
       logService.log('error', 'E-posta', 'E-posta ayarları yüklenirken hata', error);
@@ -444,18 +492,39 @@ export const EmailSystem: React.FC = () => {
   const saveEmailSettings = async () => {
     try {
       // ✅ Email ayarları + Seçili şirketler + Seçili dönemler + Konu
-      const completeSettings = {
-        ...emailSettings,
+      
+      // Validasyon
+      if (!emailSettings.smtpServer || !emailSettings.username || !emailSettings.password) {
+        showNotification('error', '❌ Lütfen tüm SMTP ayarlarını doldurun');
+        logService.log('error', 'E-posta', 'Eksik SMTP ayarları - Kaydedilemedi');
+        return;
+      }
+      
+      // ✅ SMTP ayarlarını SettingsPage.tsx ile aynı format: email-config key'inde kaydet
+      const smtpConfig = {
+        smtpServer: emailSettings.smtpServer,
+        smtpPort: emailSettings.port,
+        useSSL: emailSettings.port === 465, // 465 = SSL, 587 = TLS
+        senderEmail: emailSettings.username,
+        senderPassword: emailSettings.password
+      };
+      
+      await ElectronService.saveData('email-config', smtpConfig);
+      logService.log('success', 'E-posta', 'SMTP ayarları kaydedildi (Sistem Ayarları ile senkron)');
+      
+      // ✅ Otomasyonun seçili şirketler ve dönemleri email-settings key'inde sakla
+      const automationSettings = {
         selectedCompanies: selectedCompanies,
         selectedPeriods: selectedPeriods,
         subject: emailSubject,
         enabled: true
       };
       
-      await ElectronService.saveData('email-settings', completeSettings);
-      logService.log('success', 'E-posta', `Ayarlar kaydedildi: ${selectedCompanies.length} şirket, ${selectedPeriods.length} dönem`);
+      await ElectronService.saveData('email-settings', automationSettings);
+      logService.log('success', 'E-posta', `Otomasyon ayarları kaydedildi: ${selectedCompanies.length} şirket, ${selectedPeriods.length} dönem`);
+      
       setShowSettings(false);
-      showNotification('success', 'E-posta ayarları kaydedildi!');
+      showNotification('success', '✅ E-posta ayarları kaydedildi (Sistem Ayarları ile senkron)');
     } catch (error) {
       logService.log('error', 'E-posta', 'Ayar kaydedilirken hata', error);
       showNotification('error', 'E-posta ayarları kaydedilemedi!');
@@ -463,15 +532,6 @@ export const EmailSystem: React.FC = () => {
   };
 
   const testEmailConnection = async () => {
-    if (!emailSettings.smtpServer || !emailSettings.username || !emailSettings.password) {
-      setTestResult({
-        success: false,
-        message: 'Lütfen tüm e-posta ayarlarını doldurun!'
-      });
-      logService.log('error', 'E-posta', 'Eksik e-posta ayarları');
-      return;
-    }
-
     setTestResult(null);
     
     try {
@@ -481,13 +541,49 @@ export const EmailSystem: React.FC = () => {
         throw new Error('Bu özellik sadece desktop uygulamasında çalışır');
       }
       
+      // ✅ ADIM 1: Kaydedilmiş email ayarlarını yükle
+      // İlk olarak email-config key'ini kontrol et (SettingsPage.tsx'de kaydedilen)
+      let savedSettingsResult = await ElectronService.loadData('email-config', null);
+      let settingsToTest = emailSettings;
+      
+      if (savedSettingsResult.success && savedSettingsResult.data) {
+        // email-config formatını EmailSettings formatına dönüştür
+        const config = savedSettingsResult.data;
+        settingsToTest = {
+          smtpServer: config.smtpServer || '',
+          port: config.smtpPort || 465,
+          username: config.senderEmail || '',
+          password: config.senderPassword || '',
+          fromEmail: config.senderEmail || '',
+          fromName: 'E-Defter Otomasyon'
+        };
+        logService.log('info', 'E-posta', 'Kaydedilmiş SMTP ayarları yüklendi (Sistem Ayarları\'ndan)');
+      } else {
+        // Fallback: email-settings key'ini kontrol et (legacy)
+        savedSettingsResult = await ElectronService.loadData('email-settings', null);
+        if (savedSettingsResult.success && savedSettingsResult.data) {
+          settingsToTest = savedSettingsResult.data;
+          logService.log('info', 'E-posta', 'Kaydedilmiş email ayarları yüklendi (legacy)');
+        }
+      }
+      
+      // ✅ ADIM 2: Gerekli alanları kontrol et
+      if (!settingsToTest.smtpServer || !settingsToTest.username || !settingsToTest.password) {
+        setTestResult({
+          success: false,
+          message: '❌ Lütfen Sistem Ayarları → E-Posta (SMTP) Ayarları bölümünde tüm e-posta ayarlarını doldurup KAYDET butonuna tıklayın!\n\nGereken:\n• SMTP Sunucu (örn: smtp.gmail.com)\n• Gönderen Email\n• Şifre (Gmail için App Password)'
+        });
+        logService.log('error', 'E-posta', 'Eksik e-posta ayarları - Test edilemedi');
+        return;
+      }
+      
       // GERÇEK SMTP BAĞLANTI TESTİ
       const result = await ElectronService.testEmailConnection({
-        smtpHost: emailSettings.smtpServer,
-        smtpPort: emailSettings.port,
-        fromEmail: emailSettings.username,
-        password: emailSettings.password,
-        fromName: emailSettings.fromName
+        smtpHost: settingsToTest.smtpServer,
+        smtpPort: settingsToTest.port,
+        fromEmail: settingsToTest.username,
+        password: settingsToTest.password,
+        fromName: settingsToTest.fromName
       });
       
       setTestResult(result);
@@ -507,7 +603,7 @@ export const EmailSystem: React.FC = () => {
       const errorMsg = error.message || 'Bilinmeyen hata';
       setTestResult({
         success: false,
-        message: `SMTP Bağlantı Hatası: ${errorMsg}`
+        message: `❌ SMTP Bağlantı Hatası:\n\n${errorMsg}\n\n💡 Öneriler:\n• SMTP ayarlarını kontrol edin (Sistem Ayarları → E-Posta)\n• Gmail kullanıyorsanız "Uygulama Şifresi" oluşturun\n• Port 465 (SSL) veya 587 (TLS) olmalı`
       });
       logService.log('error', 'E-posta', 'SMTP test hatası', error);
     }
@@ -836,6 +932,17 @@ export const EmailSystem: React.FC = () => {
             </div>
           )}
 
+          {/* Bilgi Mesajı */}
+          <div className="mx-6 mt-6 p-4 rounded-xl bg-blue-50 border border-blue-200">
+            <div className="flex items-start space-x-3">
+              <CheckCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-blue-800">
+                <p className="font-semibold mb-1">💡 Ayarlar Sistem Ayarları ile Senkronize</p>
+                <p>Burada yaptığınız SMTP ayarları "Sistem Ayarları → E-Posta (SMTP) Ayarları" bölümüne kaydedilir. Her iki yerden de kullanılabilir.</p>
+              </div>
+            </div>
+          </div>
+
           {/* Settings Form */}
           <div className="p-6 space-y-6">
             {/* SMTP Server */}
@@ -958,9 +1065,13 @@ export const EmailSystem: React.FC = () => {
                   ? 'bg-green-100 text-green-800 border-green-200' 
                   : 'bg-red-100 text-red-800 border-red-200'
                 }`}>
-                  <div className="flex items-center space-x-2">
-                    {testResult.success ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-                    <span className="font-medium">{testResult.message}</span>
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0 mt-0.5">
+                      {testResult.success ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+                    </div>
+                    <div className="flex-1 whitespace-pre-wrap break-words text-sm font-medium">
+                      {testResult.message}
+                    </div>
                   </div>
                 </div>
               )}
@@ -1037,7 +1148,8 @@ export const EmailSystem: React.FC = () => {
           </button>
         </div>
 
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Main Content Grid - Left & Right Panels */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Left Column - Recipients */}
           <div className="space-y-6">
             
@@ -1348,130 +1460,168 @@ export const EmailSystem: React.FC = () => {
                 </div>
               )}
             </button>
-
-            {/* Email Reports Section - Always Visible */}
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden mt-6">
-                <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-bold flex items-center">
-                      <Mail className="w-5 h-5 mr-2" />
-                      📧 E-posta Gönderim Raporları ({emailReports.length})
-                    </h3>
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={async () => {
-                          try {
-                            // Excel raporu oluştur
-                            const reportData = emailReports.map((report, index) => [
-                              index + 1,
-                              report.timestamp,
-                              report.recipientEmail,
-                              report.recipientName,
-                              report.status === 'success' ? '✅ Başarılı' : '❌ Başarısız',
-                              report.periods,
-                              report.attachmentCount,
-                              report.errorMessage || '-'
-                            ]);
-                            
-                            const headers = ['No', 'Zaman', 'Alıcı E-posta', 'Alıcı Adı', 'Durum', 'Dönem', 'Ek Sayısı', 'Hata Mesajı'];
-                            reportData.unshift(headers);
-                            
-                            const result = await ElectronService.createExcelTemplate(reportData);
-                            if (result.success) {
-                              showNotification('success', `✅ Excel raporu kaydedildi!\n📁 ${result.filePath?.split('\\').pop() || 'Dosya'}`);
-                              logService.log('success', 'E-posta', 'Excel raporu başarıyla oluşturuldu');
-                            } else {
-                              showNotification('error', 'Excel raporu oluşturulamadı');
-                            }
-                          } catch (error) {
-                            showNotification('error', 'Excel raporu oluşturma hatası');
-                            logService.log('error', 'E-posta', 'Excel raporu hatası', error);
-                          }
-                        }}
-                        className="px-4 py-2 bg-white text-purple-600 rounded-lg font-semibold text-sm hover:bg-purple-50 transition-colors"
-                      >
-                        📊 Excel İndir
-                      </button>
-                      <button
-                        onClick={() => setEmailReports([])}
-                        className="px-4 py-2 bg-white/20 text-white rounded-lg font-semibold text-sm hover:bg-white/30 transition-colors"
-                      >
-                        🗑️ Temizle
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                
-                {emailReports.length > 0 ? (
-                  <>
-                {/* Report Table */}
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50 border-b border-gray-200">
-                      <tr>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Sıra</th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Zaman</th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Alıcı E-posta</th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Alıcı Adı</th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Durum</th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Dönem</th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Ek Sayısı</th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Hata Mesajı</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {emailReports.map((report, index) => (
-                        <tr key={index} className={`${report.status === 'success' ? 'bg-green-50 hover:bg-green-100' : 'bg-red-50 hover:bg-red-100'} transition-colors`}>
-                          <td className="px-4 py-3 font-medium text-gray-900">{index + 1}</td>
-                          <td className="px-4 py-3 text-gray-600 text-xs">{report.timestamp}</td>
-                          <td className="px-4 py-3 text-gray-900 font-mono text-xs">{report.recipientEmail}</td>
-                          <td className="px-4 py-3 text-gray-900">{report.recipientName}</td>
-                          <td className="px-4 py-3">
-                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
-                              report.status === 'success' 
-                                ? 'bg-green-200 text-green-800' 
-                                : 'bg-red-200 text-red-800'
-                            }`}>
-                              {report.status === 'success' ? '✅ Başarılı' : '❌ Başarısız'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-gray-600 text-sm">{report.periods}</td>
-                          <td className="px-4 py-3 text-gray-900 font-semibold text-center">{report.attachmentCount}</td>
-                          <td className="px-4 py-3 text-red-600 text-xs max-w-xs truncate" title={report.errorMessage || ''}>
-                            {report.errorMessage || '-'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Summary Stats */}
-                <div className="bg-gray-50 border-t border-gray-200 p-4 grid grid-cols-3 gap-4">
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-gray-900">{emailReports.length}</div>
-                    <div className="text-sm text-gray-600">Toplam Gönderim</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-green-600">{emailReports.filter(r => r.status === 'success').length}</div>
-                    <div className="text-sm text-gray-600">Başarılı</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-red-600">{emailReports.filter(r => r.status === 'failed').length}</div>
-                    <div className="text-sm text-gray-600">Başarısız</div>
-                  </div>
-                </div>
-                  </>
-                ) : (
-                  <div className="p-12 text-center">
-                    <Mail className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-                    <p className="text-gray-500 text-lg font-semibold">Henüz E-posta Raporu Bulunmuyor</p>
-                    <p className="text-gray-400 text-sm mt-2">E-postalar gönderdikten sonra raporlar burada görünecektir</p>
-                  </div>
-                )}
-            </div>
           </div>
         </div>
+
+        {/* Email Reports Section - FULL WIDTH at Bottom */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Gönderim Aktivite Raporları</h3>
+              <p className="text-sm text-gray-500 mt-1">E-posta gönderim geçmişi ve durumu</p>
+            </div>
+            {emailReports.length > 0 && (
+              <div className="flex gap-3">
+                {/* Excel İndirme Butonu */}
+                <button
+                  onClick={async () => {
+                    try {
+                      // Basit Excel formatı (Tab-separated values) - Excel açabilir
+                      const headers = ['Tarih & Saat', 'Alıcı Adı', 'E-posta', 'Dönemler', 'Durum', 'Tip', 'Hata Mesajı'];
+                      const rows = emailReports.map(r => [
+                        r.timestamp,
+                        r.recipientName,
+                        r.recipientEmail,
+                        r.periods,
+                        r.status === 'success' ? 'Başarılı' : 'Başarısız',
+                        r.isAutomated ? 'Otomatik' : 'Manuel',
+                        r.errorMessage || '-'
+                      ]);
+                      
+                      const tsvContent = [
+                        headers.join('\t'),
+                        ...rows.map(row => row.map(cell => `${cell}`).join('\t'))
+                      ].join('\n');
+                      
+                      const blob = new Blob([tsvContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+                      const link = document.createElement('a');
+                      const url = URL.createObjectURL(blob);
+                      link.setAttribute('href', url);
+                      link.setAttribute('download', `email-raporlari-${new Date().toISOString().split('T')[0]}.xlsx`);
+                      link.style.visibility = 'hidden';
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      showNotification('success', '✅ Excel rapor indirildi');
+                    } catch (error) {
+                      showNotification('error', 'Rapor indirme hatası');
+                      logService.log('error', 'E-posta', 'Excel raporu hatası', error);
+                    }
+                  }}
+                  className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2 text-sm"
+                  title="Excel formatında rapor indir"
+                >
+                  <FileText className="w-4 h-4" />
+                  <span>Excel</span>
+                </button>
+
+                {/* CSV İndirme Butonu */}
+                <button
+                  onClick={async () => {
+                    try {
+                      const headers = ['Tarih & Saat', 'Alıcı Adı', 'E-posta', 'Dönemler', 'Durum', 'Tip', 'Hata Mesajı'];
+                      const rows = emailReports.map(r => [
+                        r.timestamp,
+                        r.recipientName,
+                        r.recipientEmail,
+                        r.periods,
+                        r.status === 'success' ? 'Başarılı' : 'Başarısız',
+                        r.isAutomated ? 'Otomatik' : 'Manuel',
+                        r.errorMessage || '-'
+                      ]);
+                      
+                      const csvContent = [
+                        headers.join(','),
+                        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+                      ].join('\n');
+                      
+                      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                      const link = document.createElement('a');
+                      const url = URL.createObjectURL(blob);
+                      link.setAttribute('href', url);
+                      link.setAttribute('download', `email-raporlari-${new Date().toISOString().split('T')[0]}.csv`);
+                      link.style.visibility = 'hidden';
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      showNotification('success', '✅ CSV rapor indirildi');
+                    } catch (error) {
+                      showNotification('error', 'Rapor indirme hatası');
+                      logService.log('error', 'E-posta', 'CSV raporu hatası', error);
+                    }
+                  }}
+                  className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 text-sm"
+                  title="CSV formatında rapor indir"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>CSV</span>
+                </button>
+              </div>
+            )}
+          </div>
+          
+          {emailReports.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              <Mail className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+              <p className="text-lg font-medium mb-2">E-posta Gönderimi Bulunmuyor</p>
+              <p className="text-sm">Henüz e-posta gönderilmemiş</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto overflow-y-auto max-h-96">
+              <table className="w-full">
+                <thead className="bg-gray-50 sticky top-0">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Tarih & Saat
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Dönemler
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Durum
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      İşlem
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {emailReports.map((report, index) => (
+                    <tr key={index} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        <div>{report.timestamp}</div>
+                        {report.isAutomated && (
+                          <span className="inline-block mt-1 px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-md">
+                            🤖 Otomatik
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
+                        <div className="font-medium">{report.periods}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-lg text-sm font-medium ${
+                          report.status === 'success'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {report.status === 'success' ? '✅ BAŞARILI' : '❌ BAŞARIŞIZ'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                        <div>{report.recipientName}</div>
+                        <div className="text-xs text-gray-500">{report.recipientEmail}</div>
+                        {report.errorMessage && (
+                          <div className="text-xs text-red-600 mt-1 font-medium">⚠️ Hata: {report.errorMessage}</div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+                </div>
       </div>
     </div>
   );
