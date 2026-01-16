@@ -111,8 +111,7 @@
       "uninstallDisplayName": "E-Defter Otomasyon Sistemi",
       "deleteAppDataOnUninstall": false,
       "allowElevation": true,
-      "perMachine": false,
-      "include": "scripts/installer.nsh"
+      "perMachine": false
     },
     "mac": {
       "target": "dmg",
