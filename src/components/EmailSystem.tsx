@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Mail, 
   Send, 
@@ -57,7 +57,11 @@ interface CustomRecipient {
   name: string;
 }
 
-export const EmailSystem: React.FC = () => {
+interface EmailSystemProps {
+  triggerScan?: number;
+}
+
+export const EmailSystem: React.FC<EmailSystemProps> = ({ triggerScan = 0 }) => {
   const [emailSettings, setEmailSettings] = useState<EmailSettings>({
     smtpServer: '',
     port: 587,
@@ -115,329 +119,6 @@ export const EmailSystem: React.FC = () => {
   const currentYear = new Date().getFullYear();
   const availableYears = Array.from({ length: 10 }, (_, i) => currentYear - i);
 
-  useEffect(() => {
-    loadEmailSettings();
-    loadCompanies();
-    logService.log('info', 'E-posta', 'E-posta sistemi başlatıldı');
-  }, []); // Empty dependency array - only run once!
-
-  // ✅ SEPARATE useEffect for automation event listener 
-  useEffect(() => {
-    // ✅ KALıCI BENZERSİZ KOD SİSTEMİ: Her şirket-dönem için benzersiz hash
-    let emailDebounceTimer: NodeJS.Timeout | null = null;
-    const loadSentEmails = async (): Promise<Set<string>> => {
-      try {
-        const result = await ElectronService.loadData('sent-emails-registry', []);
-        return new Set(result.success ? result.data : []);
-      } catch (error) {
-        console.warn('Sent emails registry yüklenemedi:', error);
-        return new Set();
-      }
-    };
-
-    // ✅ Gönderilmiş email'leri kaydet
-    const saveSentEmails = async (sentSet: Set<string>) => {
-      try {
-        await ElectronService.saveData('sent-emails-registry', Array.from(sentSet));
-      } catch (error) {
-        console.warn('Sent emails registry kaydedilemedi:', error);
-      }
-    };
-
-    // ✅ Benzersiz hash oluştur: şirket_ID + dönem + email
-    const createEmailHash = (companyId: string, period: { month: number, year: number }, recipientEmail: string): string => {
-      return `${companyId}_${period.year}_${String(period.month).padStart(2, '0')}_${recipientEmail.toLowerCase()}`;
-    };
-    
-    // ✅ OTOMATİK EMAIL - Background service'in perform-automated-scan event'ini dinle
-    const handleAutomatedScan = async () => {
-      try {
-        logService.log('info', 'E-posta', 'Otomasyon tarafından otomatik email tetiklendi');
-        
-        // ✅ DEBOUNCE: Aynı anda çoklu tetikleme engelle
-        if (emailDebounceTimer) {
-          clearTimeout(emailDebounceTimer);
-        }
-        
-        emailDebounceTimer = setTimeout(async () => {
-          await performEmailSending();
-        }, 2000); // 2 saniye bekle, yeni tetikleme gelirse iptal et
-        
-      } catch (error) {
-        logService.log('error', 'E-posta', `Otomatik email tetikleme hatası: ${String(error)}`);
-      }
-    };
-    
-    const performEmailSending = async () => {
-      try {
-        // Otomasyon ve Email ayarlarını kontrol et
-        const automationSettings = await ElectronService.loadData('automation-settings', {});
-        const emailSettings = await ElectronService.loadData('email-settings', {});
-        
-        if (!automationSettings.success) {
-          logService.log('error', 'E-posta', 'Otomasyon ayarları yüklenemedi');
-          return;
-        }
-        
-        // Email otomasyonu açık mı?
-        const emailConfigEnabled = automationSettings.data?.emailConfig?.enabled;
-        
-        if (!emailConfigEnabled) {
-          logService.log('info', 'E-posta', 'Email otomasyonu kapalı');
-          return;
-        }
-        
-        // ✅ CRİTİCAL FİX: Companies'i her seferinde fresh olarak yükle
-        const companiesResult = await ElectronService.loadData('companies', []);
-        const freshCompanies = companiesResult.success ? 
-          (companiesResult.data || []).filter((company: any) => company.status === 'active') : [];
-        
-        // ✅ FİX: Kaydedilmiş ayarları kullan, yoksa mevcut state'i kullan
-        let selectedComps: string[] = [];
-        let selectedPers: SelectedPeriod[] = [];
-        let emailSubject_final: string = 'E-Defter Klasörleri';
-        
-        // İlk olarak kaydedilmiş ayarları yükle
-        if (emailSettings.success && emailSettings.data) {
-          selectedComps = emailSettings.data.selectedCompanies || [];
-          selectedPers = emailSettings.data.selectedPeriods || [];
-          emailSubject_final = emailSettings.data.subject || 'E-Defter Klasörleri';
-        }
-        
-        // Eğer kaydedilmiş ayarlar boşsa, mevcut state'ten kullan
-        if (selectedComps.length === 0 && selectedCompanies.length > 0) {
-          selectedComps = selectedCompanies;
-          logService.log('info', 'E-posta', 'Kaydedilmiş ayarlar boş, mevcut UI seçimleri kullanılıyor');
-        }
-        
-        if (selectedPers.length === 0 && selectedPeriods.length > 0) {
-          selectedPers = selectedPeriods;
-          logService.log('info', 'E-posta', 'Kaydedilmiş dönemler boş, mevcut UI seçimleri kullanılıyor');
-        }
-        
-        logService.log('info', 'E-posta', `Kaydedilen ayarlar: ${selectedComps.length} şirket, ${selectedPers.length} dönem`);
-        
-        // ✅ DEBUGGING: Seçili dönemleri detaylı logla
-        if (selectedPers && selectedPers.length > 0) {
-          const periodsStr = selectedPers.map((p: SelectedPeriod) => `${p.month}/${p.year}`).join(', ');
-          logService.log('info', 'E-posta', `Seçili dönemler: [${periodsStr}]`);
-        } else {
-          logService.log('warning', 'E-posta', 'Seçili dönem listesi boş veya null!');
-        }
-        
-        if (!selectedComps?.length) {
-          logService.log('warning', 'E-posta', 'Seçilmiş şirket yok');
-          return;
-        }
-        
-        if (!selectedPers?.length) {
-          logService.log('warning', 'E-posta', 'Seçilmiş dönem yok');
-          return;
-        }
-        
-        logService.log('info', 'E-posta', `Otomatik email gönderimi başlatılıyor: ${selectedComps.length} şirket, ${selectedPers.length} dönem`);
-        
-        // ✅ KALıCI BENZERSİZ KOD KONTROLÜ: Daha önce gönderilmiş mi?
-        const sentEmailsRegistry = await loadSentEmails();
-        
-        // Gönderilmemiş şirket-dönem kombinasyonlarını filtrele
-        const pendingEmails: Array<{companyId: string, periods: Array<{month: number, year: number}>, recipients: Array<{email: string, name: string}>}> = [];
-        
-        for (const companyId of selectedComps) {
-          const company = freshCompanies.find((c: any) => c.id === companyId);
-          if (!company) continue;
-
-          const recipient = { email: company.email, name: company.name };
-          const availablePeriods: Array<{month: number, year: number}> = [];
-
-          for (const period of selectedPers) {
-            const emailHash = createEmailHash(companyId, period, recipient.email);
-            
-            if (sentEmailsRegistry.has(emailHash)) {
-              logService.log('info', 'E-posta', `${company.name} (${period.month}/${period.year}) zaten gönderilmiş - atlanıyor`);
-            } else {
-              availablePeriods.push(period);
-            }
-          }
-
-          if (availablePeriods.length > 0) {
-            pendingEmails.push({
-              companyId,
-              periods: availablePeriods,
-              recipients: [recipient]
-            });
-          }
-        }
-
-        if (pendingEmails.length === 0) {
-          logService.log('info', 'E-posta', 'Tüm email\'ler zaten gönderilmiş - işlem durduruluyor');
-          setIsSending(false);
-          showNotification('success', 'Tüm seçili email\'ler zaten gönderilmiş');
-          return;
-        }
-
-        logService.log('info', 'E-posta', `${pendingEmails.length} yeni email gönderilecek`);
-        
-        // ✅ DÜZELTME: Otomasyon işi arka planda yapıl, UI donmasın  
-        // setTimeout ile UI thread'i bloke etme (setImmediate yerine)
-        setTimeout(async () => {
-          logService.log('info', 'E-posta', 'Otomatik email gönderme başlıyor (arka planda)...');
-          
-          let successCount = 0;
-          let failCount = 0;
-          const tempZips: string[] = [];
-          const newSentHashes: string[] = [];
-          
-          // Her şirket-dönem kombinasyonu için email gönder
-          for (const emailGroup of pendingEmails) {
-            let recipient = emailGroup.recipients[0]; // İlk (ve tek) alıcı - scope'u genişlet
-            try {
-              // Şirketi bul (fresh companies'dan)
-              const company = freshCompanies.find((c: any) => c.id === emailGroup.companyId);
-              
-              if (!company) {
-                logService.log('warning', 'E-posta', `Şirket bulunamadı: ${emailGroup.companyId}`);
-                failCount++;
-                continue;
-              }
-              
-              logService.log('info', 'E-posta', `ZIP oluşturuluyor: ${company.name} (${emailGroup.periods.length} dönem)`);
-              
-              // ✅ YENİ: Profesyonel email şablonu oluştur
-              const emailTemplateResult = await ElectronService.createEmailTemplate(emailGroup.periods, company.name);
-              const professionalEmailContent = emailTemplateResult.success && emailTemplateResult.htmlTemplate ? 
-                emailTemplateResult.htmlTemplate : 
-                `Bu e-posta otomatik otomasyon sistemi tarafından gönderilmiştir.\n\nDönem: ${emailGroup.periods.map((p) => `${p.month}/${p.year}`).join(', ')}`;
-              
-              // ZIP oluştur
-              const zipResult = await ElectronService.createCompanyZip(
-                {
-                  name: company.name,
-                  taxNumber: company.taxNumber,
-                  tcNumber: company.tcNumber,
-                  email: recipient.email
-                },
-                emailGroup.periods,
-                professionalEmailContent // Artık kesinlikle string
-              );
-              
-              if (!zipResult?.success || !zipResult?.zipPath) {
-                logService.log('error', 'E-posta', `ZIP oluşturulamadı: ${recipient.name} - ${zipResult?.error || 'Bilinmeyen hata'}`);
-                failCount++;
-                continue;
-              }
-              
-              // ZIP başarılı - artık zipResult.zipPath kesinlikle string
-              tempZips.push(zipResult.zipPath);
-              logService.log('success', 'E-posta', `ZIP oluşturuldu: ${zipResult.fileName || 'ZIP dosyası'}`);
-              
-              // Email gönder
-              logService.log('info', 'E-posta', `Email gönderiliyor: ${recipient.email}`);
-              const emailResult = await ElectronService.sendEmail(
-                emailSettings,
-                [recipient.email],
-                emailSubject_final,
-                [zipResult.zipPath], // Artık string olarak garanti
-                professionalEmailContent, // ✅ Profesyonel HTML şablonu kullan
-                emailGroup.periods
-              );
-              
-              if (emailResult?.success) {
-                successCount++;
-                logService.log('success', 'E-posta', `Email gönderildi: ${recipient.name} (${emailGroup.periods.length} dönem)`);
-                
-                // ✅ RAPORA EKLE: Otomatik gönderilen maili rapora kaydet
-                const periodsText = emailGroup.periods.map(p => `${p.month}/${p.year}`).join(', ');
-                setEmailReports(prev => [...prev, {
-                  timestamp: new Date().toLocaleString('tr-TR'),
-                  recipientEmail: recipient.email,
-                  recipientName: recipient.name,
-                  status: 'success',
-                  periods: periodsText,
-                  attachmentCount: zipResult?.zipPath ? 1 : 0,
-                  isAutomated: true
-                }]);
-                
-                // ✅ BAŞARILI GÖNDERİM: Hash'leri kayıt için ekle
-                for (const period of emailGroup.periods) {
-                  const emailHash = createEmailHash(emailGroup.companyId, period, recipient.email);
-                  newSentHashes.push(emailHash);
-                }
-              } else {
-                failCount++;
-                const errorMsg = emailResult?.error || 'Bilinmeyen hata';
-                logService.log('error', 'E-posta', `Email gönderilemedi: ${recipient.name} - ${errorMsg}`);
-                
-                // ✅ RAPORA EKLE: Başarısız otomatik e-postayı rapora kaydet
-                const periodsText = emailGroup.periods.map(p => `${p.month}/${p.year}`).join(', ');
-                setEmailReports(prev => [...prev, {
-                  timestamp: new Date().toLocaleString('tr-TR'),
-                  recipientEmail: recipient.email,
-                  recipientName: recipient.name,
-                  status: 'failed',
-                  periods: periodsText,
-                  attachmentCount: 0,
-                  errorMessage: errorMsg,
-                  isAutomated: true
-                }]);
-              }
-              
-            } catch (error) {
-              failCount++;
-              logService.log('error', 'E-posta', `${recipient?.name || 'Bilinmeyen alıcı'} için email gönderme hatası: ${String(error)}`);
-            }
-          }
-          
-          // ✅ KALıCI KAYIT: Başarılı gönderilen email hash'lerini kaydet
-          if (newSentHashes.length > 0) {
-            const currentRegistry = await loadSentEmails();
-            newSentHashes.forEach(hash => currentRegistry.add(hash));
-            await saveSentEmails(currentRegistry);
-            logService.log('success', 'E-posta', `${newSentHashes.length} email hash'i kalıcı olarak kaydedildi`);
-          }
-          
-          // Sonuç logu
-          const totalMsg = `Otomatik email tamamlandı: ${successCount}/${pendingEmails.length} başarılı, ${failCount} başarısız`;
-          if (successCount > 0) {
-            logService.log('success', 'E-posta', totalMsg);
-            
-          } else if (failCount > 0) {
-            logService.log('error', 'E-posta', totalMsg);
-          }
-          
-          // Geçici dosyaları temizle
-          if (tempZips.length > 0) {
-            try {
-              await ElectronService.cleanupTempFiles(tempZips);
-              logService.log('info', 'E-posta', `${tempZips.length} ZIP dosyası temizlendi`);
-            } catch (err) {
-              logService.log('warning', 'E-posta', `ZIP temizleme hatası: ${String(err)}`);
-            }
-          }
-        }, 0); // ✅ setTimeout 0ms delay
-        
-      } catch (error) {
-        logService.log('error', 'E-posta', `performEmailSending hatası: ${String(error)}`);
-      }
-    }; // ✅ performEmailSending fonksiyonu kapanışı
-
-    // ✅ YENİ: trigger-scan event'ini dinle (yeni dosya eklendiğinde watcher tarafından tetiklenir)
-    ElectronService.onTriggerScan(handleAutomatedScan);
-    
-    // perform-automated-scan event'ini dinle (30 saniyede bir background service tarafından)
-    ElectronService.onPerformAutomatedScan(handleAutomatedScan);
-
-    // ✅ CLEANUP FUNCTION: Memory leak engellemek için
-    return () => {
-      if (emailDebounceTimer) {
-        clearTimeout(emailDebounceTimer);
-        emailDebounceTimer = null;
-      }
-      ElectronService.removeAllListeners('perform-automated-scan');
-      logService.log('info', 'E-posta', 'Email automation listener\'ları temizlendi');
-    };
-  }, []); // ✅ CRITICAL FIX: Empty dependency - no companies dependency!
-
   const showNotification = (type: 'success' | 'error', message: string) => {
     setNotification({ type, message });
     setTimeout(() => setNotification(null), 3000);
@@ -476,6 +157,263 @@ export const EmailSystem: React.FC = () => {
     }
   };
 
+  // ✅ HELPER FUNCTIONS
+  const loadSentEmails = async (): Promise<Set<string>> => {
+    try {
+      const result = await ElectronService.loadData('sent-emails-registry', []);
+      return new Set(result.success ? result.data : []);
+    } catch (error) {
+      console.warn('Sent emails registry yüklenemedi:', error);
+      return new Set();
+    }
+  };
+
+  const saveSentEmails = async (sentSet: Set<string>) => {
+    try {
+      await ElectronService.saveData('sent-emails-registry', Array.from(sentSet));
+    } catch (error) {
+      console.warn('Sent emails registry kaydedilemedi:', error);
+    }
+  };
+
+  const createEmailHash = (companyId: string, period: { month: number, year: number }, recipientEmail: string): string => {
+    return `${companyId}_${period.year}_${String(period.month).padStart(2, '0')}_${recipientEmail.toLowerCase()}`;
+  };
+
+  // ✅ Backend'den email aktivitelerini yükle (manuel + otomatik)
+  const loadEmailActivities = async () => {
+    try {
+      const result = await ElectronService.getEmailActivities();
+      if (result.success && result.data && Array.isArray(result.data)) {
+        // Backend'den gelen aktiviteleri emailReports formatına dönüştür
+        const formattedReports: EmailReport[] = result.data
+          .filter((activity: any) => 
+            // Sadece email gönderim kayıtlarını göster
+            activity.operation && (
+              activity.operation.includes('Email Gönderildi') ||
+              activity.operation.includes('Email Hatası')
+            )
+          )
+          .map((activity: any) => ({
+            timestamp: `${activity.date} ${activity.time}`,
+            recipientEmail: activity.details.split('|')[0]?.trim() || 'Bilinmiyor',
+            recipientName: activity.details.split('-')[0]?.trim() || 'Bilinmiyor',
+            status: activity.status === 'Başarılı' ? 'success' as const : 'failed' as const,
+            periods: activity.details.match(/\d{1,2}\/\d{4}/)?.[0] || '-',
+            attachmentCount: activity.details.includes('ZIP') ? 1 : 0,
+            errorMessage: activity.status === 'Başarısız' ? activity.details : undefined,
+            isAutomated: activity.isAutomated || false
+          }));
+        
+        setEmailReports(formattedReports);
+        logService.log('success', 'E-posta', `${formattedReports.length} email aktivitesi yüklendi`);
+      }
+    } catch (error) {
+      console.error('Email aktiviteleri yüklenemedi:', error);
+      logService.log('error', 'E-posta', 'Email aktiviteleri yüklenirken hata', error);
+    }
+  };
+
+  // ✅ GLOBAL AUTOMATED EMAIL SENDING FUNCTION
+  const performEmailSending = useCallback(async () => {
+    try {
+      logService.log('info', 'E-posta Otomasyonu', '📧 Otomatik email kontrolü başlatıldı');
+      
+      // 1. Otomasyon ayarlarını yükle
+      const automationSettings = await ElectronService.loadData('automation-settings', {});
+      if (!automationSettings.success || !automationSettings.data) {
+        logService.log('error', 'E-posta', 'Otomasyon ayarları yüklenemedi');
+        return;
+      }
+      
+      const settings = automationSettings.data;
+      
+      // 2. Email otomasyonu kontrolü
+      if (!settings.emailConfig?.enabled) {
+        logService.log('info', 'E-posta', 'Email otomasyonu kapalı');
+        return;
+      }
+      
+      logService.log('info', 'E-posta', `✅ Email otomasyonu aktif, başlangıç: ${settings.startYear}/${settings.startMonth}`);
+      
+      // 3. Başlangıç tarihini hesapla
+      const startYear = settings.startYear || 0;
+      const startMonth = settings.startMonth || 0;
+      
+      if (!startYear || !startMonth) {
+        logService.log('warning', 'E-posta', 'Başlangıç tarihi ayarlanmamış, tüm dönemler taranacak');
+      }
+      
+      // 4. Monitoring data'yı yükle
+      const monitoringResult = await ElectronService.loadData('monitoring-data', []);
+      if (!monitoringResult.success) {
+        logService.log('error', 'E-posta', 'Monitoring verisi yüklenemedi');
+        return;
+      }
+      
+      const allMonitoringData = monitoringResult.data || [];
+      logService.log('info', 'E-posta', `Toplam ${allMonitoringData.length} monitoring kaydı bulundu`);
+      
+      // 5. Başlangıç tarihinden sonraki complete dönemleri filtrele
+      const qualifyingRecords = allMonitoringData.filter((record: any) => {
+        if (record.status !== 'complete') return false;
+        
+        // Başlangıç tarihi kontrolü
+        if (startYear && startMonth) {
+          if (record.year < startYear) return false;
+          if (record.year === startYear && record.month < startMonth) return false;
+        }
+        
+        return true;
+      });
+      
+      logService.log('info', 'E-posta', `${qualifyingRecords.length} adet gönderilmeye uygun dönem tespit edildi`);
+      
+      if (qualifyingRecords.length === 0) {
+        logService.log('info', 'E-posta', 'Gönderilecek dönem bulunamadı');
+        return;
+      }
+      
+      // 6. Companies ve email settings'i yükle
+      const companiesResult = await ElectronService.loadData('companies', []);
+      const emailSettingsResult = await ElectronService.loadData('email-settings', {});
+      
+      const allCompanies = companiesResult.success ? (companiesResult.data || []) : [];
+      const emailSettings = emailSettingsResult.success ? emailSettingsResult.data : {};
+      const emailSubject = emailSettings.subject || 'E-Defter Klasörleri';
+      
+      logService.log('info', 'E-posta', `Toplam ${allCompanies.length} şirket kaydı mevcut`);
+      
+      // 7. Sent emails registry'yi yükle
+      const sentEmails = await loadSentEmails();
+      logService.log('info', 'E-posta', `Mevcut gönderilmiş email sayısı: ${sentEmails.size}`);
+      
+      // 8. Her qualifying record için email hazırla
+      const pendingEmails: {company: any, period: SelectedPeriod, hash: string, record: any}[] = [];
+      
+      for (const record of qualifyingRecords) {
+        // Şirket bilgilerini bul
+        const company = allCompanies.find((c: any) => c.id === record.companyId);
+        
+        if (!company) {
+          logService.log('warning', 'E-posta', `Şirket bulunamadı: ${record.companyId} (${record.companyName})`);
+          continue;
+        }
+        
+        if (!company.email) {
+          logService.log('warning', 'E-posta', `Email adresi yok: ${company.name}`);
+          continue;
+        }
+        
+        // Period objesi oluştur
+        const period: SelectedPeriod = { month: record.month, year: record.year };
+        
+        // Hash kontrolü (mükerrer gönderim engelleme)
+        const hash = createEmailHash(record.companyId, period, company.email);
+        
+        if (sentEmails.has(hash)) {
+          logService.log('info', 'E-posta', `SKIP: ${company.name} - ${period.month}/${period.year} (zaten gönderilmiş)`);
+          continue;
+        }
+        
+        pendingEmails.push({ company, period, hash, record });
+        logService.log('info', 'E-posta', `QUEUE: ${company.name} - ${period.month}/${period.year}`);
+      }
+      
+      if (pendingEmails.length === 0) {
+        logService.log('info', 'E-posta', '✅ Gönderilecek yeni email yok (tümü zaten gönderilmiş)');
+        return;
+      }
+      
+      logService.log('success', 'E-posta', `🚀 ${pendingEmails.length} email gönderilecek`);
+      
+      // 9. Email gönderme işlemini başlat
+      setTimeout(async () => {
+        const newSentHashes: string[] = [];
+        const tempZips: string[] = [];
+        let successCount = 0;
+        let failCount = 0;
+        
+        for (const emailItem of pendingEmails) {
+          try {
+            const { company, period, hash } = emailItem;
+            
+            logService.log('info', 'E-posta', `📦 ZIP oluşturuluyor: ${company.name} - ${period.month}/${period.year}`);
+            
+            const zipResult = await ElectronService.createCompanyZip(
+              company,
+              [period],
+              emailSettings.customMessage || ''
+            );
+            
+            if (!zipResult.success || !zipResult.zipPath) {
+              logService.log('error', 'E-posta', `❌ ZIP oluşturma hatası: ${company.name}`);
+              failCount++;
+              continue;
+            }
+            
+            tempZips.push(zipResult.zipPath);
+            
+            logService.log('info', 'E-posta', `📧 Email gönderiliyor: ${company.email}`);
+            
+            const sendResult = await ElectronService.sendEmail(
+              emailSettings,
+              company.email, // ✅ Sadece email adresi string olarak
+              emailSubject,
+              [zipResult.zipPath],
+              emailSettings.customMessage || '',
+              [period]
+            );
+            
+            if (sendResult.success) {
+              newSentHashes.push(hash);
+              sentEmails.add(hash);
+              successCount++;
+              logService.log('success', 'E-posta', `✅ Email gönderildi: ${company.name} (${period.month}/${period.year})`);
+            } else {
+              failCount++;
+              logService.log('error', 'E-posta', `❌ Email gönderilemedi: ${company.name} - ${sendResult.error || 'Bilinmeyen hata'}`);
+            }
+            
+          } catch (err) {
+            failCount++;
+            logService.log('error', 'E-posta', `❌ Email gönderme hatası: ${String(err)}`);
+          }
+        }
+        
+        // 10. Sent emails registry'yi güncelle
+        if (newSentHashes.length > 0) {
+          await saveSentEmails(sentEmails);
+          logService.log('success', 'E-posta', `💾 ${newSentHashes.length} email hash'i kalıcı olarak kaydedildi`);
+        }
+        
+        // 11. Sonuç raporu
+        const totalMsg = `🎯 Otomatik email tamamlandı: ${successCount}/${pendingEmails.length} başarılı, ${failCount} başarısız`;
+        if (successCount > 0) {
+          logService.log('success', 'E-posta', totalMsg);
+        } else if (failCount > 0) {
+          logService.log('error', 'E-posta', totalMsg);
+        }
+        
+        // 12. Geçici dosyaları temizle
+        if (tempZips.length > 0) {
+          try {
+            await ElectronService.cleanupTempFiles(tempZips);
+            logService.log('info', 'E-posta', `🗑️ ${tempZips.length} ZIP dosyası temizlendi`);
+          } catch (err) {
+            logService.log('warning', 'E-posta', `⚠️ ZIP temizleme hatası: ${String(err)}`);
+          }
+        }
+        
+        // ✅ Email aktivitelerini yeniden yükle
+        await loadEmailActivities();
+      }, 0);
+      
+    } catch (error) {
+      logService.log('error', 'E-posta', `performEmailSending hatası: ${String(error)}`);
+    }
+  }, []); // Dependency array boş - stable function
+
   const loadCompanies = async () => {
     try {
       const result = await ElectronService.loadData('companies', []);
@@ -488,6 +426,22 @@ export const EmailSystem: React.FC = () => {
       logService.log('error', 'E-posta', 'Şirketler yüklenirken hata', error);
     }
   };
+
+  // ✅ useEffect'leri burada tanımla - fonksiyonlardan SONRA
+  useEffect(() => {
+    loadEmailSettings();
+    loadCompanies();
+    loadEmailActivities(); // ✅ Backend'den email aktivitelerini yükle
+    logService.log('info', 'E-posta', 'E-posta sistemi başlatıldı');
+  }, []); // Empty dependency array - only run once!
+
+  // ✅ GLOBAL TRIGGER - App.tsx'ten gelen trigger'a tepki ver
+  useEffect(() => {
+    if (triggerScan > 0) {
+      logService.log('info', 'E-posta', '🎯 Global trigger alındı, email kontrolü başlatılıyor');
+      performEmailSending();
+    }
+  }, [triggerScan, performEmailSending]);
 
   const saveEmailSettings = async () => {
     try {
@@ -794,48 +748,16 @@ export const EmailSystem: React.FC = () => {
               if (individualResult?.success) {
                 successCount++;
                 logService.log('success', 'E-posta', `${recipient.name} adresine e-posta gönderildi`);
-                
-                // Rapora ekle
-                setEmailReports(prev => [...prev, {
-                  timestamp: new Date().toLocaleString('tr-TR'),
-                  recipientEmail: recipient.email,
-                  recipientName: recipient.name,
-                  status: 'success',
-                  periods: selectedPeriods.map(p => `${p.month}/${p.year}`).join(', '),
-                  attachmentCount: recipientAttachments.length
-                }]);
               } else {
                 failCount++;
                 const errorMsg = individualResult?.error || 'Bilinmeyen hata';
                 logService.log('error', 'E-posta', `${recipient.name} adresine e-posta gönderilemedi: ${errorMsg}`);
-                
-                // Rapora ekle
-                setEmailReports(prev => [...prev, {
-                  timestamp: new Date().toLocaleString('tr-TR'),
-                  recipientEmail: recipient.email,
-                  recipientName: recipient.name,
-                  status: 'failed',
-                  periods: selectedPeriods.map(p => `${p.month}/${p.year}`).join(', '),
-                  attachmentCount: recipientAttachments.length,
-                  errorMessage: errorMsg
-                }]);
               }
               
             } catch (recipientError) {
               failCount++;
               const errorMsg = String(recipientError);
               logService.log('error', 'E-posta', `${recipient.name} için işlem hatası: ${errorMsg}`);
-              
-              // Rapora ekle
-              setEmailReports(prev => [...prev, {
-                timestamp: new Date().toLocaleString('tr-TR'),
-                recipientEmail: recipient.email,
-                recipientName: recipient.name,
-                status: 'failed',
-                periods: selectedPeriods.map(p => `${p.month}/${p.year}`).join(', '),
-                attachmentCount: 0,
-                errorMessage: errorMsg
-              }]);
             }
           }
         } catch (error) {
@@ -865,6 +787,9 @@ export const EmailSystem: React.FC = () => {
             logService.log('success', 'E-posta', `${result.successCount} alıcıya e-posta başarıyla gönderildi${attachmentInfo}`);
           }
           
+          // ✅ Email aktivitelerini yeniden yükle
+          await loadEmailActivities();
+          
           // Formu temizle
           setSelectedCompanies([]);
           setSelectedSingleCompany('');
@@ -873,6 +798,9 @@ export const EmailSystem: React.FC = () => {
         } else {
           showNotification('error', `E-posta gönderim hatası! ${result.failCount}/${result.total} e-posta gönderilemedi`);
           logService.log('error', 'E-posta', `E-posta gönderim hatası: ${result.failCount}/${result.total} başarısız`);
+          
+          // ✅ Email aktivitelerini yeniden yükle (hata durumunda da)
+          await loadEmailActivities();
         }
         
         // Geçici dosyaları temizle
@@ -1575,6 +1503,9 @@ export const EmailSystem: React.FC = () => {
                       Tarih & Saat
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Tip
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Dönemler
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1589,10 +1520,16 @@ export const EmailSystem: React.FC = () => {
                   {emailReports.map((report, index) => (
                     <tr key={index} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        <div>{report.timestamp}</div>
-                        {report.isAutomated && (
-                          <span className="inline-block mt-1 px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-md">
+                        {report.timestamp}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {report.isAutomated ? (
+                          <span className="inline-flex items-center px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-md font-medium">
                             🤖 Otomatik
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-md font-medium">
+                            👤 Manuel
                           </span>
                         )}
                       </td>

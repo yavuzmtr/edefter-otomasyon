@@ -165,9 +165,9 @@ export const AutomationSettings: React.FC = () => {
       await saveAutomationSettings(newSettings);
 
       if (newEnabled) {
-        showNotification('success', '🚀 Tam Otomasyon Başlatıldı! Sistem artık çalışıyor ve bilgisayar yeniden başlatılsa bile devam edecek.');
+        showNotification('success', '🚀 Sistem Başlatıldı! Her 30 saniyede otomatik kontrol edilecek ve uygun dönemler için email gönderilecek. Bilgisayar yeniden başladığında da otomatik çalışacak.');
       } else {
-        showNotification('success', '🛑 Otomasyon Durduruldu');
+        showNotification('success', '🛑 Sistem Durduruldu - Otomatik email gönderimi pasif. Bilgisayar başlangıcında çalışmayacak.');
       }
     } catch (error) {
       showNotification('error', 'Otomasyon durumu değiştirilirken hata oluştu');
@@ -238,12 +238,12 @@ export const AutomationSettings: React.FC = () => {
             ) : automationSettings.enabled ? (
               <>
                 <Pause className="w-5 h-5" />
-                <span>OTOMASYONU DURDUR</span>
+                <span>SİSTEMİ DURDUR</span>
               </>
             ) : (
               <>
                 <Play className="w-5 h-5" />
-                <span>OTOMASYONU BAŞLAT</span>
+                <span>SİSTEMİ BAŞLAT</span>
               </>
             )}
           </button>
@@ -255,33 +255,33 @@ export const AutomationSettings: React.FC = () => {
         <div className="flex items-start space-x-3">
           <CheckCircle className="w-6 h-6 text-blue-600 mt-0.5" />
           <div className="flex-1">
-            <h4 className="font-semibold text-blue-900 text-xl mb-3">🎯 Tam Otomasyon Ne Yapar?</h4>
+            <h4 className="font-semibold text-blue-900 text-xl mb-3">🎯 Otomatik Sistem Nasıl Çalışır?</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-white p-4 rounded-lg border border-blue-200 shadow-sm">
                 <div className="flex items-center space-x-2 mb-2">
                   <Clock className="w-5 h-5 text-blue-600" />
-                  <h5 className="font-semibold text-blue-900">Sürekli İzleme</h5>
+                  <h5 className="font-semibold text-blue-900">Arka Planda Çalışır</h5>
                 </div>
                 <p className="text-sm text-blue-800">
-                  GIB klasörünüzdeki tüm e-defter dosyalarını sürekli kontrol eder
+                  Uygulama açıldığında otomatik başlar, her 30 saniyede kontrol eder
                 </p>
               </div>
               <div className="bg-white p-4 rounded-lg border border-blue-200 shadow-sm">
                 <div className="flex items-center space-x-2 mb-2">
                   <Calendar className="w-5 h-5 text-blue-600" />
-                  <h5 className="font-semibold text-blue-900">Dönem Kontrolü</h5>
+                  <h5 className="font-semibold text-blue-900">Akıllı Dönem Tespiti</h5>
                 </div>
                 <p className="text-sm text-blue-800">
-                  Başlangıç tarihinden itibaren eksik olan dönemleri tespit eder
+                  Başlangıç tarihinden sonraki complete dönemleri otomatik bulur
                 </p>
               </div>
               <div className="bg-white p-4 rounded-lg border border-blue-200 shadow-sm">
                 <div className="flex items-center space-x-2 mb-2">
                   <Mail className="w-5 h-5 text-blue-600" />
-                  <h5 className="font-semibold text-blue-900">Otomatik E-posta</h5>
+                  <h5 className="font-semibold text-blue-900">Mükerrer Engelleme</h5>
                 </div>
                 <p className="text-sm text-blue-800">
-                  Hazır olan e-defterleri müşterilere otomatik gönderir
+                  Gönderilen emailler kaydedilir, aynı dönem tekrar gönderilmez
                 </p>
               </div>
             </div>
@@ -318,7 +318,7 @@ export const AutomationSettings: React.FC = () => {
               </button>
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              💡 Başlangıç tarihi ayarlanırsa, bu tarihten önceki dönemler için e-posta gönderilmez. Klasör izleme her zaman tüm dönemleri tarar.
+              💡 Sistem her 30 saniyede monitoring verilerini kontrol eder ve bu tarihten sonraki <strong>complete</strong> dönemleri otomatik email gönderir.
             </p>
           </div>
 
@@ -347,10 +347,23 @@ export const AutomationSettings: React.FC = () => {
                   <CheckCircle className="w-5 h-5 text-green-600" />
                   <div>
                     <label className="text-sm text-green-900 font-medium">🔄 Arka Plan Hizmeti</label>
-                    <p className="text-xs text-green-700">Uygulama kapalı olsa bile otomatik çalışıyor</p>
+                    <p className="text-xs text-green-700">Uygulama açıldığında otomatik başlar, her 30 saniyede kontrol eder</p>
                   </div>
                 </div>
                 <div className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-bold">
+                  ✅ AÇIK
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between bg-white p-3 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <CheckCircle className="w-5 h-5 text-blue-600" />
+                  <div>
+                    <label className="text-sm text-blue-900 font-medium">💻 Windows Başlangıcı</label>
+                    <p className="text-xs text-blue-700">Bilgisayar açıldığında uygulama otomatik başlar</p>
+                  </div>
+                </div>
+                <div className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-bold">
                   ✅ AÇIK
                 </div>
               </div>
@@ -380,7 +393,7 @@ export const AutomationSettings: React.FC = () => {
                         📧 Otomatik E-posta Gönderimi
                       </label>
                       <p className="text-xs text-gray-500 mt-1">
-                        Tamamlanan e-defterleri otomatik olarak müşterilere gönder
+                        Başlangıç tarihinden sonraki complete dönemler için otomatik email gönder
                       </p>
                     </div>
                   </div>
@@ -399,8 +412,8 @@ export const AutomationSettings: React.FC = () => {
                 {automationSettings.emailConfig?.enabled && (
                   <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
                     <p className="text-xs text-blue-800">
-                      <strong>💡 Not:</strong> Email ayarları <strong>"E-Posta"</strong> sayfasından yapılır. 
-                      Gönderilecek şirketler, email başlığı ve diğer tüm detaylar orada ayarlanır.
+                      <strong>💡 Not:</strong> SMTP ayarları <strong>"Sistem Ayarları"</strong> sayfasından yapılır. 
+                      Sistem monitoring data'dan şirket bilgilerini otomatik alır ve email gönderir.
                     </p>
                   </div>
                 )}

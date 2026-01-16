@@ -9,7 +9,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   scanFolderStructure: (sourcePath, selectedYear) => ipcRenderer.invoke('scan-folder-structure', sourcePath, selectedYear),
   
   // Yedekleme işlemleri
-  backupFiles: (sourcePath, destinationPath) => ipcRenderer.invoke('backup-files', sourcePath, destinationPath),
+  backupFiles: (sourcePath, destinationPath, isAutomated) => ipcRenderer.invoke('backup-files', sourcePath, destinationPath, isAutomated),
   createZip: (folderPath, outputPath) => ipcRenderer.invoke('create-zip', folderPath, outputPath),
   
   // E-posta işlemleri - DÜZELTİLDİ

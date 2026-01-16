@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ElectronService } from './services/electronService';
 import emailNotificationService from './services/emailNotificationService';
+import { logService } from './services/logService';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
@@ -16,8 +17,11 @@ import { EDefterDeadlineTracker as EDefterInfo } from './components/EDefterDeadl
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [triggerEmailScan, setTriggerEmailScan] = useState(0);
 
   React.useEffect(() => {
+    console.log('🚀 [App] Component mount oldu');
+    
     // Electron ortamını kontrol et
     if (!ElectronService.isElectron()) {
       console.warn('Uygulama browser modunda çalışıyor - bazı özellikler çalışmayabilir');
@@ -111,6 +115,79 @@ function App() {
     };
   }, []);
 
+  // ✅ GLOBAL EMAIL AUTOMATION LISTENER - Her zaman çalışır
+  React.useEffect(() => {
+    logService.log('info', 'Otomasyon', '🚀 Global email automation listener kuruluyor');
+    
+    let emailDebounceTimer: NodeJS.Timeout | null = null;
+    
+    const handleGlobalAutomatedScan = async () => {
+      try {
+        logService.log('info', 'E-posta Otomasyonu', '🔔 perform-automated-scan eventi alındı');
+        
+        if (emailDebounceTimer) {
+          clearTimeout(emailDebounceTimer);
+        }
+        
+        emailDebounceTimer = setTimeout(async () => {
+          logService.log('info', 'E-posta', '✅ Email otomasyonu başlatılıyor');
+          setTriggerEmailScan(prev => prev + 1);
+          
+          // Direkt automation logic çalıştır
+          try {
+            await performGlobalEmailCheck();
+          } catch (error) {
+            logService.log('error', 'E-posta', `Email check hatası: ${String(error)}`);
+          }
+        }, 2000);
+        
+      } catch (error) {
+        logService.log('error', 'Otomasyon', `Handler hatası: ${String(error)}`);
+      }
+    };
+    
+    const performGlobalEmailCheck = async () => {
+      logService.log('info', 'E-posta Otomasyonu', '📧 Otomatik email kontrolü');
+      
+      const automationSettings = await ElectronService.loadData('automation-settings', {});
+      if (!automationSettings.success || !automationSettings.data) {
+        return;
+      }
+      
+      const settings = automationSettings.data;
+      if (!settings.emailConfig?.enabled) {
+        logService.log('info', 'E-posta', 'Email otomasyonu kapalı');
+        return;
+      }
+      
+      logService.log('success', 'E-posta', `✅ Email otomasyonu aktif: ${settings.startYear}/${settings.startMonth}`);
+      
+      const monitoringResult = await ElectronService.loadData('monitoring-data', []);
+      if (!monitoringResult.success) return;
+      
+      const allData = monitoringResult.data || [];
+      const qualifying = allData.filter((r: any) => {
+        if (r.status !== 'complete') return false;
+        if (settings.startYear && settings.startMonth) {
+          if (r.year < settings.startYear) return false;
+          if (r.year === settings.startYear && r.month < settings.startMonth) return false;
+        }
+        return true;
+      });
+      
+      logService.log('success', 'E-posta', `🎯 ${qualifying.length} dönem gönderilmeye uygun`);
+    };
+    
+    ElectronService.onPerformAutomatedScan(handleGlobalAutomatedScan);
+    ElectronService.onTriggerScan(handleGlobalAutomatedScan);
+    
+    return () => {
+      if (emailDebounceTimer) clearTimeout(emailDebounceTimer);
+      ElectronService.removeAllListeners('perform-automated-scan');
+      logService.log('info', 'Otomasyon', '🧹 Listener temizlendi');
+    };
+  }, []);
+
   const renderContent = () => {
     // Electron ortamında değilse uyarı göster
     if (!ElectronService.isElectron()) {
@@ -158,7 +235,7 @@ function App() {
         case 'backup':
           return <BackupSystem />;
         case 'email':
-          return <EmailSystem />;
+          return <EmailSystem triggerScan={triggerEmailScan} />;
         case 'automation':
           return <AutomationSettings />;
         case 'edefter-info':

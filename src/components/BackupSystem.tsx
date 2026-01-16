@@ -72,8 +72,8 @@ export const BackupSystem: React.FC = () => {
         console.log('📦 Otomatik backup başlatılıyor...');
         setIsBackingUp(true);
         
-        // Otomatik backup yap
-        const result = await ElectronService.backupFiles(sourcePath, destinationPath);
+        // Otomatik backup yap - isAutomated=true parametresi ile
+        const result = await ElectronService.backupFiles(sourcePath, destinationPath, true);
         
         if (result?.success) {
           logService.log('success', 'Yedekleme', 'Otomatik yedekleme başarılı');
@@ -173,7 +173,7 @@ export const BackupSystem: React.FC = () => {
         });
       }, 500);
 
-      const result = await ElectronService.backupFiles(backupConfig.sourcePath, backupConfig.destinationPath);
+      const result = await ElectronService.backupFiles(backupConfig.sourcePath, backupConfig.destinationPath, false);
       
       clearInterval(progressInterval);
       setBackupProgress(100);
@@ -459,7 +459,7 @@ const BackupActivitiesReport: React.FC = () => {
       <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Yedekleme Aktivite Raporları</h3>
-          <p className="text-sm text-gray-500 mt-1">Son 7 gün - Manuel ve Otomasyon Sistemi Yedeklemeleri</p>
+          <p className="text-sm text-gray-500 mt-1">Son 7 gün - Başarılı, Başarısız ve Uyarı İçeren İşlemler</p>
         </div>
         <button
           onClick={loadBackupActivities}
@@ -486,6 +486,9 @@ const BackupActivitiesReport: React.FC = () => {
                   Tarih & Saat
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Tip
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Durum
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -498,6 +501,17 @@ const BackupActivitiesReport: React.FC = () => {
                 <tr key={activity.id || index} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     {activity.dateStr}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {activity.isAutomated ? (
+                      <span className="inline-flex items-center px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-md font-medium">
+                        🤖 Otomatik
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-md font-medium">
+                        👤 Manuel
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex items-center px-3 py-1 rounded-lg text-sm font-medium ${getLevelColor(activity.level)}`}>

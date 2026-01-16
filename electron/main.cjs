@@ -125,6 +125,7 @@ let mainWindow;
 let tray = null;
 let folderWatcher = null;
 let backgroundInterval = null;
+let isEmailAutomationRunning = false; // ✅ Email otomasyonu çalışıyor mu? (duplicate önleme)
 
 // trigger-scan event debounce (çoklu refresh önleme)
 let triggerScanTimeout = null;
@@ -277,6 +278,29 @@ async function createWindow(){
   // Startup'ta eski logları temizle
   cleanupOldLogs();
   
+  // ✅ WINDOWS STARTUP AYARI - Bilgisayar açıldığında otomatik başlat
+  try {
+    const automationSettings = store.get('automation-settings', {});
+    if (automationSettings.backgroundService && automationSettings.enabled) {
+      // Otomatik başlatmayı aç
+      app.setLoginItemSettings({
+        openAtLogin: true,
+        openAsHidden: false,
+        path: process.execPath,
+        args: []
+      });
+      logToFile('success', 'Windows Startup', '✅ Otomatik başlatma aktif - Bilgisayar açıldığında uygulama başlayacak');
+    } else {
+      // Otomatik başlatmayı kapat
+      app.setLoginItemSettings({
+        openAtLogin: false
+      });
+      logToFile('info', 'Windows Startup', 'Otomatik başlatma pasif');
+    }
+  } catch (error) {
+    logToFile('error', 'Windows Startup', 'Otomatik başlatma ayarı yapılamadı', error.message);
+  }
+  
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -356,6 +380,51 @@ async function createWindow(){
       return false;
     }
   });
+  
+  // ✅ BACKGROUND SERVICE'İ OTOMATIK BAŞLAT
+  setTimeout(() => {
+    try {
+      const automationSettings = store.get('automation-settings', {});
+      if (automationSettings.backgroundService && automationSettings.enabled) {
+        // Background service'i başlat
+        if (!backgroundInterval) {
+          logToFile('info', 'Arka Plan Servisi', 'Otomatik başlatılıyor...');
+          
+          // İLK ÇALIŞMA: Hemen email automation kontrol et
+          if (automationSettings.emailConfig?.enabled) {
+            performBackendEmailAutomation(automationSettings).catch(err => {
+              logToFile('error', 'Email Otomasyonu', 'İlk çalışma hatası', err.message);
+            });
+          }
+          
+          backgroundInterval = setInterval(async () => {
+            try {
+              const settings = store.get('automation-settings', {});
+              logToFile('debug', 'Arka Plan Servisi', `Ayarlar: backgroundService=${settings.backgroundService}, enabled=${settings.enabled}, emailConfig.enabled=${settings.emailConfig?.enabled}`);
+              
+              if (settings.backgroundService && settings.enabled) {
+                logToFile('info', 'Arka Plan Servisi', 'Otomatik kontrol çalıştırılıyor');
+                logToFile('debug', 'Arka Plan Servisi', 'perform-automated-scan eventi gönderiliyor');
+                mainWindow?.webContents.send('perform-automated-scan');
+                
+                if (settings.emailConfig?.enabled) {
+                  await performBackendEmailAutomation(settings);
+                }
+              }
+            } catch (err) {
+              logToFile('error', 'Arka Plan Servisi', 'Kontrol hatası', err.message);
+            }
+          }, 30000); // ✅ 30 saniye interval
+          
+          logToFile('success', 'Arka Plan Servisi', '✅ Otomatik başlatıldı (30 sn interval)');
+        }
+      } else {
+        logToFile('info', 'Arka Plan Servisi', 'Otomasyon ayarları kapalı, başlatılmadı');
+      }
+    } catch (error) {
+      logToFile('error', 'Arka Plan Servisi', 'Otomatik başlatma hatası', error.message);
+    }
+  }, 3000); // UI yüklendikten 3 saniye sonra başlat
 }
 
 function createTray() {
@@ -580,6 +649,30 @@ ipcMain.handle('save-data', async (event, key, data) => {
       logToFile('info', 'Veri', 'E-Defter tracking sistemi güncellenmesi tetiklendi');
     }
     
+    // ✅ AUTOMATION SETTINGS KAYDEDİLİRSE WINDOWS STARTUP AYARINI GÜNCELLE
+    if (key === 'automation-settings') {
+      try {
+        if (data.backgroundService && data.enabled) {
+          // Otomatik başlatmayı aç
+          app.setLoginItemSettings({
+            openAtLogin: true,
+            openAsHidden: false,
+            path: process.execPath,
+            args: []
+          });
+          logToFile('success', 'Windows Startup', '✅ Otomatik başlatma AKTİF - Bilgisayar her açıldığında başlayacak');
+        } else {
+          // Otomatik başlatmayı kapat
+          app.setLoginItemSettings({
+            openAtLogin: false
+          });
+          logToFile('info', 'Windows Startup', 'Otomatik başlatma PASİF');
+        }
+      } catch (error) {
+        logToFile('error', 'Windows Startup', 'Otomatik başlatma güncellenemedi', error.message);
+      }
+    }
+    
     return { success: true };
   } catch (error) {
     logToFile('error', 'Veri', `Veri kaydetme hatası: ${key}`, error.message);
@@ -732,6 +825,268 @@ ipcMain.handle('stop-folder-monitoring', async (event) => {
 
 // ========== ARKA PLAN SERVİSİ HANDLER'LARI ==========
 
+// ✅ BACKEND EMAIL AUTOMATION FUNCTION
+async function performBackendEmailAutomation(automationSettings) {
+  // ✅ DUPLICATE ÖNLEME: Eğer zaten çalışıyorsa skip et
+  if (isEmailAutomationRunning) {
+    logToFile('warning', 'Email Otomasyonu', '⏭️ Önceki email otomasyonu hala çalışıyor - bu döngü atlandı');
+    return;
+  }
+  
+  isEmailAutomationRunning = true; // ✅ Lock aktif
+  
+  try {
+    logToFile('info', 'Email Otomasyonu', '📧 Backend email kontrolü başlatıldı');
+    
+    const startYear = automationSettings.startYear || 0;
+    const startMonth = automationSettings.startMonth || 0;
+    
+    // Monitoring data'yı yükle
+    const monitoringData = store.get('monitoring-data', []);
+    logToFile('info', 'Email Otomasyonu', `Toplam ${monitoringData.length} monitoring kaydı`);
+    
+    // Başlangıç tarihinden sonraki complete dönemleri filtrele
+    const qualifyingRecords = monitoringData.filter(record => {
+      if (record.status !== 'complete') return false;
+      if (startYear && startMonth) {
+        if (record.year < startYear) return false;
+        if (record.year === startYear && record.month < startMonth) return false;
+      }
+      return true;
+    });
+    
+    logToFile('success', 'Email Otomasyonu', `✅ ${qualifyingRecords.length} dönem gönderilmeye uygun (${startYear}/${startMonth}'ten sonra)`);
+    
+    if (qualifyingRecords.length > 0) {
+      // Sent emails registry'yi yükle
+      const sentEmails = store.get('sentEmails', []);
+      const companies = store.get('companies', []);
+      
+      logToFile('debug', 'Email Otomasyonu', `📋 Başlangıç: sentEmails'de ${sentEmails.length} kayıt var`);
+      
+      // ✅ FIX: SMTP ayarlarını email-config'den oku (EmailSystem.tsx ile senkron)
+      const emailConfig = store.get('email-config', {});
+      const smtpSettings = {
+        smtpHost: emailConfig.smtpServer || '',
+        smtpPort: emailConfig.smtpPort || 465,
+        fromEmail: emailConfig.senderEmail || '',
+        password: emailConfig.senderPassword || ''
+      };
+      
+      // SMTP ayarları kontrolü
+      if (!smtpSettings.smtpHost || !smtpSettings.fromEmail || !smtpSettings.password) {
+        logToFile('warning', 'Email Otomasyonu', 'SMTP ayarları eksik - email gönderilemez');
+        logToFile('debug', 'Email Otomasyonu', `SMTP kontrol: host='${smtpSettings.smtpHost}', from='${smtpSettings.fromEmail}', pass=${smtpSettings.password ? 'VAR' : 'YOK'}`);
+        return;
+      }
+      
+      // Nodemailer kontrolü
+      if (!nodemailer || typeof nodemailer.createTransport !== 'function') {
+        logToFile('error', 'Email Otomasyonu', 'Nodemailer modülü hazır değil');
+        return;
+      }
+      
+      let emailsSent = 0;
+      let emailsSkipped = 0;
+      
+      // Her kayıt için email gönder
+      for (const record of qualifyingRecords) {
+        try {
+          // Bu dönem daha önce gönderilmiş mi kontrol et
+          const alreadySent = sentEmails.some(sent => 
+            sent.companyId === record.companyId && 
+            sent.year === record.year && 
+            sent.month === record.month
+          );
+          
+          if (alreadySent) {
+            emailsSkipped++;
+            continue;
+          }
+          
+          // ✅ FIX: Şirket bilgilerini taxNumber veya tcNumber ile bul (companyId = vergi/TC no)
+          // taxNumber/tcNumber array olabilir, string'e çevir
+          const company = companies.find(c => {
+            const taxNum = Array.isArray(c.taxNumber) ? c.taxNumber[0] : c.taxNumber;
+            const tcNum = Array.isArray(c.tcNumber) ? c.tcNumber[0] : c.tcNumber;
+            return taxNum === record.companyId || tcNum === record.companyId;
+          });
+          
+          if (!company || !company.email) {
+            logToFile('warning', 'Email Otomasyonu', `${record.companyName} (${record.companyId}) için şirket kaydı veya email bulunamadı`);
+            emailsSkipped++;
+            continue;
+          }
+          
+          // ✅ ZIP dosyası oluştur
+          let zipPath = null;
+          let zipFileName = null;
+          try {
+            // Şirket bilgilerini hazırla
+            const companyDataForZip = {
+              name: company.name,
+              taxNumber: Array.isArray(company.taxNumber) ? company.taxNumber[0] : company.taxNumber,
+              tcNumber: Array.isArray(company.tcNumber) ? company.tcNumber[0] : company.tcNumber,
+              email: company.email
+            };
+            
+            // Monitoring settings'ten source path al
+            const monitoringSettings = store.get('monitoring-settings', {});
+            const sourcePath = monitoringSettings.sourcePath;
+            
+            if (sourcePath && fs.existsSync(sourcePath)) {
+              // Şirket klasörünü bul
+              const companyFolder = path.join(sourcePath, record.companyId);
+              
+              if (fs.existsSync(companyFolder)) {
+                // ZIP oluştur
+                const periodString = `-${record.year}${String(record.month).padStart(2, '0')}`;
+                zipFileName = `${company.name.replace(/[/\\:*?"<>|]/g, '_')}${periodString}.zip`;
+                zipPath = path.join(app.getPath('temp'), zipFileName);
+                
+                const output = fs.createWriteStream(zipPath);
+                const archive = archiver('zip', { zlib: { level: 9 } });
+                archive.pipe(output);
+                
+                // Yıl klasörünü bul
+                const yearFolders = fs.readdirSync(companyFolder).filter(f => {
+                  const fullPath = path.join(companyFolder, f);
+                  return fs.existsSync(fullPath) && fs.statSync(fullPath).isDirectory();
+                });
+                
+                let filesAdded = false;
+                for (const yearFolder of yearFolders) {
+                  const yearMatch = yearFolder.match(/^\d{2}\.\d{2}\.(\d{4})-\d{2}\.\d{2}\.(\d{4})$/);
+                  if (yearMatch) {
+                    const startYear = parseInt(yearMatch[1]);
+                    const endYear = parseInt(yearMatch[2]);
+                    
+                    if (record.year >= startYear && record.year <= endYear) {
+                      const monthPath = path.join(companyFolder, yearFolder, String(record.month).padStart(2, '0'));
+                      
+                      if (fs.existsSync(monthPath)) {
+                        // Ay klasöründeki tüm dosyaları ekle
+                        archive.directory(monthPath, `${company.name}/${yearFolder}/${String(record.month).padStart(2, '0')}`);
+                        filesAdded = true;
+                        logToFile('info', 'Email Otomasyonu', `ZIP'e eklendi: ${monthPath}`);
+                        break;
+                      }
+                    }
+                  }
+                }
+                
+                if (!filesAdded) {
+                  // Dosya bulunamadıysa boş bir not ekle
+                  archive.append(`${company.name} - ${record.month}/${record.year} dönemine ait dosya bulunamadı.`, { name: 'NOT.txt' });
+                }
+                
+                await archive.finalize();
+                await new Promise((resolve, reject) => {
+                  output.on('close', resolve);
+                  output.on('error', reject);
+                });
+                
+                logToFile('success', 'Email Otomasyonu', `ZIP oluşturuldu: ${zipFileName}`);
+              } else {
+                logToFile('warning', 'Email Otomasyonu', `Şirket klasörü bulunamadı: ${companyFolder}`);
+              }
+            }
+          } catch (zipError) {
+            logToFile('error', 'Email Otomasyonu', `ZIP oluşturma hatası: ${zipError.message}`);
+          }
+          
+          // Email gönder
+          const transporter = nodemailer.createTransport({
+            host: smtpSettings.smtpHost,
+            port: smtpSettings.smtpPort || 587,
+            secure: smtpSettings.smtpPort === 465,
+            auth: {
+              user: smtpSettings.fromEmail,
+              pass: smtpSettings.password
+            }
+          });
+          
+          const monthNames = ['', 'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+          const subject = smtpSettings.subject || 'E-Defter Bilgilendirme';
+          const periodText = `${monthNames[record.month]} ${record.year}`;
+          
+          // Email HTML içeriği oluştur
+          const emailHtml = createProfessionalEmailTemplate([{month: record.month, year: record.year}], company.name);
+          
+          const mailOptions = {
+            from: `"${smtpSettings.fromName || 'E-Defter Otomasyon'}" <${smtpSettings.fromEmail}>`,
+            to: company.email,
+            subject: subject.replace('{period}', periodText).replace('{company}', company.name),
+            html: emailHtml
+          };
+          
+          // ✅ ZIP varsa attachment olarak ekle
+          if (zipPath && fs.existsSync(zipPath)) {
+            mailOptions.attachments = [{
+              filename: zipFileName,
+              path: zipPath
+            }];
+            logToFile('info', 'Email Otomasyonu', `Email'e ZIP eklendi: ${zipFileName}`);
+          }
+          
+          await transporter.sendMail(mailOptions);
+          
+          // ✅ ZIP dosyasını temizle
+          if (zipPath && fs.existsSync(zipPath)) {
+            try {
+              fs.unlinkSync(zipPath);
+              logToFile('debug', 'Email Otomasyonu', `Geçici ZIP silindi: ${zipPath}`);
+            } catch (cleanupError) {
+              logToFile('warning', 'Email Otomasyonu', `ZIP temizleme hatası: ${cleanupError.message}`);
+            }
+          }
+          
+          // Gönderim kaydını ekle
+          sentEmails.push({
+            companyId: record.companyId,
+            companyName: company.name,
+            year: record.year,
+            month: record.month,
+            sentDate: new Date().toISOString(),
+            recipientEmail: company.email
+          });
+          
+          emailsSent++;
+          logToFile('success', 'Email Otomasyonu', `✉️ Email gönderildi: ${company.name} - ${periodText}`);
+          
+          // Rate limiting - Email sunucusu yükünü azalt
+          await new Promise(resolve => setTimeout(resolve, 2000)); // 2 saniye bekle
+          
+        } catch (emailError) {
+          logToFile('error', 'Email Otomasyonu', `Email gönderimi hatası: ${record.companyName}`, emailError.message);
+          emailsSkipped++;
+        }
+      }
+      
+      // Sent emails'i kaydet
+      if (emailsSent > 0) {
+        logToFile('debug', 'Email Otomasyonu', `📝 Kayıt edilecek: ${sentEmails.length} email`);
+        store.set('sentEmails', sentEmails);
+        logToFile('success', 'Email Otomasyonu', `🎉 TOPLAM: ${emailsSent} email gönderildi, ${emailsSkipped} atlandı`);
+        
+        // Kaydı doğrula
+        const savedEmails = store.get('sentEmails', []);
+        logToFile('debug', 'Email Otomasyonu', `✅ Kaydedildi doğrulama: ${savedEmails.length} email config'de`);
+      } else {
+        logToFile('info', 'Email Otomasyonu', `Yeni gönderilecek email yok - ${emailsSkipped} dönem zaten gönderilmiş`);
+      }
+    }
+  } catch (error) {
+    logToFile('error', 'Email Otomasyonu', `Backend email automation hatası: ${error.message}`);
+  } finally {
+    // ✅ LOCK KALDIR - Her durumda (başarı/hata) lock'u kaldır
+    isEmailAutomationRunning = false;
+    logToFile('debug', 'Email Otomasyonu', '🔓 Email otomasyonu lock kaldırıldı');
+  }
+}
+
+// ========== ARKA PLAN SERVİSİ HANDLER'LARI ==========
+
 // Arka plan servisini başlat
 ipcMain.handle('start-background-service', async (event) => {
   try {
@@ -745,9 +1100,21 @@ ipcMain.handle('start-background-service', async (event) => {
     backgroundInterval = setInterval(async () => {
       try {
         const automationSettings = store.get('automation-settings', {});
+        logToFile('debug', 'Arka Plan Servisi', `Ayarlar kontrol ediliyor: backgroundService=${automationSettings.backgroundService}, enabled=${automationSettings.enabled}, emailConfig.enabled=${automationSettings.emailConfig?.enabled}`);
+        
         if (automationSettings.backgroundService && automationSettings.enabled) {
           logToFile('info', 'Arka Plan Servisi', 'Otomatik kontrol çalıştırılıyor');
+          
+          // Frontend'e event gönder
+          logToFile('debug', 'Arka Plan Servisi', 'perform-automated-scan eventi frontend\'e gönderiliyor');
           mainWindow?.webContents.send('perform-automated-scan');
+          
+          // ✅ BACKEND'DE DİREKT EMAIL AUTOMATION ÇALIŞTIR
+          if (automationSettings.emailConfig?.enabled) {
+            await performBackendEmailAutomation(automationSettings);
+          }
+        } else {
+          logToFile('warning', 'Arka Plan Servisi', `Otomasyon devre dışı: backgroundService=${automationSettings.backgroundService}, enabled=${automationSettings.enabled}`);
         }
       } catch (err) {
         logToFile('error', 'Arka Plan Servisi', 'Kontrol hatası', err.message);
@@ -1185,6 +1552,7 @@ const performScan = async (sourcePath, selectedYear, companies) => {
               results.push({
                 companyName: `Tanımlanmamış (${companyId})`,
                 companyId: companyId,
+                isUnregistered: true, // ✅ Tanımlanmamış şirket flag'i
                 year: folderYear,
                 month: month,
                 folderExists: fs.existsSync(monthPath),
@@ -1279,9 +1647,10 @@ const performScan = async (sourcePath, selectedYear, companies) => {
 // ========== RAPOR HANDLER'LARI ==========
 
 // Yedekleme handler'ı
-ipcMain.handle('backup-files', async (event, sourcePath, destinationPath) => {
+ipcMain.handle('backup-files', async (event, sourcePath, destinationPath, isAutomated = false) => {
   try {
-    logToFile('info', 'Yedekleme', `Yedekleme başlatılıyor: ${sourcePath} → ${destinationPath}`);
+    const backupType = isAutomated ? 'Otomatik yedekleme' : 'Manuel yedekleme';
+    logToFile('info', 'Yedekleme', `${backupType} başlatılıyor: ${sourcePath} → ${destinationPath}`);
     
     if (!fs.existsSync(sourcePath)) {
       return { success: false, error: 'Kaynak klasörü bulunamadı' };
@@ -1406,14 +1775,16 @@ ipcMain.handle('backup-files', async (event, sourcePath, destinationPath) => {
     
     const sizeInMB = (totalSize / (1024 * 1024)).toFixed(2);
     
-    logToFile('success', 'Yedekleme', `Yedekleme tamamlandı. ${copiedFiles} yeni dosya kopyalandı, ${skippedFiles} dosya atlandı, ${errorCount} hata. Toplam boyut: ${sizeInMB} MB`);
+    const backupType = isAutomated ? 'Otomatik yedekleme' : 'Manuel yedekleme';
+    logToFile('success', 'Yedekleme', `${backupType} tamamlandı. ${copiedFiles} yeni dosya kopyalandı, ${skippedFiles} dosya atlandı, ${errorCount} hata. Toplam boyut: ${sizeInMB} MB`);
     
     // ✅ Yedekleme aktivitesini kaydet
     const backupActivities = store.get('backupActivities', []);
     backupActivities.unshift({
       id: Date.now().toString(),
       timestamp: new Date().toISOString(),
-      type: 'manual', // 'manual' veya 'automatic'
+      type: isAutomated ? 'automatic' : 'manual', // 'manual' veya 'automatic'
+      isAutomated: isAutomated,
       sourcePath: sourcePath,
       destinationPath: destinationPath,
       status: 'success',
@@ -3089,7 +3460,8 @@ ipcMain.handle('create-excel-template', async (event, data, options = {}) => {
 // App başlatıldığında pencereyi oluştur
 app.whenReady().then(() => {
   createWindow();
-  logToFile('info', 'Sistem', 'App başlatıldı ve pencere açıldı');
+  createTray(); // ✅ Sistem tepsisi ikonu oluştur
+  logToFile('info', 'Sistem', 'App başlatıldı, pencere ve tray oluşturuldu');
 }).catch(err => {
   logToFile('error', 'Sistem', 'App başlatma hatası', err.message);
   console.error('App başlatma hatası:', err);
@@ -3185,13 +3557,23 @@ ipcMain.handle('get-backup-activities', async (event) => {
           continue;
         }
 
+        // ✅ Sadece önemli bilgileri göster: success, error, warning
+        const levelLower = level.trim().toLowerCase();
+        if (levelLower !== 'success' && levelLower !== 'error' && levelLower !== 'warning') {
+          continue;
+        }
+
+        // ✅ Otomatik mi manuel mi belirleme
+        const isAutomated = message.includes('Otomatik yedekleme') || message.includes('otomatik backup');
+
         activities.push({
           id: `${file}-${activities.length}`,
           dateStr: dateTime.trim(),
-          level: level.trim().toLowerCase(),
+          level: levelLower,
           category: category.trim(),
           message: message.trim(),
-          details: details ? details.trim() : ''
+          details: details ? details.trim() : '',
+          isAutomated: isAutomated
         });
       }
     }
@@ -3238,18 +3620,19 @@ ipcMain.handle('get-email-activities', async (event) => {
           const lines = content.split('\n').filter(line => line.trim());
 
           for (const line of lines) {
-            // E-posta ile ilgili logları bul
-            if (line.includes('E-posta:') || line.includes('[E-posta]')) {
+            // ✅ Hem manuel "E-posta" hem otomatik "Email Otomasyonu" kategorilerini yakala
+            if (line.includes('E-posta:') || line.includes('Email Otomasyonu:')) {
               try {
-                // Log formatı: "DD.MM.YYYY HH:mm:ss - [LEVEL] E-posta: message"
+                // Log formatı: "DD.MM.YYYY HH:mm:ss - [LEVEL] Kategori: message"
                 const dateMatch = line.match(/^(\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}:\d{2})/);
-                const levelMatch = line.match(/\[(SUCCESS|ERROR|INFO|WARN)\]/i);
-                const messageMatch = line.match(/E-posta:\s*(.+)$/);
+                const levelMatch = line.match(/\[(SUCCESS|ERROR|INFO|WARN|WARNING|DEBUG)\]/i);
+                const categoryMatch = line.match(/\[(?:SUCCESS|ERROR|INFO|WARN|WARNING|DEBUG)\]\s+([^:]+):\s*(.+)$/i);
 
-                if (dateMatch && messageMatch) {
+                if (dateMatch && categoryMatch) {
                   const timestamp = dateMatch[1];
                   const level = levelMatch ? levelMatch[1].toLowerCase() : 'info';
-                  const message = messageMatch[1];
+                  const category = categoryMatch[1].trim(); // "E-posta" veya "Email Otomasyonu"
+                  const message = categoryMatch[2].trim();
 
                   // Tarih parse et
                   const [datePart, timePart] = timestamp.split(' ');
@@ -3259,19 +3642,29 @@ ipcMain.handle('get-email-activities', async (event) => {
 
                   const isToday = new Date().toDateString() === parsedDate.toDateString();
 
-                  // Email detaylarını çıkar
+                  // ✅ Email detaylarını çıkar ve tip belirle
                   let operation = 'Bilinmeyen işlem';
                   let details = message;
                   let status = 'Bilgi';
+                  let isAutomated = category.includes('Otomasyon'); // Otomatik mi manuel mi?
                   
-                  if (message.includes('Email gönderildi:')) {
-                    operation = 'Email Gönderildi';
+                  // ✅ Otomatik gönderimler için özel kontrol
+                  if (message.includes('✉️ Email gönderildi:')) {
+                    operation = isAutomated ? 'Otomatik Email Gönderildi' : 'Manuel Email Gönderildi';
+                    status = 'Başarılı';
+                    details = message.replace('✉️ Email gönderildi:', '').trim();
+                  } else if (message.includes('Email gönderildi:')) {
+                    operation = isAutomated ? 'Otomatik Email Gönderildi' : 'Manuel Email Gönderildi';
                     status = 'Başarılı';
                     details = message.replace('Email gönderildi:', '').trim();
-                  } else if (message.includes('Email gönderilemedi:')) {
-                    operation = 'Email Gönderim Hatası';
+                  } else if (message.includes('Email gönderilemedi:') || message.includes('Email gönderimi hatası:')) {
+                    operation = isAutomated ? 'Otomatik Email Hatası' : 'Manuel Email Hatası';
                     status = 'Başarısız';
-                    details = message.replace('Email gönderilemedi:', '').trim();
+                    details = message.replace('Email gönderilemedi:', '').replace('Email gönderimi hatası:', '').trim();
+                  } else if (message.includes('🎉 TOPLAM:')) {
+                    operation = 'Otomatik Gönderim Özeti';
+                    status = 'Başarılı';
+                    details = message.replace('🎉 TOPLAM:', '').trim();
                   } else if (message.includes('ZIP oluşturuldu:')) {
                     operation = 'ZIP Oluşturuldu';
                     status = 'Başarılı';
@@ -3280,23 +3673,15 @@ ipcMain.handle('get-email-activities', async (event) => {
                     operation = 'ZIP Oluşturma Hatası';
                     status = 'Başarısız';
                     details = message.replace('ZIP oluşturulamadı:', '').trim();
-                  } else if (message.includes('Otomatik email tamamlandı:')) {
-                    operation = 'Otomatik Email Tamamlandı';
-                    status = message.includes('başarılı, 0 başarısız') ? 'Başarılı' : 'Kısmi Başarısız';
-                    details = message.replace('Otomatik email tamamlandı:', '').trim();
-                  } else if (message.includes('email gönderme hatası:')) {
-                    operation = 'Email Gönderim Hatası';
-                    status = 'Başarısız';
-                    details = message;
                   } else if (level === 'success') {
                     status = 'Başarılı';
-                    operation = 'Email İşlemi';
+                    operation = isAutomated ? 'Otomatik Email İşlemi' : 'Manuel Email İşlemi';
                   } else if (level === 'error') {
                     status = 'Başarısız';
-                    operation = 'Email Hatası';
-                  } else if (level === 'info') {
-                    status = 'Bilgi';
-                    operation = 'Email Bilgisi';
+                    operation = isAutomated ? 'Otomatik Email Hatası' : 'Manuel Email Hatası';
+                  } else if (level === 'info' || level === 'debug') {
+                    // INFO ve DEBUG seviyesindeki logları atlıyoruz
+                    continue;
                   }
 
                   // Activity objesini oluştur
@@ -3308,9 +3693,10 @@ ipcMain.handle('get-email-activities', async (event) => {
                     status: status,
                     details: details,
                     level: level,
+                    category: category,
                     message: message,
                     isToday: isToday,
-                    rawLine: line // Debug için
+                    isAutomated: isAutomated // Otomatik/manuel ayırımı için
                   });
                 }
               } catch (parseErr) {

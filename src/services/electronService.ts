@@ -13,7 +13,7 @@ declare global {
       selectExcelFile: () => Promise<{success: boolean, data?: any[], error?: string, filePath?: string}>;
       selectSaveLocation: (defaultFileName: string) => Promise<{success: boolean, filePath?: string, error?: string}>;
       scanFolderStructure: (sourcePath: string, selectedYear?: string) => Promise<{success: boolean, data?: any[], error?: string}>;
-      backupFiles: (sourcePath: string, destinationPath: string) => Promise<{success: boolean, message?: string, error?: string, stats?: {copiedFiles: number, skippedFiles: number, totalFiles: number, totalSize: string}}>;
+      backupFiles: (sourcePath: string, destinationPath: string, isAutomated?: boolean) => Promise<{success: boolean, message?: string, error?: string, stats?: {copiedFiles: number, skippedFiles: number, totalFiles: number, totalSize: string}}>;
       createZip: (folderPath: string, outputPath: string) => Promise<{success: boolean, size?: number, error?: string}>;
       sendEmail: (emailConfig: any, recipients: any[], subject: string, attachments: string[], customMessage: string, selectedMonths: any[]) => Promise<{success: boolean, results?: any[], error?: string}>;
       createCompanyZip: (companyData: any, selectedMonths: any[], customMessage: string) => Promise<{success: boolean, zipPath?: string, fileName?: string, error?: string}>;
