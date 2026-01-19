@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Defter Klasör Otomasyonu - Kullanıcı Dokümantasyonu</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="docs-style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <span class="logo">📊</span>
+                <span class="brand-name">E-Defter Klasör Otomasyonu</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="index.html">Ana Sayfa</a></li>
+                <li><a href="#kurulum">Kurulum</a></li>
+                <li><a href="#kullanim">Kullanım</a></li>
+                <li><a href="#faq">SSS</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="docs-container">
+        <!-- Sidebar -->
+        <aside class="docs-sidebar">
+            <nav class="sidebar-nav">
+                <h3>📚 İçindekiler</h3>
+                <ul>
+                    <li><a href="#giris">Giriş</a></li>
+                    <li><a href="#kurulum">Kurulum</a>
+                        <ul>
+                            <li><a href="#sistem-gereksinimleri">Sistem Gereksinimleri</a></li>
+                            <li><a href="#kurulum-adimlari">Kurulum Adımları</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="#ilk-yapilandirma">İlk Yapılandırma</a>
+                        <ul>
+                            <li><a href="#klasor-izleme">Klasör İzleme</a></li>
+                            <li><a href="#sirket-yonetimi">Şirket Yönetimi</a></li>
+                            <li><a href="#email-ayarlari">Email Ayarları</a></li>
+                            <li><a href="#yedekleme">Yedekleme Sistemi</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="#otomasyon">Otomasyon Sistemi</a>
+                        <ul>
+                            <li><a href="#otomasyon-baslat">Otomasyonu Başlatma</a></li>
+                            <li><a href="#tray-menu">Tray Menüsü</a></li>
+                            <li><a href="#arka-plan">Arka Plan Çalışma</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="#raporlama">Raporlama</a></li>
+                    <li><a href="#sorun-giderme">Sorun Giderme</a></li>
+                    <li><a href="#faq">Sık Sorulan Sorular</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="docs-content">
+            <section id="giris" class="doc-section">
+                <h1>🎯 E-Defter Klasör Otomasyonu Kullanıcı Kılavuzu</h1>
+                <p class="lead">E-Defter Klasör Otomasyonu, mali müşavir ofisleri için özel geliştirilmiş, GIB'e gönderilen e-defter klasörlerini otomatik izleyen, yedekleyen ve müşterilere email gönderen profesyonel bir otomasyon sistemidir.</p>
+                
+                <div class="info-box">
+                    <strong>📌 Önemli Not:</strong> Bu kılavuz v1.0.0 sürümü içindir. Güncel sürüm için lütfen <a href="index.html">web sitemizi</a> ziyaret edin.
+                </div>
+            </section>
+
+            <section id="kurulum" class="doc-section">
+                <h2>📥 Kurulum</h2>
+                
+                <div id="sistem-gereksinimleri">
+                    <h3>Sistem Gereksinimleri</h3>
+                    <ul>
+                        <li><strong>İşletim Sistemi:</strong> Windows 10 veya Windows 11</li>
+                        <li><strong>İşlemci:</strong> Intel Core i3 veya üzeri</li>
+                        <li><strong>RAM:</strong> Minimum 4GB (8GB önerilir)</li>
+                        <li><strong>Disk Alanı:</strong> 100MB boş alan</li>
+                        <li><strong>İnternet:</strong> Email gönderimi için gerekli</li>
+                    </ul>
+                </div>
+
+                <div id="kurulum-adimlari">
+                    <h3>Kurulum Adımları</h3>
+                    <ol class="numbered-steps">
+                        <li>
+                            <strong>İndirme</strong>
+                            <p>Web sitesinden <code>E-Defter Otomasyon Setup.exe</code> dosyasını indirin.</p>
+                        </li>
+                        <li>
+                            <strong>Kurulum Başlatma</strong>
+                            <p>İndirilen .exe dosyasını çift tıklayarak çalıştırın. Windows SmartScreen uyarısı çıkarsa "Daha fazla bilgi" → "Yine de çalıştır" seçeneğini kullanın.</p>
+                        </li>
+                        <li>
+                            <strong>Kurulum Konumu</strong>
+                            <p>Varsayılan kurulum konumunu değiştirebilir veya olduğu gibi bırakabilirsiniz.</p>
+                            <div class="code-block">
+                                <code>C:\Program Files\E-Defter Otomasyon</code>
+                            </div>
+                        </li>
+                        <li>
+                            <strong>Kurulumu Tamamlama</strong>
+                            <p>"Kurulumu Tamamla" butonuna tıklayın. Uygulama otomatik olarak başlayacaktır.</p>
+                        </li>
+                    </ol>
+                </div>
+            </section>
+
+            <section id="ilk-yapilandirma" class="doc-section">
+                <h2>⚙️ İlk Yapılandırma</h2>
+                
+                <div id="klasor-izleme">
+                    <h3>1. Klasör İzleme Ayarları</h3>
+                    <p>Uygulamayı ilk açtığınızda <strong>"Klasör İzleme"</strong> sayfasından başlayın:</p>
+                    
+                    <div class="step-box">
+                        <h4>GIB Kaynak Klasörünü Seçme</h4>
+                        <ol>
+                            <li>Sol menüden <strong>"Klasör İzleme"</strong> sekmesine tıklayın</li>
+                            <li><strong>"GIB Kaynak Klasörü Seç"</strong> butonuna tıklayın</li>
+                            <li>GIB dosyalarınızın bulunduğu klasörü seçin</li>
+                        </ol>
+                        
+                        <div class="warning-box">
+                            <strong>⚠️ Dikkat:</strong> Klasör yapısı aşağıdaki formatta olmalıdır:
+                            <div class="code-block">
+                                <pre>
+GIB_Klasörü/
+├── ŞİRKET_ADI_1/
+│   ├── 2024/
+│   │   ├── 01/
+│   │   ├── 02/
+│   │   └── ...
+│   └── 2025/
+└── ŞİRKET_ADI_2/
+    └── 2024/
+        └── ...</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="step-box">
+                        <h4>Klasör Tarama</h4>
+                        <p><strong>"Klasör Taraması Başlat"</strong> butonuna tıklayın. Sistem şunları yapacaktır:</p>
+                        <ul>
+                            <li>✅ Tüm şirket klasörlerini tespit eder</li>
+                            <li>✅ Yıl ve ay bazında klasör yapısını analiz eder</li>
+                            <li>✅ Eksik dönemleri tespit eder</li>
+                            <li>✅ Sonuçları tabloda gösterir</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div id="sirket-yonetimi">
+                    <h3>2. Müşteri Yönetimi</h3>
+                    <p><strong>"Müşteri Yönetimi"</strong> sayfasından müşteri bilgilerini yönetin:</p>
+                    
+                    <div class="step-box">
+                        <h4>Excel'den Müşteri Yükleme (Önerilen)</h4>
+                        <ol>
+                            <li><strong>"Excel'den Müşteri Yükle"</strong> butonuna tıklayın</li>
+                            <li>Excel dosyanızı seçin (Şablon için <strong>"Excel Şablonu İndir"</strong> kullanın)</li>
+                            <li>Sistem otomatik olarak müşterileri yükleyecektir</li>
+                        </ol>
+                        
+                        <div class="info-box">
+                            <strong>📋 Excel Formatı:</strong>
+                            <table class="doc-table">
+                                <thead>
+                                    <tr>
+                                        <th>Müşteri Adı</th>
+                                        <th>Vergi No</th>
+                                        <th>Müşteri Email</th>
+                                        <th>Telefon</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>ABC Ltd. Şti.</td>
+                                        <td>1234567890</td>
+                                        <td>musteri@example.com</td>
+                                        <td>05551234567</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="step-box">
+                        <h4>Manuel Müşteri Ekleme</h4>
+                        <ol>
+                            <li><strong>"+ Yeni Müşteri Ekle"</strong> butonuna tıklayın</li>
+                            <li>Formu doldurun:
+                                <ul>
+                                    <li>Müşteri Adı (zorunlu)</li>
+                                    <li>Vergi Numarası</li>
+                                    <li>Müşteri Email (email gönderimi için gerekli)</li>
+                                    <li>Telefon</li>
+                                </ul>
+                            </li>
+                            <li><strong>"Kaydet"</strong> butonuna tıklayın</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div id="email-ayarlari">
+                    <h3>3. E-posta Ayarları</h3>
+                    <p><strong>"E-Posta"</strong> sayfasından email yapılandırmasını tamamlayın:</p>
+                    
+                    <div class="step-box">
+                        <h4>SMTP Ayarları</h4>
+                        <ol>
+                            <li>Sol menüden <strong>"E-Posta"</strong> sekmesine tıklayın</li>
+                            <li><strong>"E-posta Ayarları"</strong> bölümündeki ⚙️ ikonuna tıklayın</li>
+                            <li>SMTP bilgilerini girin:
+                                <div class="code-block">
+                                    <strong>Gmail için örnek:</strong><br>
+                                    SMTP Sunucu: smtp.gmail.com<br>
+                                    Port: 587<br>
+                                    Email: sizin@gmail.com<br>
+                                    Şifre: uygulama-şifresi
+                                </div>
+                            </li>
+                        </ol>
+                        
+                        <div class="warning-box">
+                            <strong>🔐 Gmail Kullanıyorsanız:</strong>
+                            <ol>
+                                <li>Google hesabınızda 2 adımlı doğrulamayı aktif edin</li>
+                                <li><a href="https://myaccount.google.com/apppasswords" target="_blank">Uygulama Şifresi</a> oluşturun</li>
+                                <li>Bu şifreyi E-Defter Otomasyon'da kullanın</li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <div class="step-box">
+                        <h4>Test Email Gönderimi</h4>
+                        <p>Ayarlarınızı test etmek için:</p>
+                        <ol>
+                            <li><strong>"Bağlantıyı Test Et"</strong> butonuna tıklayın</li>
+                            <li>✅ işareti görüyorsanız ayarlarınız doğru</li>
+                            <li>❌ hata alırsanız SMTP bilgilerini kontrol edin</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div id="yedekleme">
+                    <h3>4. Yedekleme Sistemi</h3>
+                    <p><strong>"Yedekleme"</strong> sayfasından yedekleme ayarlarını yapılandırın:</p>
+                    
+                    <div class="step-box">
+                        <h4>Yedekleme Yapılandırması</h4>
+                        <ol>
+                            <li><strong>"Kaynak Klasör Seç"</strong>: GIB klasörünüzü seçin (Klasör İzleme'den otomatik gelir)</li>
+                            <li><strong>"Hedef Klasör Seç"</strong>: Yedeğin kaydedileceği konumu seçin
+                                <div class="info-box">
+                                    💡 <strong>Öneri:</strong> Farklı bir disk veya ağ sürücüsü kullanın
+                                </div>
+                            </li>
+                            <li><strong>"Manuel Yedekleme Başlat"</strong> ile test yedeklemesi yapın</li>
+                        </ol>
+                    </div>
+
+                    <div class="info-box">
+                        <strong>🔄 Akıllı Yedekleme:</strong>
+                        <ul>
+                            <li>Sadece yeni veya değişen dosyaları kopyalar</li>
+                            <li>Klasör yapısını korur</li>
+                            <li>Gereksiz kopyalama yapmaz (performans)</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section id="otomasyon" class="doc-section">
+                <h2>🤖 Otomasyon Sistemi</h2>
+                
+                <div id="otomasyon-baslat">
+                    <h3>Otomasyonu Başlatma</h3>
+                    <p><strong>"Otomasyon Ayarları"</strong> sayfasından tam otomasyonu aktif edin:</p>
+                    
+                    <div class="step-box">
+                        <h4>Başlatma Adımları</h4>
+                        <ol>
+                            <li>Sol menüden <strong>"🤖 Otomasyon Ayarları"</strong> sekmesine tıklayın</li>
+                            <li>Tüm ayarların yapılandırıldığından emin olun:
+                                <ul>
+                                    <li>✅ E-Defter Klasörü seçilmiş (GIB'e gönderilen e-defterlerin yerel klasörü)</li>
+                                    <li>✅ Müşteriler eklenmiş</li>
+                                    <li>✅ Email ayarları yapılmış (müşterilere otomatik email için)</li>
+                                    <li>✅ Yedekleme ayarları yapılmış (e-defter klasörlerini otomatik yedekleme için)</li>
+                                </ul>
+                            </li>
+                            <li>Sağ üstteki <strong class="btn-text">▶️ SİSTEMİ BAŞLAT</strong> butonuna tıklayın</li>
+                            <li>Durum göstergesi <strong class="status-active">🟢 ÇALIŞIYOR</strong> olacaktır</li>
+                        </ol>
+                    </div>
+
+                    <div class="success-box">
+                        <strong>🎉 Tebrikler!</strong> Sistem artık çalışıyor:
+                        <ul>
+                            <li>✅ Her 30 saniyede e-defter klasörlerini otomatik kontrol</li>
+                            <li>✅ Yeni e-defter klasörü tespiti</li>
+                            <li>✅ Müşterilere otomatik email gönderimi</li>
+                            <li>✅ E-defter klasörlerini otomatik yedekleme</li>
+                            <li>✅ Windows başlangıcında otomatik başlatma</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div id="tray-menu">
+                    <h3>Tray Menüsü Kontrolü</h3>
+                    <p>Uygulama penceresini kapatsanız bile sistem çalışmaya devam eder:</p>
+                    
+                    <div class="info-box">
+                        <strong>🖱️ Tray Menüsü Özellikleri:</strong>
+                        <ul>
+                            <li><strong>Durum Göstergesi:</strong> 🟢 Aktif / 🔴 Pasif</li>
+                            <li><strong>Arka Plan Servisi:</strong> ✅ Çalışıyor / ⏸️ Durdu</li>
+                            <li><strong>▶️/⏸️ Sistemi Başlat/Durdur:</strong> Tek tıkla kontrol</li>
+                            <li><strong>Double-click:</strong> Uygulamayı aç</li>
+                            <li><strong>Çıkış:</strong> Uygulamayı tamamen kapat</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div id="arka-plan">
+                    <h3>Arka Plan Çalışma</h3>
+                    <p>Sistem arka planda kesintisiz çalışır:</p>
+                    
+                    <div class="step-box">
+                        <h4>Arka Plan Özellikleri</h4>
+                        <ul>
+                            <li>🖥️ <strong>Bilgisayar Açılışı:</strong> Windows ile otomatik başlar</li>
+                            <li>📁 <strong>Pencere Kapatma:</strong> Tray'de çalışmaya devam eder</li>
+                            <li>⚡ <strong>30 Saniye Interval:</strong> Sürekli kontrol döngüsü</li>
+                            <li>📧 <strong>Otomatik Email:</strong> Eksik dönemler için anında bildirim</li>
+                            <li>💾 <strong>Otomatik Backup:</strong> Yeni dosyaları otomatik yedekler</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section id="raporlama" class="doc-section">
+                <h2>📊 Raporlama ve Takip</h2>
+                
+                <div class="step-box">
+                    <h3>1. Excel Raporu Oluşturma</h3>
+                    <p><strong>"Klasör İzleme"</strong> sayfasından:</p>
+                    <ol>
+                        <li>Klasör taraması tamamlandıktan sonra</li>
+                        <li><strong>"Excel Raporu Oluştur"</strong> butonuna tıklayın</li>
+                        <li>Kayıt konumunu seçin</li>
+                        <li>Rapor otomatik olarak oluşturulacaktır</li>
+                    </ol>
+                    
+                    <div class="info-box">
+                        <strong>📋 Rapor İçeriği:</strong>
+                        <ul>
+                            <li>Şirket bazlı dosya listesi</li>
+                            <li>Eksik dönemler (kırmızı vurgu)</li>
+                            <li>Yıl ve ay bazlı organizasyon</li>
+                            <li>Toplam dosya sayıları</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="step-box">
+                    <h3>2. Log ve Aktivite Takibi</h3>
+                    <p><strong>"Raporlama"</strong> sayfasından sistem aktivitelerini görüntüleyin:</p>
+                    <ul>
+                        <li><strong>Sistem Aktiviteleri:</strong> Tüm işlemlerin detaylı kayıtları</li>
+                        <li><strong>Yedekleme Aktiviteleri:</strong> Backup geçmişi</li>
+                        <li><strong>Email Aktiviteleri:</strong> Gönderilen email logları</li>
+                        <li><strong>Tarih Filtreleme:</strong> Başlangıç ve bitiş tarihi seçimi</li>
+                        <li><strong>Excel Raporu:</strong> Aktivite raporlarını Excel'e aktar</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section id="sorun-giderme" class="doc-section">
+                <h2>🔧 Sorun Giderme</h2>
+                
+                <div class="troubleshooting">
+                    <div class="trouble-item">
+                        <h4>❌ Email gönderilmiyor</h4>
+                        <p><strong>Çözüm:</strong></p>
+                        <ol>
+                            <li>SMTP ayarlarını kontrol edin (sunucu, port, email, şifre)</li>
+                            <li>"Bağlantıyı Test Et" ile test yapın</li>
+                            <li>Gmail kullanıyorsanız "Uygulama Şifresi" kullanın (normal şifre değil)</li>
+                            <li>Güvenlik duvarı veya antivirüs programını kontrol edin</li>
+                        </ol>
+                    </div>
+
+                    <div class="trouble-item">
+                        <h4>❌ Klasör taraması çalışmıyor</h4>
+                        <p><strong>Çözüm:</strong></p>
+                        <ol>
+                            <li>Klasör yolu doğru seçilmiş mi kontrol edin</li>
+                            <li>Klasör yapısının doğru formatta olduğundan emin olun (ŞİRKET/YIL/AY)</li>
+                            <li>Klasöre erişim izniniz olduğunu kontrol edin</li>
+                            <li>Ağ sürücüsü kullanıyorsanız bağlantıyı kontrol edin</li>
+                        </ol>
+                    </div>
+
+                    <div class="trouble-item">
+                        <h4>❌ Otomasyon başlamıyor</h4>
+                        <p><strong>Çözüm:</strong></p>
+                        <ol>
+                            <li>GIB kaynak klasörünün seçildiğinden emin olun</li>
+                            <li>Otomasyon Ayarları sayfasında "Sistemi Başlat" butonuna tıklayın</li>
+                            <li>Durum göstergesinin 🟢 ÇALIŞIYOR olduğunu kontrol edin</li>
+                            <li>Tray menüsünden durumu kontrol edin</li>
+                        </ol>
+                    </div>
+
+                    <div class="trouble-item">
+                        <h4>❌ Windows başlangıcında başlamıyor</h4>
+                        <p><strong>Çözüm:</strong></p>
+                        <ol>
+                            <li>Otomasyon sisteminin aktif olduğundan emin olun</li>
+                            <li>Windows'u yeniden başlatın</li>
+                            <li>Windows Görev Yöneticisi → Başlangıç sekmesinde "E-Defter Otomasyon" kontrol edin</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <strong>📝 Log Dosyaları:</strong>
+                    <p>Detaylı hata ayıklama için log dosyalarını kontrol edin:</p>
+                    <div class="code-block">
+                        <code>C:\Users\[KULLANICI]\AppData\Roaming\edefter-automation\logs\</code>
+                    </div>
+                </div>
+            </section>
+
+            <section id="faq" class="doc-section">
+                <h2>❓ Sık Sorulan Sorular (SSS)</h2>
+                
+                <div class="faq-list">
+                    <div class="faq-item">
+                        <h4>Uygulama arka planda çalışırken bilgisayarın performansını etkiler mi?</h4>
+                        <p>Hayır. Uygulama çok düşük kaynak kullanır ve sadece 30 saniyede bir kontrol yapar. Normal kullanımda fark edilmez.</p>
+                    </div>
+
+                    <div class="faq-item">
+                        <h4>Kaç şirket ekleyebilirim?</h4>
+                        <p>Sınırsız şirket ekleyebilirsiniz. Excel'den toplu yükleme ile kolayca yüzlerce şirketi sisteme aktarabilirsiniz.</p>
+                    </div>
+
+                    <div class="faq-item">
+                        <h4>Email gönderimleri güvenli mi?</h4>
+                        <p>Evet. Tüm email iletişimi SSL/TLS şifreleme ile güvenli olarak yapılır. Şifreleriniz şifreli olarak kaydedilir.</p>
+                    </div>
+
+                    <div class="faq-item">
+                        <h4>Yedekleme ne kadar yer kaplar?</h4>
+                        <p>Akıllı yedekleme sistemi sadece yeni veya değişen dosyaları kopyalar. İlk yedekleme tam kopya alır, sonrakiler çok daha azdır.</p>
+                    </div>
+
+                    <div class="faq-item">
+                        <h4>İnternet olmadan çalışır mı?</h4>
+                        <p>Evet. Klasör izleme, yedekleme ve raporlama özellikleri internet gerektirmez. Sadece email gönderimi için internet gereklidir.</p>
+                    </div>
+
+                    <div class="faq-item">
+                        <h4>Ağ sürücüsünü izleyebilir miyim?</h4>
+                        <p>Evet. Ağ sürücülerini (network drive) de izleyebilirsiniz. Sürekli bağlantı sağlandığından emin olun.</p>
+                    </div>
+
+                    <div class="faq-item">
+                        <h4>Lisans nasıl çalışıyor?</h4>
+                        <p>30 günlük ücretsiz deneme süresi vardır. Sonrasında aylık veya yıllık lisans satın alabilirsiniz. Kurumsal çözümler için iletişime geçin.</p>
+                    </div>
+
+                    <div class="faq-item">
+                        <h4>Güncelleme nasıl yapılır?</h4>
+                        <p>Uygulama otomatik güncelleme sistemi ile gelir. Yeni sürüm çıktığında bildirim alırsınız.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="doc-section">
+                <h2>📞 Destek</h2>
+                <p>Daha fazla yardıma mı ihtiyacınız var?</p>
+                <div class="support-grid">
+                    <div class="support-card">
+                        <div class="support-icon">📧</div>
+                        <h4>Email Desteği</h4>
+                        <p>info@edefter-otomasyon.com</p>
+                    </div>
+                    <div class="support-card">
+                        <div class="support-icon">💬</div>
+                        <h4>Canlı Destek</h4>
+                        <p>Pazartesi - Cuma, 09:00-18:00</p>
+                    </div>
+                    <div class="support-card">
+                        <div class="support-icon">📱</div>
+                        <h4>Telefon</h4>
+                        <p>+90 (XXX) XXX XX XX</p>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <p>&copy; 2026 E-Defter Otomasyon. Tüm hakları saklıdır.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -123,9 +123,82 @@ if (require('electron-squirrel-startup')) app.quit();
 const store = new Store();
 let mainWindow;
 let tray = null;
+let trayUpdateInterval = null; // ✅ Tray menüsü güncelleme interval'i
 let folderWatcher = null;
 let backgroundInterval = null;
 let isEmailAutomationRunning = false; // ✅ Email otomasyonu çalışıyor mu? (duplicate önleme)
+
+// ✅ MERKEZİ BACKGROUND SERVICE FONKSİYONLARI
+function startBackgroundService() {
+  // Zaten çalışıyorsa tekrar başlatma
+  if (backgroundInterval) {
+    logToFile('warning', 'Arka Plan Servisi', 'Zaten çalışıyor, tekrar başlatılmadı');
+    return { success: false, message: 'Zaten çalışıyor' };
+  }
+  
+  try {
+    const automationSettings = store.get('automation-settings', {});
+    
+    // Otomasyon kapalıysa başlatma
+    if (!automationSettings.enabled || !automationSettings.backgroundService) {
+      logToFile('info', 'Arka Plan Servisi', 'Otomasyon kapalı, başlatılmadı');
+      return { success: false, message: 'Otomasyon kapalı' };
+    }
+    
+    logToFile('info', 'Arka Plan Servisi', 'Başlatılıyor...');
+    
+    // İLK ÇALIŞMA: Hemen kontrol et
+    if (automationSettings.emailConfig?.enabled) {
+      performBackendEmailAutomation(automationSettings).catch(err => {
+        logToFile('error', 'Email Otomasyonu', 'İlk çalışma hatası', err.message);
+      });
+    }
+    
+    // 30 saniyede bir kontrol et
+    backgroundInterval = setInterval(async () => {
+      try {
+        const settings = store.get('automation-settings', {});
+        
+        if (settings.backgroundService && settings.enabled) {
+          logToFile('info', 'Arka Plan Servisi', 'Otomatik kontrol çalıştırılıyor');
+          
+          // Frontend'e event gönder (backup için)
+          mainWindow?.webContents.send('perform-automated-scan');
+          
+          // Backend'de email automation çalıştır
+          if (settings.emailConfig?.enabled) {
+            await performBackendEmailAutomation(settings);
+          }
+        }
+      } catch (err) {
+        logToFile('error', 'Arka Plan Servisi', 'Kontrol hatası', err.message);
+      }
+    }, 30000);
+    
+    logToFile('success', 'Arka Plan Servisi', '✅ Başlatıldı (30 sn interval)');
+    return { success: true, message: 'Başarıyla başlatıldı' };
+  } catch (error) {
+    logToFile('error', 'Arka Plan Servisi', 'Başlatma hatası', error.message);
+    return { success: false, message: error.message };
+  }
+}
+
+function stopBackgroundService() {
+  if (!backgroundInterval) {
+    logToFile('info', 'Arka Plan Servisi', 'Zaten durmuş durumda');
+    return { success: false, message: 'Zaten durmuş' };
+  }
+  
+  try {
+    clearInterval(backgroundInterval);
+    backgroundInterval = null;
+    logToFile('success', 'Arka Plan Servisi', '🛑 Durduruldu');
+    return { success: true, message: 'Başarıyla durduruldu' };
+  } catch (error) {
+    logToFile('error', 'Arka Plan Servisi', 'Durdurma hatası', error.message);
+    return { success: false, message: error.message };
+  }
+}
 
 // trigger-scan event debounce (çoklu refresh önleme)
 let triggerScanTimeout = null;
@@ -278,24 +351,28 @@ async function createWindow(){
   // Startup'ta eski logları temizle
   cleanupOldLogs();
   
-  // ✅ WINDOWS STARTUP AYARI - Bilgisayar açıldığında otomatik başlat
+  // ✅ WINDOWS STARTUP AYARI - Bilgisayar açıldığında OTOMATİK BAŞLAT (HER ZAMAN AKTİF)
   try {
     const automationSettings = store.get('automation-settings', {});
-    if (automationSettings.backgroundService && automationSettings.enabled) {
-      // Otomatik başlatmayı aç
+    
+    // ✅ SÜREKLI İZLEME: Otomasyon aktifse VEYA background service aktifse otomatik başlat
+    const shouldAutoStart = automationSettings.backgroundService || automationSettings.enabled;
+    
+    if (shouldAutoStart) {
+      // Otomatik başlatmayı aç - Minimize başlatabilirsin (openAsHidden: true)
       app.setLoginItemSettings({
         openAtLogin: true,
-        openAsHidden: false,
+        openAsHidden: false, // false = Pencere göster, true = Arka planda başlat
         path: process.execPath,
         args: []
       });
-      logToFile('success', 'Windows Startup', '✅ Otomatik başlatma aktif - Bilgisayar açıldığında uygulama başlayacak');
+      logToFile('success', 'Windows Startup', '✅ Otomatik başlatma AKTİF - Bilgisayar her açıldığında uygulama başlayacak ve arka planda çalışacak');
     } else {
       // Otomatik başlatmayı kapat
       app.setLoginItemSettings({
         openAtLogin: false
       });
-      logToFile('info', 'Windows Startup', 'Otomatik başlatma pasif');
+      logToFile('info', 'Windows Startup', 'Otomatik başlatma pasif - Manuel olarak kapatıldı');
     }
   } catch (error) {
     logToFile('error', 'Windows Startup', 'Otomatik başlatma ayarı yapılamadı', error.message);
@@ -381,50 +458,76 @@ async function createWindow(){
     }
   });
   
-  // ✅ BACKGROUND SERVICE'İ OTOMATIK BAŞLAT
+  // ✅ BACKGROUND SERVICE'İ OTOMATIK BAŞLAT (Merkezi fonksiyon kullan)
   setTimeout(() => {
-    try {
-      const automationSettings = store.get('automation-settings', {});
-      if (automationSettings.backgroundService && automationSettings.enabled) {
-        // Background service'i başlat
-        if (!backgroundInterval) {
-          logToFile('info', 'Arka Plan Servisi', 'Otomatik başlatılıyor...');
+    startBackgroundService();
+  }, 3000); // UI yüklendikten 3 saniye sonra başlat
+}
+
+// ✅ TRAY MENÜSÜNÜ GÜNCELLE (Global fonksiyon - toggleAutomation ile senkronize)
+function updateTrayMenu() {
+  if (!tray || tray.isDestroyed()) return;
+  
+  const automationSettings = store.get('automation-settings', {});
+  const isMonitoring = automationSettings.backgroundService && automationSettings.enabled;
+  
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: 'E-Defter Otomasyon',
+      click: () => {
+        mainWindow.show();
+      }
+    },
+    { type: 'separator' },
+    {
+      label: isMonitoring ? '🟢 Sistem Aktif' : '🔴 Sistem Pasif',
+      enabled: false
+    },
+    {
+      label: backgroundInterval ? '✅ Arka Plan Çalışıyor (30sn)' : '⏸️ Arka Plan Durdu',
+      enabled: false
+    },
+    { type: 'separator' },
+    {
+      label: isMonitoring ? '⏸️ Sistemi Durdur' : '▶️ Sistemi Başlat',
+      click: async () => {
+        try {
+          const settings = store.get('automation-settings', {});
+          const newSettings = {
+            ...settings,
+            enabled: !settings.enabled,
+            backgroundService: true,
+            continuousMonitoring: true
+          };
+          store.set('automation-settings', newSettings);
           
-          // İLK ÇALIŞMA: Hemen email automation kontrol et
-          if (automationSettings.emailConfig?.enabled) {
-            performBackendEmailAutomation(automationSettings).catch(err => {
-              logToFile('error', 'Email Otomasyonu', 'İlk çalışma hatası', err.message);
-            });
+          // ✅ MERKEZİ FONKSİYON KULLAN
+          if (newSettings.enabled) {
+            startBackgroundService();
+          } else {
+            stopBackgroundService();
           }
           
-          backgroundInterval = setInterval(async () => {
-            try {
-              const settings = store.get('automation-settings', {});
-              logToFile('debug', 'Arka Plan Servisi', `Ayarlar: backgroundService=${settings.backgroundService}, enabled=${settings.enabled}, emailConfig.enabled=${settings.emailConfig?.enabled}`);
-              
-              if (settings.backgroundService && settings.enabled) {
-                logToFile('info', 'Arka Plan Servisi', 'Otomatik kontrol çalıştırılıyor');
-                logToFile('debug', 'Arka Plan Servisi', 'perform-automated-scan eventi gönderiliyor');
-                mainWindow?.webContents.send('perform-automated-scan');
-                
-                if (settings.emailConfig?.enabled) {
-                  await performBackendEmailAutomation(settings);
-                }
-              }
-            } catch (err) {
-              logToFile('error', 'Arka Plan Servisi', 'Kontrol hatası', err.message);
-            }
-          }, 30000); // ✅ 30 saniye interval
-          
-          logToFile('success', 'Arka Plan Servisi', '✅ Otomatik başlatıldı (30 sn interval)');
+          // Frontend'i güncelle
+          mainWindow?.webContents.send('automation-state-changed', newSettings);
+          updateTrayMenu();
+        } catch (error) {
+          logToFile('error', 'Tray', 'Toggle hatası', error.message);
         }
-      } else {
-        logToFile('info', 'Arka Plan Servisi', 'Otomasyon ayarları kapalı, başlatılmadı');
       }
-    } catch (error) {
-      logToFile('error', 'Arka Plan Servisi', 'Otomatik başlatma hatası', error.message);
+    },
+    { type: 'separator' },
+    {
+      label: 'Çıkış',
+      click: () => {
+        app.isQuiting = true;
+        app.quit();
+      }
     }
-  }, 3000); // UI yüklendikten 3 saniye sonra başlat
+  ]);
+  
+  tray.setContextMenu(contextMenu);
+  tray.setToolTip(isMonitoring ? 'E-Defter Otomasyon - Aktif' : 'E-Defter Otomasyon - Pasif');
 }
 
 function createTray() {
@@ -438,27 +541,14 @@ function createTray() {
 
     // Tray icon'u güvenli şekilde oluştur
     tray = new Tray(iconPath);
-    tray.setToolTip('E-Defter Otomasyon Sistemi');
+    tray.setToolTip('E-Defter Otomasyon Sistemi - Arka Planda Çalışıyor');
     logToFile('success', 'Sistem', 'Sistem tepsisi başarıyla oluşturuldu');
     
-    const contextMenu = Menu.buildFromTemplate([
-      {
-        label: 'E-Defter Otomasyon',
-        click: () => {
-          mainWindow.show();
-        }
-      },
-      {
-        label: 'Çıkış',
-        click: () => {
-          app.isQuiting = true;
-          app.quit();
-        }
-      }
-    ]);
+    // ✅ TRAY MENÜSÜNÜ ANINDA GÜNCELLE
+    updateTrayMenu();
     
-    tray.setToolTip('E-Defter Otomasyon Sistemi');
-    tray.setContextMenu(contextMenu);
+    // Menüyü her 3 saniyede bir güncelle
+    trayUpdateInterval = setInterval(updateTrayMenu, 3000);
     
     tray.on('double-click', () => {
       mainWindow.show();
@@ -649,10 +739,13 @@ ipcMain.handle('save-data', async (event, key, data) => {
       logToFile('info', 'Veri', 'E-Defter tracking sistemi güncellenmesi tetiklendi');
     }
     
-    // ✅ AUTOMATION SETTINGS KAYDEDİLİRSE WINDOWS STARTUP AYARINI GÜNCELLE
+    // ✅ AUTOMATION SETTINGS KAYDEDİLİRSE WINDOWS STARTUP AYARINI GÜNCELLE VE BACKGROUND SERVICE'İ BAŞLAT/DURDUR
     if (key === 'automation-settings') {
       try {
-        if (data.backgroundService && data.enabled) {
+        // ✅ SÜREKLI İZLEME: Background service VEYA otomasyon aktifse otomatik başlat
+        const shouldAutoStart = data.backgroundService || data.enabled;
+        
+        if (shouldAutoStart) {
           // Otomatik başlatmayı aç
           app.setLoginItemSettings({
             openAtLogin: true,
@@ -660,16 +753,32 @@ ipcMain.handle('save-data', async (event, key, data) => {
             path: process.execPath,
             args: []
           });
-          logToFile('success', 'Windows Startup', '✅ Otomatik başlatma AKTİF - Bilgisayar her açıldığında başlayacak');
+          logToFile('success', 'Windows Startup', '✅ Otomatik başlatma AKTİF - Bilgisayar her açıldığında başlayacak ve arka planda çalışacak');
         } else {
           // Otomatik başlatmayı kapat
           app.setLoginItemSettings({
             openAtLogin: false
           });
-          logToFile('info', 'Windows Startup', 'Otomatik başlatma PASİF');
+          logToFile('info', 'Windows Startup', 'Otomatik başlatma PASİF - Manuel olarak kapatıldı');
         }
       } catch (error) {
         logToFile('error', 'Windows Startup', 'Otomatik başlatma güncellenemedi', error.message);
+      }
+      
+      // ✅ BACKGROUND SERVICE'İ TOGGLE BUTONU İLE SENKRONIZE ET (Merkezi fonksiyon)
+      try {
+        if (data.enabled && data.backgroundService) {
+          startBackgroundService();
+        } else {
+          stopBackgroundService();
+        }
+      } catch (error) {
+        logToFile('error', 'Arka Plan Servisi', 'Toggle senkronizasyonu hatası', error.message);
+      }
+      
+      // ✅ TRAY MENÜSÜNÜ ANINDA GÜNCELLE
+      if (tray && !tray.isDestroyed()) {
+        updateTrayMenu();
       }
     }
     
@@ -1087,62 +1196,16 @@ async function performBackendEmailAutomation(automationSettings) {
 
 // ========== ARKA PLAN SERVİSİ HANDLER'LARI ==========
 
-// Arka plan servisini başlat
+// Arka plan servisini başlat (IPC Handler - Merkezi fonksiyon kullan)
 ipcMain.handle('start-background-service', async (event) => {
-  try {
-    if (backgroundInterval) {
-      return { success: false, error: 'Arka plan servisi zaten çalışıyor' };
-    }
-
-    logToFile('info', 'Arka Plan Servisi', 'Başlatılıyor...');
-
-    // Her 30 saniye kontrol et (otomasyon kontrolü)
-    backgroundInterval = setInterval(async () => {
-      try {
-        const automationSettings = store.get('automation-settings', {});
-        logToFile('debug', 'Arka Plan Servisi', `Ayarlar kontrol ediliyor: backgroundService=${automationSettings.backgroundService}, enabled=${automationSettings.enabled}, emailConfig.enabled=${automationSettings.emailConfig?.enabled}`);
-        
-        if (automationSettings.backgroundService && automationSettings.enabled) {
-          logToFile('info', 'Arka Plan Servisi', 'Otomatik kontrol çalıştırılıyor');
-          
-          // Frontend'e event gönder
-          logToFile('debug', 'Arka Plan Servisi', 'perform-automated-scan eventi frontend\'e gönderiliyor');
-          mainWindow?.webContents.send('perform-automated-scan');
-          
-          // ✅ BACKEND'DE DİREKT EMAIL AUTOMATION ÇALIŞTIR
-          if (automationSettings.emailConfig?.enabled) {
-            await performBackendEmailAutomation(automationSettings);
-          }
-        } else {
-          logToFile('warning', 'Arka Plan Servisi', `Otomasyon devre dışı: backgroundService=${automationSettings.backgroundService}, enabled=${automationSettings.enabled}`);
-        }
-      } catch (err) {
-        logToFile('error', 'Arka Plan Servisi', 'Kontrol hatası', err.message);
-      }
-    }, 30000); // 30 saniye
-
-    logToFile('info', 'Arka Plan Servisi', 'Başlatıldı');
-    return { success: true, message: 'Arka plan servisi başlatıldı' };
-  } catch (error) {
-    logToFile('error', 'Arka Plan Servisi', 'Başlatma hatası', error.message);
-    return { success: false, error: error.message };
-  }
+  const result = startBackgroundService();
+  return result.success ? { success: true, message: result.message } : { success: false, error: result.message };
 });
 
-// Arka plan servisini durdur
+// Arka plan servisini durdur (IPC Handler - Merkezi fonksiyon kullan)
 ipcMain.handle('stop-background-service', async (event) => {
-  try {
-    if (backgroundInterval) {
-      clearInterval(backgroundInterval);
-      backgroundInterval = null;
-      logToFile('info', 'Arka Plan Servisi', 'Durduruldu');
-      return { success: true, message: 'Arka plan servisi durduruldu' };
-    }
-    return { success: false, error: 'Aktif arka plan servisi yok' };
-  } catch (error) {
-    logToFile('error', 'Arka Plan Servisi', 'Durdurma hatası', error.message);
-    return { success: false, error: error.message };
-  }
+  const result = stopBackgroundService();
+  return result.success ? { success: true, message: result.message } : { success: false, error: result.message };
 });
 
 // Arka plan servisi durumunu kontrol et
@@ -3467,11 +3530,16 @@ app.whenReady().then(() => {
   console.error('App başlatma hatası:', err);
 });
 
-// macOS için: tüm pencereler kapatıldığında app'i kapatma
+// ✅ SÜREKLI İZLEME: Pencere kapatıldığında app'i kapatma, arka planda çalışmaya devam et
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+  // ❌ app.quit() ÇAĞRILMAYACAK - Arka planda çalışmaya devam eder
+  // Kullanıcı tray menüsünden "Çıkış" yapana kadar süreç devam eder
+  logToFile('info', 'Sistem', 'Tüm pencereler kapatıldı - Arka planda çalışmaya devam ediyor');
+  
+  // macOS'ta bile kapatmıyoruz, sürekli background çalışsın
+  // if (process.platform !== 'darwin') {
+  //   app.quit();
+  // }
 });
 
 // macOS için: app yeniden aktif edildiğinde pencereyi aç
@@ -3489,6 +3557,10 @@ app.on('before-quit', () => {
   if (triggerScanTimeout) {
     clearTimeout(triggerScanTimeout);
     triggerScanTimeout = null;
+  }
+  if (trayUpdateInterval) {
+    clearInterval(trayUpdateInterval);
+    trayUpdateInterval = null;
   }
   if (folderWatcher) {
     folderWatcher.close();

@@ -52,6 +52,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onScanStatusChange: (callback) => ipcRenderer.on('scan-status-change', callback),
   onAutoStartAutomation: (callback) => ipcRenderer.on('auto-start-automation', callback),
   onPerformAutomatedScan: (callback) => ipcRenderer.on('perform-automated-scan', callback),
+  onAutomationStateChanged: (callback) => ipcRenderer.on('automation-state-changed', callback),
   onPeriodMarkedCompleted: (callback) => ipcRenderer.on('period-marked-completed', callback),
   
   // Otomasyon Engine

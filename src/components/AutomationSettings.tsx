@@ -70,6 +70,22 @@ export const AutomationSettings: React.FC = () => {
 
   useEffect(() => {
     loadAutomationSettings();
+    
+    // ✅ TRAY MENÜSÜNDEN GELEN DEĞİŞİKLİKLERİ DİNLE
+    const handleAutomationStateChange = (_event: any, newSettings: AutomationSettings) => {
+      console.log('🔄 Tray menüsünden otomasyon durumu değişti:', newSettings);
+      setAutomationSettings(newSettings);
+      showNotification(
+        'success', 
+        newSettings.enabled ? '🚀 Sistem Tray\'den Başlatıldı!' : '🛑 Sistem Tray\'den Durduruldu!'
+      );
+    };
+    
+    ElectronService.onAutomationStateChanged(handleAutomationStateChange);
+    
+    return () => {
+      // Cleanup
+    };
   }, []);
 
   const showNotification = (type: 'success' | 'error', message: string) => {

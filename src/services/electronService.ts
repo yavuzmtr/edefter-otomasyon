@@ -35,6 +35,7 @@ declare global {
       onScanStatusChange: (callback: (event: any, data: { scanning: boolean; message: string }) => void) => void;
       onAutoStartAutomation: (callback: (event: any) => void) => void;
       onPerformAutomatedScan: (callback: (event: any) => void) => void;
+      onAutomationStateChanged?: (callback: (event: any, settings: any) => void) => void;
       startAutomationEngine: (sourcePath: string) => Promise<{success: boolean, message?: string, error?: string}>;
       stopAutomationEngine: () => Promise<{success: boolean, message?: string, error?: string}>;
       removeAllListeners: (channel: string) => void;
@@ -283,6 +284,18 @@ export class ElectronService {
     }
   }
 
+  static onAutomationStateChanged(callback: (event: any, settings: any) => void): void {
+    if (!this.isElectron()) {
+      console.warn('Otomasyon durum değişikliği dinleme sadece Electron uygulamasında çalışır');
+      return;
+    }
+    try {
+      window.electronAPI.onAutomationStateChanged?.(callback);
+    } catch (error: unknown) {
+      console.error('Otomasyon durum değişikliği dinleyicisi kurma hatası:', error);
+    }
+  }
+
   static async checkPathExists(path: string): Promise<boolean> {
     if (!this.isElectron()) {
       throw new Error('Path kontrolü sadece Electron uygulamasında çalışır');
@@ -355,12 +368,12 @@ export class ElectronService {
     }
   }
 
-  static async backupFiles(sourcePath: string, destinationPath: string): Promise<{success: boolean, message?: string, error?: string, stats?: {copiedFiles: number, skippedFiles: number, totalFiles: number, totalSize: string}}> {
+  static async backupFiles(sourcePath: string, destinationPath: string, isAutomated?: boolean): Promise<{success: boolean, message?: string, error?: string, stats?: {copiedFiles: number, skippedFiles: number, totalFiles: number, totalSize: string}}> {
     if (!this.isElectron()) {
       return { success: false, error: 'Dosya yedekleme sadece Electron uygulamasında çalışır' };
     }
     try {
-      return await window.electronAPI.backupFiles(sourcePath, destinationPath);
+      return await window.electronAPI.backupFiles(sourcePath, destinationPath, isAutomated);
     } catch (error: unknown) {
       console.error('Dosya yedekleme hatası:', error);
       return { success: false, error: getErrorMessage(error) };

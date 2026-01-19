@@ -28,6 +28,12 @@ dist-ssr
 BACKUP-*.md
 EMAIL-*.md
 TEST-*.md
+
+# Release builds (too large for GitHub)
+release/
+*.exe
+*.blockmap
+build-log.txt
 TEKNIK-*.md
 TESLIMAT-*.md
 YAPILAN-*.md

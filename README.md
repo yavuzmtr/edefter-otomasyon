@@ -1,16 +1,16 @@
-# E-Defter Otomasyon Sistemi
+# E-Defter Klasör Otomasyonu
 
-Muhasebe dosyalarını otomatik kontrol eden, Excel raporlama ve e-posta bildirimleri sağlayan profesyonel desktop uygulaması.
+Mali müşavir ofisleri için GIB'e gönderilen e-defter klasörlerini otomatik izleyen, yedekleyen ve müşterilere email gönderen profesyonel otomasyon sistemi.
 
 ## ✨ Özellikler
 
-- 📁 **Klasör İzleme**: Kaynak klasörü otomatik izleme (5 saniye interval)
-- 📊 **Excel Raporlama**: Detaylı ve otomatik raporlar
-- 📧 **E-posta Bildirimleri**: GIB dosya anomalileri için e-posta gönderimi
-- 🔄 **Arka Plan Servisi**: 24/7 otomatik kontrol
-- 💾 **Yedekleme**: Otomatik veritabanı yedekleme
+- 📁 **E-Defter Klasör İzleme**: GIB'e gönderildikten sonra yerel klasörde oluşan e-defter klasörlerini 7/24 izler
+- 📧 **Müşteriye Otomatik Email**: Eksik e-defter dönemleri için müşterilere otomatik bilgilendirme
+- 📊 **Mali Müşavir Raporları**: Müşteri bazlı detaylı e-defter dönem raporları
+- 💾 **E-Defter Yedekleme**: Otomatik e-defter klasör yedekleme sistemi
+- 🤖 **Tam Otomasyon**: 30 saniyede bir kontrol, Windows başlangıcında otomatik başlatma
 - 📈 **Monitoring**: Real-time sistem durumu ve istatistikler
-- ⚙️ **Otomasyon Motor**: Programlı görev yönetimi
+- ⚙️ **Tray Menüsü**: Sistem tepsisinden kolay erişim
 
 ## 🛠 Teknoloji
 
