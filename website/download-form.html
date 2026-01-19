@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo İndir - E-Defter Klasör Otomasyonu</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .download-form-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 2rem;
+        }
+        
+        .form-card {
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .form-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .form-header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: #1a202c;
+        }
+        
+        .form-header p {
+            color: #718096;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #2d3748;
+            font-weight: 500;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-group input.error {
+            border-color: #f56565;
+        }
+        
+        .error-message {
+            color: #f56565;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+        
+        .submit-btn {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .success-message {
+            background: #48bb78;
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 1rem;
+            display: none;
+        }
+        
+        .privacy-note {
+            font-size: 0.875rem;
+            color: #718096;
+            text-align: center;
+            margin-top: 1rem;
+        }
+        
+        .back-link {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+        
+        .back-link a {
+            color: #667eea;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="download-form-container">
+        <div class="form-card">
+            <div class="form-header">
+                <h1>🎯 Demo Sürümünü İndirin</h1>
+                <p>7 günlük ücretsiz deneme için bilgilerinizi girin</p>
+            </div>
+            
+            <form id="downloadForm">
+                <div class="form-group">
+                    <label for="name">Ad Soyad *</label>
+                    <input type="text" id="name" name="name" required placeholder="Örn: Ahmet Yılmaz">
+                    <div class="error-message" id="nameError"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">E-posta Adresi *</label>
+                    <input type="email" id="email" name="email" required placeholder="ornek@mail.com">
+                    <div class="error-message" id="emailError"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="company">Şirket Adı (Opsiyonel)</label>
+                    <input type="text" id="company" name="company" placeholder="Muhasebe Ofisi Adı">
+                </div>
+                
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    💾 Demo İndir
+                </button>
+                
+                <div class="success-message" id="successMessage">
+                    ✅ İndirme başlıyor! Bilgileriniz kaydedildi.
+                </div>
+                
+                <p class="privacy-note">
+                    Bilgileriniz sadece demo takibi için kullanılacaktır. Spam göndermiyoruz.
+                </p>
+            </form>
+            
+            <div class="back-link">
+                <a href="index.html">← Ana Sayfaya Dön</a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const form = document.getElementById('downloadForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const successMessage = document.getElementById('successMessage');
+        
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const company = document.getElementById('company').value;
+            
+            // Validasyon
+            if (!name || !email) {
+                alert('Lütfen tüm zorunlu alanları doldurun');
+                return;
+            }
+            
+            // Email validasyonu
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                alert('Geçerli bir e-posta adresi girin');
+                return;
+            }
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = '⏳ Kaydediliyor...';
+            
+            // Google Forms'a veri gönder (örnek - kendi formunuzu oluşturun)
+            const formData = {
+                name,
+                email,
+                company,
+                timestamp: new Date().toISOString()
+            };
+            
+            // localStorage'a kaydet (basit tracking)
+            const downloads = JSON.parse(localStorage.getItem('downloads') || '[]');
+            downloads.push(formData);
+            localStorage.setItem('downloads', JSON.stringify(downloads));
+            
+            // Başarı mesajı göster
+            successMessage.style.display = 'block';
+            
+            // İndirmeyi başlat
+            setTimeout(() => {
+                window.location.href = 'https://github.com/yavuzmtr/edefter-otomasyon/releases/latest/download/E-Defter-Otomasyon-DEMO-Setup.exe';
+                
+                // Formu sıfırla
+                setTimeout(() => {
+                    form.reset();
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '💾 Demo İndir';
+                    successMessage.style.display = 'none';
+                }, 2000);
+            }, 1500);
+        });
+    </script>
+</body>
+</html>
