@@ -532,7 +532,15 @@ function updateTrayMenu() {
 
 function createTray() {
   try {
-    const iconPath = path.join(__dirname, '..', 'assets', 'icon.png');
+    // Production ve development için farklı yollar
+    let iconPath;
+    if (app.isPackaged) {
+      // Production build - resources/assets klasöründe
+      iconPath = path.join(process.resourcesPath, 'assets', 'icon.png');
+    } else {
+      // Development - proje kök dizininde assets klasöründe
+      iconPath = path.join(__dirname, '..', 'assets', 'icon.png');
+    }
     
     if (!fs.existsSync(iconPath)) {
       logToFile('warning', 'Sistem', 'Sistem tepsisi ikonu bulunamadı', iconPath);
@@ -611,6 +619,20 @@ ipcMain.handle('select-folder', async () => {
   } catch (error) {
     logToFile('error', 'Klasör', 'Klasör seçimi hatası', error.message);
     return null;
+  }
+});
+
+// Windows başlangıcı durumunu kontrol et
+ipcMain.handle('check-auto-launch-status', async () => {
+  try {
+    const loginItemSettings = app.getLoginItemSettings();
+    return {
+      enabled: loginItemSettings.openAtLogin,
+      openAsHidden: loginItemSettings.openAsHidden || false
+    };
+  } catch (error) {
+    logToFile('error', 'Auto-Launch', 'Windows başlangıcı durumu kontrol hatası', error.message);
+    return { enabled: false, openAsHidden: false };
   }
 });
 
@@ -1837,8 +1859,6 @@ ipcMain.handle('backup-files', async (event, sourcePath, destinationPath, isAuto
     }
     
     const sizeInMB = (totalSize / (1024 * 1024)).toFixed(2);
-    
-    const backupType = isAutomated ? 'Otomatik yedekleme' : 'Manuel yedekleme';
     logToFile('success', 'Yedekleme', `${backupType} tamamlandı. ${copiedFiles} yeni dosya kopyalandı, ${skippedFiles} dosya atlandı, ${errorCount} hata. Toplam boyut: ${sizeInMB} MB`);
     
     // ✅ Yedekleme aktivitesini kaydet

@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Defter Klasör Otomasyonu - Ürün Broşürü</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 0;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #1e293b;
+            background: white;
+        }
+        
+        /* Cover Page */
+        .cover {
+            height: 100vh;
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 60px;
+            page-break-after: always;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .cover::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        
+        .cover-content {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .cover .logo {
+            font-size: 100px;
+            margin-bottom: 30px;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+        
+        .cover h1 {
+            font-size: 56px;
+            margin-bottom: 20px;
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+        
+        .cover .subtitle {
+            font-size: 28px;
+            margin-bottom: 40px;
+            font-weight: 300;
+            opacity: 0.95;
+        }
+        
+        .cover .tagline {
+            font-size: 20px;
+            margin-bottom: 50px;
+            padding: 20px 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .cover .version {
+            font-size: 16px;
+            opacity: 0.8;
+            margin-top: 60px;
+        }
+        
+        /* Features Page */
+        .page {
+            min-height: 100vh;
+            padding: 60px;
+            page-break-after: always;
+        }
+        
+        .page-header {
+            text-align: center;
+            margin-bottom: 50px;
+            padding-bottom: 30px;
+            border-bottom: 3px solid #2563eb;
+        }
+        
+        .page-header h2 {
+            font-size: 42px;
+            color: #1e40af;
+            margin-bottom: 15px;
+        }
+        
+        .page-header p {
+            font-size: 20px;
+            color: #64748b;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            margin-top: 40px;
+        }
+        
+        .feature-card {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 35px;
+            border-radius: 16px;
+            border-left: 6px solid #2563eb;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .feature-card .icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        
+        .feature-card h3 {
+            font-size: 24px;
+            color: #1e40af;
+            margin-bottom: 15px;
+        }
+        
+        .feature-card p {
+            color: #475569;
+            line-height: 1.8;
+            margin-bottom: 15px;
+        }
+        
+        .feature-card ul {
+            list-style: none;
+            margin-top: 15px;
+        }
+        
+        .feature-card li {
+            padding: 8px 0;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+        }
+        
+        .feature-card li::before {
+            content: '✓';
+            color: #10b981;
+            font-weight: bold;
+            font-size: 18px;
+            margin-right: 10px;
+        }
+        
+        /* Benefits Page */
+        .benefits-section {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            padding: 60px;
+            border-radius: 24px;
+            margin: 40px 0;
+        }
+        
+        .benefit-item {
+            display: flex;
+            align-items: start;
+            margin-bottom: 30px;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .benefit-item .number {
+            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin-right: 20px;
+            flex-shrink: 0;
+        }
+        
+        .benefit-item h3 {
+            font-size: 22px;
+            color: #1e40af;
+            margin-bottom: 10px;
+        }
+        
+        .benefit-item p {
+            color: #475569;
+            line-height: 1.7;
+        }
+        
+        /* Statistics */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin: 40px 0;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 40px;
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            color: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2);
+        }
+        
+        .stat-card .number {
+            font-size: 56px;
+            font-weight: 800;
+            margin-bottom: 10px;
+        }
+        
+        .stat-card .label {
+            font-size: 18px;
+            opacity: 0.95;
+        }
+        
+        /* Process Steps */
+        .process-steps {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 50px 0;
+        }
+        
+        .step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+        
+        .step::after {
+            content: '→';
+            position: absolute;
+            right: -30px;
+            top: 50px;
+            font-size: 36px;
+            color: #2563eb;
+        }
+        
+        .step:last-child::after {
+            display: none;
+        }
+        
+        .step .step-number {
+            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+            color: white;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            font-weight: bold;
+            margin: 0 auto 20px;
+            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+        }
+        
+        .step h3 {
+            font-size: 20px;
+            color: #1e40af;
+            margin-bottom: 10px;
+        }
+        
+        .step p {
+            color: #64748b;
+            font-size: 14px;
+        }
+        
+        /* Pricing Section */
+        .pricing-box {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            padding: 50px;
+            border-radius: 24px;
+            text-align: center;
+            margin: 40px 0;
+            box-shadow: 0 10px 30px rgba(245, 158, 11, 0.2);
+        }
+        
+        .pricing-box .price {
+            font-size: 72px;
+            font-weight: 800;
+            color: #92400e;
+            margin-bottom: 20px;
+        }
+        
+        .pricing-box .price-note {
+            font-size: 24px;
+            color: #78350f;
+            margin-bottom: 30px;
+        }
+        
+        .pricing-box .features-list {
+            text-align: left;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .pricing-box .features-list li {
+            padding: 12px 0;
+            font-size: 18px;
+            color: #78350f;
+        }
+        
+        /* Contact Section */
+        .contact-section {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            color: white;
+            padding: 60px;
+            border-radius: 24px;
+            text-align: center;
+        }
+        
+        .contact-section h2 {
+            font-size: 36px;
+            margin-bottom: 30px;
+        }
+        
+        .contact-info {
+            display: flex;
+            justify-content: center;
+            gap: 50px;
+            margin-top: 40px;
+        }
+        
+        .contact-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .contact-item .icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        .contact-item p {
+            font-size: 20px;
+            opacity: 0.9;
+        }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 40px;
+            background: #f8fafc;
+            margin-top: 60px;
+        }
+        
+        .footer p {
+            color: #64748b;
+            margin-bottom: 10px;
+        }
+        
+        @media print {
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Cover Page -->
+    <div class="cover">
+        <div class="cover-content">
+            <div class="logo">📊</div>
+            <h1>E-Defter Klasör Otomasyonu</h1>
+            <div class="subtitle">Mali Müşavir Ofisleri İçin<br>Profesyonel Otomasyon Sistemi</div>
+            <div class="tagline">
+                ⚡ Tam Otomasyon | 📧 Otomatik Email | 💾 Akıllı Yedekleme | 📊 Detaylı Raporlama
+            </div>
+            <div class="version">Versiyon 1.0.0 | 2026</div>
+        </div>
+    </div>
+
+    <!-- Features Page -->
+    <div class="page">
+        <div class="page-header">
+            <h2>🎯 Özellikler ve Avantajlar</h2>
+            <p>Mali müşavir ofisleriniz için tasarlanmış kapsamlı otomasyon çözümü</p>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="icon">🤖</div>
+                <h3>Tam Otomasyon</h3>
+                <p>GIB'e gönderilen e-defter klasörlerini 7/24 otomatik izler. Bilgisayar açık olduğu sürece kesintisiz çalışır.</p>
+                <ul>
+                    <li>30 saniyede bir otomatik kontrol</li>
+                    <li>Windows başlangıcında otomatik başlatma</li>
+                    <li>Arka planda sessiz çalışma</li>
+                    <li>Minimal sistem kaynağı kullanımı</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <div class="icon">📂</div>
+                <h3>E-Defter Klasör İzleme</h3>
+                <p>GIB'e gönderildikten sonra yerel klasörde oluşan e-defter klasörlerini sürekli takip eder.</p>
+                <ul>
+                    <li>Gerçek zamanlı klasör tespiti</li>
+                    <li>Müşteri bazlı organizasyon</li>
+                    <li>Dönem ve yıl bazlı kontrol</li>
+                    <li>Eksik dönem analizi</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <div class="icon">📧</div>
+                <h3>Müşteriye Otomatik Email</h3>
+                <p>Eksik e-defter dönemlerini tespit eder ve müşterilere otomatik bilgilendirme emaili gönderir.</p>
+                <ul>
+                    <li>Müşteri bazlı email gönderimi</li>
+                    <li>Eksik dönem bildirimleri</li>
+                    <li>Toplu veya tekli gönderim</li>
+                    <li>Özelleştirilebilir içerik</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <div class="icon">💾</div>
+                <h3>E-Defter Otomatik Yedekleme</h3>
+                <p>E-defter klasörlerini otomatik olarak güvenli bir konuma yedekler.</p>
+                <ul>
+                    <li>Sadece yeni klasörleri kopyalar</li>
+                    <li>Akıllı yedekleme algoritması</li>
+                    <li>Klasör yapısı korunur</li>
+                    <li>Hızlı ve verimli</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <div class="icon">📊</div>
+                <h3>Mali Müşavir Raporları</h3>
+                <p>Müşteri bazlı detaylı e-defter raporları oluşturur, eksik dönemleri kolayca tespit eder.</p>
+                <ul>
+                    <li>Müşteri bazlı Excel raporları</li>
+                    <li>Eksik dönem listesi</li>
+                    <li>Profesyonel formatlar</li>
+                    <li>Tek tıkla rapor oluşturma</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <div class="icon">⚙️</div>
+                <h3>Kolay Yönetim</h3>
+                <p>Kullanıcı dostu arayüz ve tray menüsü ile kolay kontrol.</p>
+                <ul>
+                    <li>Modern ve sezgisel arayüz</li>
+                    <li>Sistem tepsisi kontrolü</li>
+                    <li>Tek tuşla başlat/durdur</li>
+                    <li>Detaylı loglar ve istatistikler</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Benefits Page -->
+    <div class="page">
+        <div class="page-header">
+            <h2>💡 İşletmenize Sağladığı Faydalar</h2>
+            <p>Mali müşavir ofisinizde zamandan ve maliyetten tasarruf edin</p>
+        </div>
+
+        <div class="benefits-section">
+            <div class="benefit-item">
+                <div class="number">1</div>
+                <div>
+                    <h3>Zaman Tasarrufu</h3>
+                    <p>Manuel e-defter klasörü kontrolü ve müşteri bilgilendirmesi için harcanan saatler tamamen ortadan kalkar. Sistem her şeyi otomatik yapar, siz önemli işlere odaklanırsınız.</p>
+                </div>
+            </div>
+
+            <div class="benefit-item">
+                <div class="number">2</div>
+                <div>
+                    <h3>Hata Oranını Azaltır</h3>
+                    <p>İnsan hatası riski minimuma iner. Sistem her müşteriyi eşit şekilde kontrol eder, hiçbir müşteri atlanmaz.</p>
+                </div>
+            </div>
+
+            <div class="benefit-item">
+                <div class="number">3</div>
+                <div>
+                    <h3>Müşteri Memnuniyeti</h3>
+                    <p>Müşteriler eksik e-defter dönemleri hakkında anında bilgilendirilir. Proaktif yaklaşım müşteri memnuniyetini artırır.</p>
+                </div>
+            </div>
+
+            <div class="benefit-item">
+                <div class="number">4</div>
+                <div>
+                    <h3>Güvenli Yedekleme</h3>
+                    <p>Tüm e-defter klasörleri otomatik olarak yedeklenir. Veri kaybı riski ortadan kalkar.</p>
+                </div>
+            </div>
+
+            <div class="benefit-item">
+                <div class="number">5</div>
+                <div>
+                    <h3>Raporlama ve Takip</h3>
+                    <p>Detaylı Excel raporları ile tüm müşterilerinizin durumunu tek bakışta görürsünüz. Eksik dönemleri kolayca tespit edersiniz.</p>
+                </div>
+            </div>
+
+            <div class="benefit-item">
+                <div class="number">6</div>
+                <div>
+                    <h3>Ölçeklenebilirlik</h3>
+                    <p>10 müşteriniz de olsa 1000 müşteriniz de olsa sistem aynı hızla çalışır. Müşteri sayınız artsa bile iş yükünüz artmaz.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- How It Works -->
+    <div class="page">
+        <div class="page-header">
+            <h2>🔄 Nasıl Çalışır?</h2>
+            <p>3 basit adımda e-defter klasör otomasyonu</p>
+        </div>
+
+        <div class="process-steps">
+            <div class="step">
+                <div class="step-number">1</div>
+                <h3>Kurulum ve Yapılandırma</h3>
+                <p>Uygulamayı kurun, e-defter klasör yolunu ve müşteri bilgilerini ekleyin</p>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <h3>Email Ayarları</h3>
+                <p>SMTP ayarlarınızı yapılandırın, müşteri email adreslerini girin</p>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <h3>Otomasyonu Başlatın</h3>
+                <p>Tek tuşla sistemi başlatın, artık her şey otomatik!</p>
+            </div>
+        </div>
+
+        <div class="stats-grid" style="margin-top: 80px;">
+            <div class="stat-card">
+                <div class="number">24/7</div>
+                <div class="label">Kesintisiz Çalışma</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">30sn</div>
+                <div class="label">Kontrol Aralığı</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">∞</div>
+                <div class="label">Müşteri Kapasitesi</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Technical Specs -->
+    <div class="page">
+        <div class="page-header">
+            <h2>⚙️ Teknik Özellikler</h2>
+            <p>Güvenilir ve performanslı altyapı</p>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="icon">💻</div>
+                <h3>Sistem Gereksinimleri</h3>
+                <ul>
+                    <li>Windows 10/11 (64-bit)</li>
+                    <li>Intel Core i3 veya üzeri</li>
+                    <li>4 GB RAM (8 GB önerilir)</li>
+                    <li>100 MB disk alanı</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <div class="icon">🔒</div>
+                <h3>Güvenlik</h3>
+                <ul>
+                    <li>Yerel veri saklama</li>
+                    <li>Şifreli email iletişimi</li>
+                    <li>Güvenli SMTP bağlantısı</li>
+                    <li>Veri gizliliği garantisi</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <div class="icon">📊</div>
+                <h3>Desteklenen Formatlar</h3>
+                <ul>
+                    <li>Excel (.xlsx, .xls) import/export</li>
+                    <li>E-defter klasör yapısı</li>
+                    <li>SMTP email protokolü</li>
+                    <li>ZIP arşivleme desteği</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <div class="icon">🔄</div>
+                <h3>Entegrasyonlar</h3>
+                <ul>
+                    <li>Gmail SMTP desteği</li>
+                    <li>Outlook/Office 365 desteği</li>
+                    <li>Yandex Mail desteği</li>
+                    <li>Özel SMTP sunucuları</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="pricing-box" style="margin-top: 60px;">
+            <div class="price">ÜCRETSIZ</div>
+            <div class="price-note">v1.0.0 Lansман Fiyatı</div>
+            <ul class="features-list">
+                <li>✓ Sınırsız müşteri ekleme</li>
+                <li>✓ Sınırsız email gönderimi (SMTP limitinize bağlı)</li>
+                <li>✓ Otomatik yedekleme</li>
+                <li>✓ Excel raporlama</li>
+                <li>✓ 7/24 otomasyon</li>
+                <li>✓ Ücretsiz güncellemeler</li>
+                <li>✓ Email destek</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Contact Page -->
+    <div class="page">
+        <div class="contact-section">
+            <h2>📞 İletişim ve Destek</h2>
+            <p style="font-size: 20px; margin-bottom: 40px;">
+                Sorularınız için bizimle iletişime geçin
+            </p>
+            
+            <div class="contact-info">
+                <div class="contact-item">
+                    <div class="icon">📧</div>
+                    <p><strong>Email</strong></p>
+                    <p>info@example.com</p>
+                </div>
+                
+                <div class="contact-item">
+                    <div class="icon">🌐</div>
+                    <p><strong>Web</strong></p>
+                    <p>www.example.com</p>
+                </div>
+                
+                <div class="contact-item">
+                    <div class="icon">📱</div>
+                    <p><strong>Telefon</strong></p>
+                    <p>+90 555 123 4567</p>
+                </div>
+            </div>
+
+            <div style="margin-top: 60px; padding-top: 40px; border-top: 1px solid rgba(255,255,255,0.2);">
+                <h3 style="font-size: 28px; margin-bottom: 20px;">Hemen Başlayın!</h3>
+                <p style="font-size: 18px;">
+                    Kurulum dosyasını çalıştırın ve 5 dakika içinde sisteminiz hazır olsun.
+                </p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p style="font-size: 18px; font-weight: 600; color: #1e40af; margin-bottom: 15px;">
+                E-Defter Klasör Otomasyonu v1.0.0
+            </p>
+            <p style="font-size: 16px;">Mali Müşavir Ofisleri İçin Profesyonel Otomasyon Sistemi</p>
+            <p style="margin-top: 20px;">© 2026 YAVUZ MERCİMEK - Tüm Hakları Saklıdır</p>
+        </div>
+    </div>
+
+    <!-- Print Button -->
+    <div class="no-print" style="position: fixed; bottom: 20px; right: 20px; background: #2563eb; color: white; padding: 15px 25px; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3); z-index: 1000;" onclick="window.print()">
+        🖨️ PDF Olarak Kaydet
+    </div>
+</body>
+</html>

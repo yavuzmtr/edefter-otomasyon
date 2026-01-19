@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Defter Klasör Otomasyonu - Kullanım Kılavuzu</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: white;
+            padding: 40px;
+            max-width: 210mm;
+            margin: 0 auto;
+        }
+        
+        .cover-page {
+            text-align: center;
+            padding: 100px 0;
+            page-break-after: always;
+            border-bottom: 3px solid #2563eb;
+        }
+        
+        .cover-page .logo {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+        
+        .cover-page h1 {
+            font-size: 42px;
+            color: #1e40af;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+        
+        .cover-page .subtitle {
+            font-size: 24px;
+            color: #64748b;
+            margin-bottom: 40px;
+        }
+        
+        .cover-page .version {
+            font-size: 18px;
+            color: #94a3b8;
+            margin-top: 60px;
+        }
+        
+        .cover-page .company {
+            margin-top: 100px;
+            font-size: 16px;
+            color: #64748b;
+        }
+        
+        h1 {
+            color: #1e40af;
+            font-size: 32px;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #2563eb;
+            page-break-after: avoid;
+        }
+        
+        h2 {
+            color: #2563eb;
+            font-size: 24px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            page-break-after: avoid;
+        }
+        
+        h3 {
+            color: #3b82f6;
+            font-size: 20px;
+            margin-top: 20px;
+            margin-bottom: 12px;
+            page-break-after: avoid;
+        }
+        
+        p {
+            margin-bottom: 12px;
+            text-align: justify;
+        }
+        
+        ul, ol {
+            margin-left: 30px;
+            margin-bottom: 15px;
+        }
+        
+        li {
+            margin-bottom: 8px;
+        }
+        
+        .feature-box {
+            background: #f1f5f9;
+            border-left: 4px solid #2563eb;
+            padding: 20px;
+            margin: 20px 0;
+            page-break-inside: avoid;
+        }
+        
+        .feature-box h3 {
+            margin-top: 0;
+            color: #1e40af;
+        }
+        
+        .warning-box {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            margin: 20px 0;
+            page-break-inside: avoid;
+        }
+        
+        .success-box {
+            background: #d1fae5;
+            border-left: 4px solid #10b981;
+            padding: 15px;
+            margin: 20px 0;
+            page-break-inside: avoid;
+        }
+        
+        .info-box {
+            background: #dbeafe;
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            margin: 20px 0;
+            page-break-inside: avoid;
+        }
+        
+        .step-box {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            page-break-inside: avoid;
+        }
+        
+        .step-box h4 {
+            color: #1e40af;
+            margin-bottom: 12px;
+        }
+        
+        code {
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        
+        .code-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 15px 0;
+            overflow-x: auto;
+            page-break-inside: avoid;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            page-break-inside: avoid;
+        }
+        
+        table th {
+            background: #1e40af;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        table tr:nth-child(even) {
+            background: #f8fafc;
+        }
+        
+        .toc {
+            background: #f8fafc;
+            padding: 30px;
+            margin: 30px 0;
+            border-radius: 8px;
+            page-break-after: always;
+        }
+        
+        .toc h2 {
+            margin-top: 0;
+            color: #1e40af;
+        }
+        
+        .toc ul {
+            list-style: none;
+            margin-left: 0;
+        }
+        
+        .toc li {
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .toc a {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .toc a:hover {
+            text-decoration: underline;
+        }
+        
+        .footer {
+            margin-top: 60px;
+            padding-top: 20px;
+            border-top: 2px solid #e2e8f0;
+            text-align: center;
+            color: #64748b;
+            font-size: 14px;
+        }
+        
+        @media print {
+            body {
+                padding: 0;
+            }
+            
+            .no-print {
+                display: none;
+            }
+            
+            h1, h2, h3 {
+                page-break-after: avoid;
+            }
+            
+            .feature-box, .step-box, .warning-box, .success-box, .info-box {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Kapak Sayfası -->
+    <div class="cover-page">
+        <div class="logo">📊</div>
+        <h1>E-Defter Klasör Otomasyonu</h1>
+        <div class="subtitle">Mali Müşavir Ofisleri İçin<br>Kullanım Kılavuzu</div>
+        <div class="version">Versiyon 1.0.0</div>
+        <div class="company">
+            <p><strong>YAVUZ MERCİMEK</strong></p>
+            <p>Mali Müşavir Çözümleri</p>
+            <p>2026</p>
+        </div>
+    </div>
+
+    <!-- İçindekiler -->
+    <div class="toc">
+        <h2>📑 İçindekiler</h2>
+        <ul>
+            <li><a href="#giris">1. Giriş ve Sistem Hakkında</a></li>
+            <li><a href="#kurulum">2. Kurulum</a></li>
+            <li><a href="#ilk-yapilandirma">3. İlk Yapılandırma</a></li>
+            <li><a href="#musteri-yonetimi">4. Müşteri Yönetimi</a></li>
+            <li><a href="#email-ayarlari">5. E-posta Ayarları</a></li>
+            <li><a href="#otomasyon">6. Otomasyon Sistemi</a></li>
+            <li><a href="#yedekleme">7. Yedekleme İşlemleri</a></li>
+            <li><a href="#raporlama">8. Raporlama</a></li>
+            <li><a href="#sorun-giderme">9. Sorun Giderme</a></li>
+            <li><a href="#sss">10. Sık Sorulan Sorular</a></li>
+        </ul>
+    </div>
+
+    <!-- 1. GİRİŞ -->
+    <h1 id="giris">1. Giriş ve Sistem Hakkında</h1>
+    
+    <p>E-Defter Klasör Otomasyonu, mali müşavir ofisleri için özel geliştirilmiş profesyonel bir otomasyon sistemidir. GIB'e gönderilen e-defter klasörlerini otomatik olarak izler, yedekler ve müşterilere bilgilendirme emaili gönderir.</p>
+
+    <div class="feature-box">
+        <h3>🎯 Temel Özellikler</h3>
+        <ul>
+            <li><strong>E-Defter Klasör İzleme:</strong> GIB'e gönderildikten sonra yerel klasörde oluşan e-defter klasörlerini 7/24 otomatik izler</li>
+            <li><strong>Müşteriye Otomatik Email:</strong> Eksik e-defter dönemleri için müşterilere otomatik bilgilendirme gönderir</li>
+            <li><strong>Mali Müşavir Raporları:</strong> Müşteri bazlı detaylı e-defter dönem raporları oluşturur</li>
+            <li><strong>E-Defter Yedekleme:</strong> E-defter klasörlerini otomatik olarak yedekler</li>
+            <li><strong>Tam Otomasyon:</strong> 30 saniyede bir kontrol, Windows başlangıcında otomatik başlatma</li>
+            <li><strong>Tray Menüsü:</strong> Sistem tepsisinden kolay erişim ve kontrol</li>
+        </ul>
+    </div>
+
+    <div class="info-box">
+        <strong>💡 Kim İçin?</strong> Bu sistem özellikle mali müşavir ofisleri için tasarlanmıştır. Çok sayıda müşterinin e-defter klasörlerini takip etmek ve müşterileri bilgilendirmek için idealdir.
+    </div>
+
+    <!-- 2. KURULUM -->
+    <h1 id="kurulum">2. Kurulum</h1>
+
+    <h2>2.1 Sistem Gereksinimleri</h2>
+    <table>
+        <tr>
+            <th>Bileşen</th>
+            <th>Minimum Gereksinim</th>
+            <th>Önerilen</th>
+        </tr>
+        <tr>
+            <td>İşletim Sistemi</td>
+            <td>Windows 10 (64-bit)</td>
+            <td>Windows 11</td>
+        </tr>
+        <tr>
+            <td>İşlemci</td>
+            <td>Intel Core i3 veya üzeri</td>
+            <td>Intel Core i5 veya üzeri</td>
+        </tr>
+        <tr>
+            <td>RAM</td>
+            <td>4 GB</td>
+            <td>8 GB veya üzeri</td>
+        </tr>
+        <tr>
+            <td>Disk Alanı</td>
+            <td>100 MB</td>
+            <td>500 MB</td>
+        </tr>
+        <tr>
+            <td>İnternet</td>
+            <td>Email gönderimi için gerekli</td>
+            <td>Sürekli bağlantı</td>
+        </tr>
+    </table>
+
+    <h2>2.2 Kurulum Adımları</h2>
+    <div class="step-box">
+        <h4>Adım 1: Setup Dosyasını Çalıştırın</h4>
+        <ol>
+            <li><code>E-Defter Klasör Otomasyonu Setup 1.0.0.exe</code> dosyasına çift tıklayın</li>
+            <li>Windows Güvenlik uyarısı çıkarsa "Daha fazla bilgi" → "Yine de çalıştır" seçin</li>
+            <li>Kurulum sihirbazı açılacaktır</li>
+        </ol>
+    </div>
+
+    <div class="step-box">
+        <h4>Adım 2: Kurulum Konumunu Seçin</h4>
+        <ol>
+            <li>Varsayılan konum: <code>C:\Program Files\E-Defter Otomasyon</code></li>
+            <li>Değiştirmek isterseniz "Gözat" butonunu kullanın</li>
+            <li>"İleri" butonuna tıklayın</li>
+        </ol>
+    </div>
+
+    <div class="step-box">
+        <h4>Adım 3: Başlat Menüsü Kısayolu</h4>
+        <ol>
+            <li>"Başlat menüsüne kısayol ekle" seçeneğini işaretleyin (önerilir)</li>
+            <li>"Masaüstüne kısayol ekle" seçeneğini işaretleyin (isteğe bağlı)</li>
+            <li>"Kur" butonuna tıklayın</li>
+        </ol>
+    </div>
+
+    <div class="success-box">
+        <strong>✅ Kurulum Tamamlandı!</strong> Uygulama otomatik olarak başlayacaktır. İlk kez açıldığında yapılandırma sihirbazı sizi karşılayacaktır.
+    </div>
+
+    <!-- 3. İLK YAPILANDIRMA -->
+    <h1 id="ilk-yapilandirma">3. İlk Yapılandırma</h1>
+
+    <h2>3.1 E-Defter Klasör Yolu</h2>
+    <div class="step-box">
+        <ol>
+            <li>Dashboard sayfasında "Ayarlar" bölümüne gidin</li>
+            <li>"E-Defter Klasör Yolu" alanında "Klasör Seç" butonuna tıklayın</li>
+            <li>GIB'e gönderilen e-defterlerin yerel klasör yolunu seçin</li>
+            <li>Örnek: <code>D:\E-Defterler\GIB-Gonderilen</code></li>
+        </ol>
+    </div>
+
+    <div class="info-box">
+        <strong>📁 Klasör Yapısı Örneği:</strong>
+        <div class="code-block">
+E-Defter Ana Klasörü/
+├── MUSTERI1_1234567890/
+│   ├── 2024/
+│   │   ├── 01/  (E-defter dosyaları)
+│   │   ├── 02/
+│   │   └── ...
+│   └── 2025/
+├── MUSTERI2_9876543210/
+└── ...
+        </div>
+    </div>
+
+    <h2>3.2 Yedekleme Klasörü</h2>
+    <div class="step-box">
+        <ol>
+            <li>"Yedekleme Klasörü" alanında "Klasör Seç" butonuna tıklayın</li>
+            <li>E-defter klasörlerinin yedekleneceği güvenli bir konum seçin</li>
+            <li>Örnek: <code>D:\Yedekler\E-Defterler</code></li>
+            <li>Önerilen: Harici disk veya ağ sürücüsü</li>
+        </ol>
+    </div>
+
+    <div class="warning-box">
+        <strong>⚠️ Önemli:</strong> Yedekleme klasörü, kaynak klasörden farklı bir fiziksel diskte olmalıdır. Aynı disk arızalanırsa hem veriler hem yedekler kaybolabilir.
+    </div>
+
+    <!-- 4. MÜŞTERİ YÖNETİMİ -->
+    <h1 id="musteri-yonetimi">4. Müşteri Yönetimi</h1>
+
+    <h2>4.1 Excel'den Toplu Müşteri Yükleme (Önerilen)</h2>
+    <div class="step-box">
+        <h4>Adım 1: Excel Şablonu İndirin</h4>
+        <ol>
+            <li>Sol menüden "Şirketler" (Müşteri Listesi) sekmesine tıklayın</li>
+            <li>"Excel'den Müşteri Yükle" butonuna tıklayın</li>
+            <li>"Excel Şablonu İndir" butonuna tıklayın</li>
+            <li>Şablon dosyası bilgisayarınıza indirilecektir</li>
+        </ol>
+    </div>
+
+    <div class="step-box">
+        <h4>Adım 2: Şablonu Doldurun</h4>
+        <p>Excel dosyasını açın ve aşağıdaki sütunları doldurun:</p>
+        <table>
+            <tr>
+                <th>Sütun Adı</th>
+                <th>Açıklama</th>
+                <th>Zorunlu</th>
+                <th>Örnek</th>
+            </tr>
+            <tr>
+                <td>Company Name</td>
+                <td>Müşteri adı</td>
+                <td>✅ Evet</td>
+                <td>ABC Ltd. Şti.</td>
+            </tr>
+            <tr>
+                <td>Tax Number</td>
+                <td>Vergi numarası (10 haneli)</td>
+                <td>✅ Evet</td>
+                <td>1234567890</td>
+            </tr>
+            <tr>
+                <td>Accountant Email</td>
+                <td>Müşteri email adresi</td>
+                <td>✅ Evet</td>
+                <td>musteri@firma.com</td>
+            </tr>
+            <tr>
+                <td>Phone</td>
+                <td>Telefon numarası</td>
+                <td>❌ Hayır</td>
+                <td>05551234567</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="step-box">
+        <h4>Adım 3: Excel Dosyasını Yükleyin</h4>
+        <ol>
+            <li>"Excel Dosyası Seç" butonuna tıklayın</li>
+            <li>Doldurduğunuz Excel dosyasını seçin</li>
+            <li>"Yükle" butonuna tıklayın</li>
+            <li>Sistem otomatik olarak müşterileri içe aktaracaktır</li>
+        </ol>
+    </div>
+
+    <div class="success-box">
+        <strong>✅ İpucu:</strong> Toplu yükleme yaparken Excel dosyanızda "Companies" adında bir sayfa olmalıdır. Sistem bu sayfadan veri okur.
+    </div>
+
+    <h2>4.2 Manuel Müşteri Ekleme</h2>
+    <div class="step-box">
+        <ol>
+            <li>"+ Yeni Müşteri Ekle" butonuna tıklayın</li>
+            <li>Formu doldurun:
+                <ul>
+                    <li>Müşteri Adı (zorunlu)</li>
+                    <li>Vergi Numarası (10 haneli)</li>
+                    <li>Müşteri Email (email gönderimi için gerekli)</li>
+                    <li>Telefon (isteğe bağlı)</li>
+                </ul>
+            </li>
+            <li>"Kaydet" butonuna tıklayın</li>
+        </ol>
+    </div>
+
+    <!-- 5. EMAIL AYARLARI -->
+    <h1 id="email-ayarlari">5. E-posta Ayarları</h1>
+
+    <h2>5.1 SMTP Yapılandırması</h2>
+    <div class="step-box">
+        <h4>Gmail İçin Ayarlar</h4>
+        <div class="code-block">
+SMTP Sunucu: smtp.gmail.com
+Port: 587
+Güvenlik: STARTTLS
+Email: sizin@gmail.com
+Şifre: uygulama-şifresi (normal şifre değil!)
+        </div>
+        <p><strong>⚠️ Önemli:</strong> Gmail için "Uygulama Şifresi" oluşturmalısınız:</p>
+        <ol>
+            <li>Google Hesabı → Güvenlik</li>
+            <li>2 Adımlı Doğrulama'yı açın</li>
+            <li>Uygulama şifreleri → "E-Defter Otomasyon" için şifre oluşturun</li>
+            <li>Bu 16 haneli şifreyi sisteme girin</li>
+        </ol>
+    </div>
+
+    <div class="step-box">
+        <h4>Outlook/Office 365 İçin Ayarlar</h4>
+        <div class="code-block">
+SMTP Sunucu: smtp.office365.com
+Port: 587
+Güvenlik: STARTTLS
+Email: sizin@outlook.com veya sirket@domain.com
+Şifre: email-şifreniz
+        </div>
+    </div>
+
+    <div class="step-box">
+        <h4>Yandex İçin Ayarlar</h4>
+        <div class="code-block">
+SMTP Sunucu: smtp.yandex.com
+Port: 587
+Güvenlik: STARTTLS
+Email: sizin@yandex.com
+Şifre: email-şifreniz
+        </div>
+    </div>
+
+    <h2>5.2 Email Şablonları</h2>
+    <p>Sistem, müşterilere gönderilecek emailleri otomatik olarak oluşturur. Email içeriği:</p>
+    <ul>
+        <li>Müşteri adı</li>
+        <li>Eksik e-defter dönemleri listesi</li>
+        <li>Son kontrol tarihi</li>
+        <li>İletişim bilgileri</li>
+    </ul>
+
+    <!-- 6. OTOMASYON SİSTEMİ -->
+    <h1 id="otomasyon">6. Otomasyon Sistemi</h1>
+
+    <h2>6.1 Otomasyonu Başlatma</h2>
+    <div class="step-box">
+        <h4>Başlatma Adımları</h4>
+        <ol>
+            <li>Sol menüden "🤖 Otomasyon Ayarları" sekmesine tıklayın</li>
+            <li>Tüm ayarların yapılandırıldığından emin olun:
+                <ul>
+                    <li>✅ E-Defter Klasörü seçilmiş</li>
+                    <li>✅ Müşteriler eklenmiş</li>
+                    <li>✅ Email ayarları yapılmış</li>
+                    <li>✅ Yedekleme ayarları yapılmış</li>
+                </ul>
+            </li>
+            <li>Sağ üstteki <strong>"▶️ SİSTEMİ BAŞLAT"</strong> butonuna tıklayın</li>
+            <li>Durum göstergesi <strong>"🟢 ÇALIŞIYOR"</strong> olacaktır</li>
+        </ol>
+    </div>
+
+    <div class="success-box">
+        <strong>🎉 Sistem Aktif!</strong> Artık sistem:
+        <ul>
+            <li>✅ Her 30 saniyede bir e-defter klasörlerini kontrol eder</li>
+            <li>✅ Yeni e-defter klasörlerini tespit eder</li>
+            <li>✅ Müşterilere otomatik email gönderir</li>
+            <li>✅ E-defter klasörlerini otomatik yedekler</li>
+            <li>✅ Windows başlangıcında otomatik başlar</li>
+        </ul>
+    </div>
+
+    <h2>6.2 Tray Menüsü Kontrolü</h2>
+    <p>Uygulama penceresini kapatsanız bile sistem çalışmaya devam eder:</p>
+    <ul>
+        <li><strong>Sistem Tepsisi İkonu:</strong> Sağ alt köşede 📊 ikonu görünür</li>
+        <li><strong>Sağ Tık Menüsü:</strong>
+            <ul>
+                <li>E-Defter Klasör Otomasyonu (Pencereyi göster)</li>
+                <li>Otomasyon: Çalışıyor 🟢 / Durduruldu ⚪</li>
+                <li>▶️ Otomasyonu Başlat / ⏸️ Otomasyonu Durdur</li>
+                <li>❌ Çıkış</li>
+            </ul>
+        </li>
+        <li><strong>Çift Tıklama:</strong> Ana pencereyi açar</li>
+    </ul>
+
+    <div class="warning-box">
+        <strong>⚠️ Dikkat:</strong> Uygulamadan tamamen çıkmak için tray menüsünden "Çıkış" seçeneğini kullanın. Sadece pencereyi kapatmak uygulamayı sonlandırmaz, arka planda çalışmaya devam eder.
+    </div>
+
+    <h2>6.3 Arka Plan Çalışma</h2>
+    <p>Sistem arka planda çalışırken:</p>
+    <ul>
+        <li>CPU kullanımı minimal düzeydedir (%1-2)</li>
+        <li>RAM kullanımı: 100-150 MB</li>
+        <li>Disk I/O: Sadece kontrol anlarında aktif</li>
+        <li>Ağ kullanımı: Email gönderimi sırasında</li>
+    </ul>
+
+    <!-- 7. YEDEKLEME -->
+    <h1 id="yedekleme">7. Yedekleme İşlemleri</h1>
+
+    <h2>7.1 Otomatik Yedekleme</h2>
+    <p>Otomasyon aktifken sistem her 30 saniyede bir:</p>
+    <ol>
+        <li>E-defter klasörünü tarar</li>
+        <li>Yeni veya değişen klasörleri tespit eder</li>
+        <li>Sadece yeni içerikleri yedekleme klasörüne kopyalar</li>
+        <li>Klasör yapısını korur</li>
+    </ol>
+
+    <div class="info-box">
+        <strong>💡 Akıllı Yedekleme:</strong> Sistem sadece yeni veya değişen dosyaları kopyalar. Bu sayede:
+        <ul>
+            <li>Disk alanı verimli kullanılır</li>
+            <li>Yedekleme işlemi hızlı tamamlanır</li>
+            <li>Gereksiz kopyalama olmaz</li>
+        </ul>
+    </div>
+
+    <h2>7.2 Manuel Yedekleme</h2>
+    <div class="step-box">
+        <ol>
+            <li>"Yedekleme" sekmesine gidin</li>
+            <li>"Yedekleme Başlat" butonuna tıklayın</li>
+            <li>İşlem tamamlanana kadar bekleyin</li>
+            <li>İşlem sonucu ekranda görüntülenecektir</li>
+        </ol>
+    </div>
+
+    <h2>7.3 Yedekleme Logları</h2>
+    <p>Tüm yedekleme işlemleri kayıt altına alınır:</p>
+    <ul>
+        <li>Tarih ve saat</li>
+        <li>Kopyalanan dosya sayısı</li>
+        <li>Atlanan dosya sayısı</li>
+        <li>Toplam boyut</li>
+        <li>Hata sayısı (varsa)</li>
+    </ul>
+
+    <!-- 8. RAPORLAMA -->
+    <h1 id="raporlama">8. Raporlama</h1>
+
+    <h2>8.1 Excel Rapor Oluşturma</h2>
+    <div class="step-box">
+        <ol>
+            <li>"Raporlar" sekmesine gidin</li>
+            <li>"Excel Raporu Oluştur" butonuna tıklayın</li>
+            <li>Rapor türünü seçin:
+                <ul>
+                    <li>Tüm Müşteriler</li>
+                    <li>Eksik Dönemler</li>
+                    <li>Belirli Müşteri</li>
+                </ul>
+            </li>
+            <li>Kaydetme konumunu seçin</li>
+            <li>Rapor otomatik olarak oluşturulacaktır</li>
+        </ol>
+    </div>
+
+    <h2>8.2 Rapor İçeriği</h2>
+    <p>Excel raporları şu bilgileri içerir:</p>
+    <table>
+        <tr>
+            <th>Kolon</th>
+            <th>Açıklama</th>
+        </tr>
+        <tr>
+            <td>Müşteri Adı</td>
+            <td>Müşteri firma adı</td>
+        </tr>
+        <tr>
+            <td>Vergi No</td>
+            <td>10 haneli vergi numarası</td>
+        </tr>
+        <tr>
+            <td>Dönem</td>
+            <td>Yıl ve ay bilgisi (örn: 2024-01)</td>
+        </tr>
+        <tr>
+            <td>Durum</td>
+            <td>Mevcut / Eksik</td>
+        </tr>
+        <tr>
+            <td>Dosya Sayısı</td>
+            <td>O dönem için dosya adedi</td>
+        </tr>
+        <tr>
+            <td>Son Güncelleme</td>
+            <td>Klasör son değişiklik tarihi</td>
+        </tr>
+    </table>
+
+    <!-- 9. SORUN GİDERME -->
+    <h1 id="sorun-giderme">9. Sorun Giderme</h1>
+
+    <h2>9.1 Email Gönderilemiyor</h2>
+    <div class="warning-box">
+        <strong>Olası Nedenler:</strong>
+        <ul>
+            <li>SMTP ayarları yanlış</li>
+            <li>İnternet bağlantısı yok</li>
+            <li>Email şifresi hatalı</li>
+            <li>Gmail için uygulama şifresi kullanılmamış</li>
+        </ul>
+        <strong>Çözüm:</strong>
+        <ol>
+            <li>E-posta ayarlarını kontrol edin</li>
+            <li>İnternet bağlantınızı test edin</li>
+            <li>Gmail kullanıyorsanız "Uygulama Şifresi" oluşturun</li>
+            <li>"E-posta Test Et" butonunu kullanarak ayarları test edin</li>
+        </ol>
+    </div>
+
+    <h2>9.2 Klasör Taraması Çalışmıyor</h2>
+    <div class="warning-box">
+        <strong>Olası Nedenler:</strong>
+        <ul>
+            <li>Klasör yolu yanlış seçilmiş</li>
+            <li>Klasöre erişim izni yok</li>
+            <li>Ağ sürücüsü bağlantısı kesilmiş</li>
+        </ul>
+        <strong>Çözüm:</strong>
+        <ol>
+            <li>Ayarlar'dan klasör yolunu kontrol edin</li>
+            <li>Windows Explorer'dan klasörü açabildiğinizi test edin</li>
+            <li>Ağ sürücüsü kullanıyorsanız bağlantıyı kontrol edin</li>
+            <li>Klasör izinlerini kontrol edin</li>
+        </ol>
+    </div>
+
+    <h2>9.3 Tray İkonu Görünmüyor</h2>
+    <div class="warning-box">
+        <strong>Çözüm:</strong>
+        <ol>
+            <li>Windows Ayarlar → Sistem → Bildirimler</li>
+            <li>"Görev çubuğunda hangi simgelerin görüneceğini seç"</li>
+            <li>"E-Defter Otomasyon" için "Aç" seçeneğini işaretleyin</li>
+            <li>Uygulamayı yeniden başlatın</li>
+        </ol>
+    </div>
+
+    <h2>9.4 Yüksek CPU/RAM Kullanımı</h2>
+    <div class="warning-box">
+        <strong>Olası Nedenler:</strong>
+        <ul>
+            <li>Çok fazla dosya taranıyor</li>
+            <li>Ağ sürücüsü yavaş</li>
+            <li>Sistem kaynakları yetersiz</li>
+        </ul>
+        <strong>Çözüm:</strong>
+        <ol>
+            <li>Kontrol aralığını artırın (30 saniye → 60 saniye)</li>
+            <li>Gereksiz klasörleri tarama dışı bırakın</li>
+            <li>Yedekleme klasörünü yerel diske taşıyın</li>
+            <li>Diğer arka plan uygulamalarını kapatın</li>
+        </ol>
+    </div>
+
+    <!-- 10. SSS -->
+    <h1 id="sss">10. Sık Sorulan Sorular</h1>
+
+    <h3>❓ Sistem bilgisayar kapalıyken çalışır mı?</h3>
+    <p><strong>Cevap:</strong> Hayır. Bilgisayar kapalıyken sistem çalışamaz. Ancak Windows başlangıcında otomatik başlatma aktif olduğu için bilgisayar açıldığında sistem otomatik olarak başlar ve arka planda çalışmaya devam eder.</p>
+
+    <h3>❓ Kaç müşteri ekleyebilirim?</h3>
+    <p><strong>Cevap:</strong> Sınır yoktur. Sistem binlerce müşteriyi yönetebilir. Ancak çok fazla müşteri olduğunda tarama süresi uzayabilir.</p>
+
+    <h3>❓ Email gönderimi ücretsiz mi?</h3>
+    <p><strong>Cevap:</strong> Evet, uygulama ücretsizdir. Ancak email göndermek için kendi SMTP sunucunuzu veya email hesabınızı kullanmanız gerekir. Gmail ücretsiz günde 500 email gönderebilir.</p>
+
+    <h3>❓ Veritabanı nerede saklanır?</h3>
+    <p><strong>Cevap:</strong> Tüm ayarlar ve veriler yerel bilgisayarınızda şu konumda saklanır:</p>
+    <div class="code-block">C:\Users\[KULLANICI_ADI]\AppData\Roaming\edefter-automation</div>
+
+    <h3>❓ Yedekleme otomatik mi yoksa manuel mi?</h3>
+    <p><strong>Cevap:</strong> Her ikisi de mümkündür. Otomasyon aktifken yedekleme otomatiktir. İsterseniz "Yedekleme" sekmesinden manuel yedekleme de yapabilirsiniz.</p>
+
+    <h3>❓ Aynı anda kaç bilgisayarda kullanabilirim?</h3>
+    <p><strong>Cevap:</strong> Sınır yoktur. Her bilgisayara ayrı kurulum yapıp kullanabilirsiniz. Ancak aynı email hesabını kullanan birden fazla bilgisayar olursa aynı emailler tekrar gönderilebilir.</p>
+
+    <h3>❓ Lisans gerekli mi?</h3>
+    <p><strong>Cevap:</strong> Mevcut versiyon (v1.0.0) ücretsizdir ve lisans gerektirmez.</p>
+
+    <h3>❓ Sistem güncellemeleri otomatik mi?</h3>
+    <p><strong>Cevap:</strong> Hayır, güncellemeler şu an manuel yapılmalıdır. Yeni sürüm çıktığında size bildirilecektir.</p>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p><strong>E-Defter Klasör Otomasyonu v1.0.0</strong></p>
+        <p>Mali Müşavir Ofisleri İçin Profesyonel Otomasyon Sistemi</p>
+        <p>© 2026 YAVUZ MERCİMEK - Tüm Hakları Saklıdır</p>
+        <p style="margin-top: 20px; font-size: 12px;">
+            Destek: info@example.com | Web: www.example.com
+        </p>
+    </div>
+
+    <!-- Print Button (No Print) -->
+    <div class="no-print" style="position: fixed; bottom: 20px; right: 20px; background: #2563eb; color: white; padding: 15px 25px; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onclick="window.print()">
+        🖨️ PDF Olarak Kaydet
+    </div>
+</body>
+</html>
