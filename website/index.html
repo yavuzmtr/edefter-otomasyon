@@ -299,7 +299,7 @@
                         <div class="info-icon">📧</div>
                         <div>
                             <h4>Email</h4>
-                            <p>info@edefter-otomasyon.com</p>
+                            <p>edefterotomasyon@gmail.com</p>
                         </div>
                     </div>
                     <div class="info-item">
@@ -313,23 +313,30 @@
                         <div class="info-icon">💼</div>
                         <div>
                             <h4>Destek Saatleri</h4>
-                            <p>Pazartesi - Cuma, 09:00 - 18:00</p>
+                            <p>Pazartesi - Cuma, 09:00 - 16:00</p>
                         </div>
                     </div>
                 </div>
                 <div class="contact-form">
-                    <form>
+                    <form id="contactForm" action="https://formsubmit.co/edefterotomasyon@gmail.com" method="POST">
+                        <!-- FormSubmit Ayarları -->
+                        <input type="hidden" name="_subject" value="📧 Yeni İletişim Mesajı - E-Defter Otomasyon">
+                        <input type="hidden" name="_captcha" value="false">
+                        <input type="hidden" name="_template" value="table">
+                        <input type="hidden" name="_next" value="https://yavuzmtr.github.io/edefter-otomasyon/index.html#contact">
+                        <input type="text" name="_honey" style="display:none">
+                        
                         <div class="form-group">
-                            <input type="text" placeholder="Ad Soyad" required>
+                            <input type="text" name="Ad_Soyad" placeholder="Ad Soyad" required>
                         </div>
                         <div class="form-group">
-                            <input type="email" placeholder="Email Adresiniz" required>
+                            <input type="email" name="Email" placeholder="Email Adresiniz" required>
                         </div>
                         <div class="form-group">
-                            <input type="tel" placeholder="Telefon">
+                            <input type="tel" name="Telefon" placeholder="Telefon">
                         </div>
                         <div class="form-group">
-                            <textarea placeholder="Mesajınız" rows="4" required></textarea>
+                            <textarea name="Mesaj" placeholder="Mesajınız" rows="4" required></textarea>
                         </div>
                         <button type="submit" class="btn btn-primary btn-block">Gönder</button>
                     </form>

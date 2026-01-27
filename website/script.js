@@ -23,14 +23,28 @@ window.addEventListener('scroll', () => {
 });
 
 // Form Submission
-const contactForm = document.querySelector('.contact-form form');
+const contactForm = document.querySelector('#contactForm');
 if (contactForm) {
     contactForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        alert('Mesajınız alındı! En kısa sürede size dönüş yapacağız.');
-        this.reset();
+        const submitBtn = this.querySelector('button[type="submit"]');
+        submitBtn.textContent = '⏳ Gönderiliyor...';
+        submitBtn.disabled = true;
+        
+        // Form FormSubmit'e gönderilecek, sayfa yenilendiğinde mesaj göster
     });
 }
+
+// URL'de success parametresi varsa mesaj göster
+window.addEventListener('load', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hash = window.location.hash;
+    
+    if (hash === '#contact' && urlParams.get('success') !== null) {
+        alert('✅ Mesajınız başarıyla gönderildi! En kısa sürede size dönüş yapacağız.');
+        // URL'i temizle
+        window.history.replaceState({}, document.title, window.location.pathname + '#contact');
+    }
+});
 
 // Animation on Scroll
 const observerOptions = {
