@@ -1848,7 +1848,6 @@ ipcMain.handle('backup-files', async (event, sourcePath, destinationPath, isAuto
                 // ⚡ Her batch sonrası event loop'a nefes aldır
                 await new Promise(resolve => setImmediate(resolve));
               }
-              }
             }
           } catch (err) {
             errorCount++;
