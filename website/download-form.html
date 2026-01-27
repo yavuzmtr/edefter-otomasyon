@@ -132,23 +132,32 @@
                 <p>7 günlük ücretsiz deneme için bilgilerinizi girin</p>
             </div>
             
-            <form id="downloadForm">
+            <form id="downloadForm" action="https://formsubmit.co/edefterotomasyon@gmail.com" method="POST">
+                <!-- FormSubmit Ayarları -->
+                <input type="hidden" name="_subject" value="🎯 Yeni Demo İndirme Talebi - E-Defter Otomasyon">
+                <input type="hidden" name="_captcha" value="false">
+                <input type="hidden" name="_template" value="table">
+                <input type="hidden" name="_next" value="https://yavuzmtr.github.io/edefter-otomasyon/download-form.html?success=true">
+                <input type="text" name="_honey" style="display:none">
+                
                 <div class="form-group">
                     <label for="name">Ad Soyad *</label>
-                    <input type="text" id="name" name="name" required placeholder="Örn: Ahmet Yılmaz">
+                    <input type="text" id="name" name="İsim" required placeholder="Örn: Ahmet Yılmaz">
                     <div class="error-message" id="nameError"></div>
                 </div>
                 
                 <div class="form-group">
                     <label for="email">E-posta Adresi *</label>
-                    <input type="email" id="email" name="email" required placeholder="ornek@mail.com">
+                    <input type="email" id="email" name="E-posta" required placeholder="ornek@mail.com">
                     <div class="error-message" id="emailError"></div>
                 </div>
                 
                 <div class="form-group">
                     <label for="company">Şirket Adı (Opsiyonel)</label>
-                    <input type="text" id="company" name="company" placeholder="Muhasebe Ofisi Adı">
+                    <input type="text" id="company" name="Şirket" placeholder="Muhasebe Ofisi Adı">
                 </div>
+                
+                <input type="hidden" name="Tarih" id="timestamp">
                 
                 <button type="submit" class="submit-btn" id="submitBtn">
                     💾 Demo İndir
@@ -174,57 +183,33 @@
         const submitBtn = document.getElementById('submitBtn');
         const successMessage = document.getElementById('successMessage');
         
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const name = document.getElementById('name').value;
-            const email = document.getElementById('email').value;
-            const company = document.getElementById('company').value;
-            
-            // Validasyon
-            if (!name || !email) {
-                alert('Lütfen tüm zorunlu alanları doldurun');
-                return;
-            }
-            
-            // Email validasyonu
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                alert('Geçerli bir e-posta adresi girin');
-                return;
-            }
-            
-            submitBtn.disabled = true;
-            submitBtn.textContent = '⏳ Kaydediliyor...';
-            
-            // Google Forms'a veri gönder (örnek - kendi formunuzu oluşturun)
-            const formData = {
-                name,
-                email,
-                company,
-                timestamp: new Date().toISOString()
-            };
-            
-            // localStorage'a kaydet (basit tracking)
-            const downloads = JSON.parse(localStorage.getItem('downloads') || '[]');
-            downloads.push(formData);
-            localStorage.setItem('downloads', JSON.stringify(downloads));
-            
-            // Başarı mesajı göster
+        // URL'den success parametresini kontrol et
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('success') === 'true') {
             successMessage.style.display = 'block';
+            successMessage.textContent = '✅ Form gönderildi! İndirme başlıyor...';
             
             // İndirmeyi başlat
             setTimeout(() => {
                 window.location.href = 'https://github.com/yavuzmtr/edefter-otomasyon/releases/download/v1.0.0-demo/E-Defter-Otomasyon-DEMO-Setup.exe';
                 
-                // Formu sıfırla
+                // URL'i temizle
                 setTimeout(() => {
-                    form.reset();
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = '💾 Demo İndir';
+                    window.history.replaceState({}, document.title, 'download-form.html');
                     successMessage.style.display = 'none';
                 }, 2000);
-            }, 1500);
+            }, 1000);
+        }
+        
+        // Tarih alanını otomatik doldur
+        document.getElementById('timestamp').value = new Date().toLocaleString('tr-TR');
+        
+        form.addEventListener('submit', (e) => {
+            submitBtn.disabled = true;
+            submitBtn.textContent = '⏳ Gönderiliyor...';
+            
+            // Form FormSubmit'e gönderilecek
+            // FormSubmit otomatik olarak email gönderecek ve yönlendirecek
         });
     </script>
 </body>
