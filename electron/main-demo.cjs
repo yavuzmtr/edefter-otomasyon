@@ -1,3 +1,7 @@
+// ========== DEMO VERSION - TRIAL CHECKER ==========
+const trialChecker = require('./trial-checker.cjs');
+// ==================================================
+
 // ═════════════════════════════════════════════════════════════
 // SAFE CONSOLE LOGGING (EPIPE Broken Pipe hatalarını önle)
 // ═════════════════════════════════════════════════════════════
@@ -604,6 +608,13 @@ async function processGIBFile(gibFilePath, metadata = {}) {
 }
 
 // IPC Handlers
+
+// ========== DEMO VERSION - TRIAL INFO HANDLER ==========
+ipcMain.handle('get-trial-info', async () => {
+  return trialChecker.getTrialInfo();
+});
+// =======================================================
+
 ipcMain.handle('select-folder', async () => {
   try {
     const result = await dialog.showOpenDialog(mainWindow, {
@@ -1836,6 +1847,7 @@ ipcMain.handle('backup-files', async (event, sourcePath, destinationPath, isAuto
                 
                 // ⚡ Her batch sonrası event loop'a nefes aldır
                 await new Promise(resolve => setImmediate(resolve));
+              }
               }
             }
           } catch (err) {
@@ -3552,7 +3564,14 @@ ipcMain.handle('create-excel-template', async (event, data, options = {}) => {
 // ========== APP EVENT HANDLERS ==========
 
 // App başlatıldığında pencereyi oluştur
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  // ========== DEMO VERSION - TRIAL CHECK ==========
+  const canContinue = await trialChecker.checkTrial();
+  if (!canContinue) {
+    return; // Trial expired, app will quit
+  }
+  // ==================================================
+
   createWindow();
   createTray(); // ✅ Sistem tepsisi ikonu oluştur
   logToFile('info', 'Sistem', 'App başlatıldı, pencere ve tray oluşturuldu');
