@@ -120,6 +120,30 @@ const Store = require('electron-store');
 // Handle Squirrel Windows installer events
 if (require('electron-squirrel-startup')) app.quit();
 
+// ═════════════════════════════════════════════════════════════
+// SINGLE INSTANCE LOCK - Sadece tek bir uygulama instance'ı çalışsın
+// ═════════════════════════════════════════════════════════════
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  console.log('⚠️ Başka bir uygulama zaten çalışıyor, bu instance kapatılıyor...');
+  app.quit();
+} else {
+  // İkinci instance açılmaya çalışıldığında
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    console.log('⚠️ İkinci instance tespit edildi, mevcut pencere focus alıyor...');
+    
+    // Mevcut pencere minimize edilmişse geri getir
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore();
+      }
+      mainWindow.focus();
+      mainWindow.show();
+    }
+  });
+}
+
 const store = new Store();
 let mainWindow;
 let tray = null;
@@ -3010,7 +3034,18 @@ ipcMain.handle('send-test-email-notification', async (event, accountantEmail) =>
   }
 });
 
-
+// ✅ TRIAL STATUS HANDLER - Tam sürüm (trial yok)
+ipcMain.handle('check-trial-status', async () => {
+  return {
+    success: true,
+    trialInfo: {
+      isDemo: false,
+      daysLeft: 0,
+      expiryDate: null,
+      isExpired: false
+    }
+  };
+});
 
 // Şirket ZIP oluştur
 ipcMain.handle('create-company-zip', async (event, companyData, selectedMonths, customMessage) => {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Home, 
   Building, 
@@ -10,6 +10,7 @@ import {
   Activity,
   Calendar
 } from 'lucide-react';
+import { ElectronService } from '../services/electronService';
 
 interface SidebarProps {
   activeTab: string;
@@ -29,6 +30,23 @@ const menuItems = [
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
+  const [isDemo, setIsDemo] = useState(false);
+
+  useEffect(() => {
+    const checkTrialStatus = async () => {
+      console.log('🔍 [Sidebar] Trial durumu kontrol ediliyor...');
+      if (ElectronService.isElectron()) {
+        const result = await ElectronService.checkTrialStatus();
+        console.log('📊 [Sidebar] Trial result:', result);
+        if (result.success && result.trialInfo) {
+          console.log('✅ [Sidebar] isDemo:', result.trialInfo.isDemo);
+          setIsDemo(result.trialInfo.isDemo);
+        }
+      }
+    };
+    checkTrialStatus();
+  }, []);
+
   return (
     <div className="w-64 sidebar-themed shadow-lg h-screen border-r" 
          style={{ 
@@ -41,8 +59,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
                style={{ backgroundColor: 'var(--accent-color)' }}>
             <FileText className="w-6 h-6 text-white" />
           </div>
-          <div>
-            <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>E-Defter</h1>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>E-Defter</h1>
+              <span className="px-2 py-1 text-xs font-bold bg-orange-500 text-white rounded-md">
+                DEMO
+              </span>
+            </div>
             <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Otomasyon Sistemi</p>
           </div>
         </div>

@@ -30,6 +30,13 @@ export const Dashboard: React.FC = () => {
     lastScan: 'Henüz tarama yapılmadı'
   });
 
+  const [trialInfo, setTrialInfo] = useState<{
+    isDemo: boolean;
+    daysLeft: number;
+    expiryDate: string;
+    isExpired: boolean;
+  } | null>(null);
+
   const [pieData, setPieData] = useState([
     { name: 'Tamamlanan', value: 0, color: '#059669' },
     { name: 'Eksik Dosya', value: 0, color: '#ea580c' },
@@ -53,8 +60,25 @@ export const Dashboard: React.FC = () => {
 
   useEffect(() => {
     loadDashboardData();
+    loadTrialInfo();
     logService.logSystemAction('Dashboard Yüklendi', 'Kontrol paneli açıldı', 'info');
   }, []);
+
+  const loadTrialInfo = async () => {
+    try {
+      console.log('🔍 Trial bilgisi yükleniyor...');
+      const result = await ElectronService.checkTrialStatus();
+      console.log('📊 Trial result:', result);
+      if (result.success && result.trialInfo) {
+        console.log('✅ Trial info set ediliyor:', result.trialInfo);
+        setTrialInfo(result.trialInfo);
+      } else {
+        console.warn('⚠️ Trial bilgisi alınamadı:', result);
+      }
+    } catch (error) {
+      console.error('❌ Trial bilgisi yükleme hatası:', error);
+    }
+  };
 
   const loadDashboardData = async () => {
     try {
@@ -164,13 +188,48 @@ export const Dashboard: React.FC = () => {
               <TrendingUp className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">📊 Kontrol Paneli</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                📊 Kontrol Paneli <span className="text-orange-600 font-bold">🎯 DEMO VERSİYON</span>
+              </h1>
               <p className="text-gray-600 dark:text-gray-300">E-defter GIB sisteminin güncel durumu</p>
             </div>
           </div>
-          <div className="flex items-center space-x-2 bg-gradient-to-r from-green-100 to-emerald-100 px-4 py-2 rounded-xl border border-green-200">
-            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-            <span className="text-green-700 font-medium">Sistem Aktif</span>
+          <div className="flex items-center space-x-3">
+            {trialInfo && trialInfo.isDemo && (
+              <div className={`px-4 py-2 rounded-xl border ${
+                trialInfo.isExpired 
+                  ? 'bg-red-100 border-red-200' 
+                  : trialInfo.daysLeft <= 5 
+                    ? 'bg-yellow-100 border-yellow-200'
+                    : 'bg-blue-100 border-blue-200'
+              }`}>
+                <div className="flex items-center space-x-2">
+                  <span className="text-2xl">⏱️</span>
+                  <div>
+                    <p className={`font-bold ${
+                      trialInfo.isExpired 
+                        ? 'text-red-700' 
+                        : trialInfo.daysLeft <= 5 
+                          ? 'text-yellow-700'
+                          : 'text-blue-700'
+                    }`}>
+                      {trialInfo.isExpired 
+                        ? 'Demo Süresi Doldu' 
+                        : `${trialInfo.daysLeft} Gün Kaldı`}
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      {trialInfo.isExpired 
+                        ? 'Lisans satın alın' 
+                        : `Son: ${new Date(trialInfo.expiryDate).toLocaleDateString('tr-TR')}`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="flex items-center space-x-2 bg-gradient-to-r from-green-100 to-emerald-100 px-4 py-2 rounded-xl border border-green-200">
+              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-green-700 font-medium">Sistem Aktif</span>
+            </div>
           </div>
         </div>
 

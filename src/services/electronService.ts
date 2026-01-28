@@ -49,6 +49,7 @@ declare global {
       runPowerShellScript: (scriptPath: string, args?: string[]) => Promise<{success: boolean, data?: any, error?: string}>;
       testEmailConnection: (emailConfig: any) => Promise<{success: boolean, message: string}>;
       sendTestEmailNotification: (accountantEmail: string) => Promise<{success: boolean, error?: string}>;
+      checkTrialStatus: () => Promise<{success: boolean, trialInfo?: {isDemo: boolean, daysLeft: number, expiryDate: string, isExpired: boolean}, error?: string}>;
     };
   }
 }
@@ -461,6 +462,18 @@ export class ElectronService {
       return await window.electronAPI.cleanupTempFiles(filePaths);
     } catch (error: unknown) {
       console.error('Geçici dosya temizleme hatası:', error);
+      return { success: false, error: getErrorMessage(error) };
+    }
+  }
+
+  static async checkTrialStatus(): Promise<{success: boolean, trialInfo?: {isDemo: boolean, daysLeft: number, expiryDate: string, isExpired: boolean}, error?: string}> {
+    if (!this.isElectron()) {
+      return { success: false, error: 'Bu özellik sadece Electron uygulamasında çalışır' };
+    }
+    try {
+      return await window.electronAPI.checkTrialStatus();
+    } catch (error: unknown) {
+      console.error('Trial bilgisi yüklenemedi:', error);
       return { success: false, error: getErrorMessage(error) };
     }
   }

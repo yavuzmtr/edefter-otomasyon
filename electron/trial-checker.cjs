@@ -39,12 +39,13 @@ const trialStore = new Store({
   cwd: app.getPath('userData')
 });
 
-// 15 günlük deneme süresi - Kullanıcıya yeterli test süresi sağlar
+// DEMO SÜRÜM: 15 günlük deneme süresi
 const TRIAL_DAYS = 15;
-const TRIAL_DURATION = TRIAL_DAYS * 24 * 60 * 60 * 1000; // PRODUCTION
+const TRIAL_DURATION = 15 * 24 * 60 * 60 * 1000; // 15 gün (1296000000 ms)
 
 /**
  * Demo deneme süresini başlatır (ilk kurulumda)
+ * @returns {boolean} İlk kurulum mu?
  */
 function initializeTrial() {
   const hwId = getHardwareId();
@@ -60,10 +61,12 @@ function initializeTrial() {
     safeLog('[DEMO] Yeni makine - Trial başlatıldı:', new Date(now).toLocaleString('tr-TR'));
     safeLog('[DEMO] Hardware ID:', hwId.substring(0, 16) + '...');
     safeLog('[DEMO] Trial data path:', app.getPath('userData'));
+    return true; // İlk kurulum
   } else if (firstRunDate) {
     safeLog('[DEMO] Aynı makine - Trial devam ediyor:', new Date(firstRunDate).toLocaleString('tr-TR'));
     safeLog('[DEMO] Hardware ID eşleşti');
   }
+  return false; // Devam eden trial
 }
 
 /**
@@ -137,7 +140,7 @@ async function showTrialExpiredDialog() {
  * @returns {boolean} Uygulama devam edebilirse true
  */
 async function checkTrial() {
-  initializeTrial();
+  const isFirstRun = initializeTrial();
   
   const remainingDays = getRemainingDays();
   const expired = isTrialExpired();
@@ -152,13 +155,37 @@ async function checkTrial() {
   
   safeLog('[DEMO] Trial check - Kalan ms:', remaining, 'Expired:', expired);
   
+  // İlk çalıştırmada hoş geldiniz mesajı
+  if (isFirstRun) {
+    // Süreyi dinamik olarak hesapla
+    const durationInDays = TRIAL_DURATION / (24 * 60 * 60 * 1000);
+    const durationInMinutes = TRIAL_DURATION / (60 * 1000);
+    
+    let durationText;
+    if (durationInDays >= 1) {
+      durationText = `${Math.floor(durationInDays)} gün`;
+    } else if (durationInMinutes >= 60) {
+      durationText = `${Math.floor(durationInMinutes / 60)} saat`;
+    } else {
+      durationText = `${Math.floor(durationInMinutes)} dakika`;
+    }
+    
+    dialog.showMessageBox({
+      type: 'info',
+      title: '🎉 Demo Versiyonuna Hoş Geldiniz!',
+      message: 'E-Defter Klasör Otomasyonu - Demo Başladı',
+      detail: `Demo versiyonunu ${durationText} boyunca ücretsiz kullanabilirsiniz.\n\n✨ Tüm özellikleri keşfedin\n📊 Sistemi test edin\n⚡ Otomasyonun gücünü görün\n\nDemo süresi sonunda tam sürüme geçerek sınırsız kullanım hakkı kazanabilirsiniz.\n\nİyi kullanımlar! 🚀`,
+      buttons: ['Başlayalım!']
+    });
+  }
+  
   if (expired) {
     // Süre dolmuş
     safeLog('[DEMO] Trial süresi doldu! Uygulama kapatılıyor...');
     await showTrialExpiredDialog();
     return false;
-  } else if (remaining <= 3600000) {
-    // Son 1 saat - uyarı göster
+  } else if (remaining <= 2 * 60 * 1000) {
+    // Son 2 dakika - uyarı göster (TEST için daha erken)
     let timeLeft;
     if (remainingMinutes > 60) {
       timeLeft = `${remainingHours} saat`;
