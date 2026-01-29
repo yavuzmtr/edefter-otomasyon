@@ -1,0 +1,28 @@
+{
+  "name": "marketing-automation-bot",
+  "version": "1.0.0",
+  "description": "Tam otomatik pazarlama botu: içerik üretimi, sosyal, blog, e-posta ve chatbot yayınlarını yöneten sistem.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "ts-node src/index.ts",
+    "build": "tsc",
+    "test": "node ./tests/run-tests.js",
+    "lint": "eslint . --ext .ts"
+  },
+  "dependencies": {
+    "axios": "^1.7.0",
+    "chalk": "^5.0.0",
+    "cron": "^2.3.0",
+    "dayjs": "^1.11.9",
+    "dotenv": "^16.3.1",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.1",
+    "typescript": "^5.5.4",
+    "eslint": "^9.11.0",
+    "@typescript-eslint/parser": "^7.3.0",
+    "@typescript-eslint/eslint-plugin": "^7.3.0"
+  }
+}
