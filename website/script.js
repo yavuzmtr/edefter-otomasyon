@@ -68,3 +68,28 @@ document.querySelectorAll('.feature-card, .step, .pricing-card').forEach(el => {
     el.style.transition = 'all 0.6s ease-out';
     observer.observe(el);
 });
+
+// Lightbox Functions
+function openLightbox(imageSrc, caption) {
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-img');
+    const lightboxCaption = document.getElementById('lightbox-caption');
+    
+    lightbox.classList.add('active');
+    lightboxImg.src = imageSrc;
+    lightboxCaption.textContent = caption;
+    document.body.style.overflow = 'hidden'; // Sayfa scroll'unu engelle
+}
+
+function closeLightbox() {
+    const lightbox = document.getElementById('lightbox');
+    lightbox.classList.remove('active');
+    document.body.style.overflow = 'auto'; // Sayfa scroll'unu aç
+}
+
+// ESC tuşu ile lightbox'ı kapat
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeLightbox();
+    }
+});
