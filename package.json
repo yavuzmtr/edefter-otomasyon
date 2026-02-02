@@ -19,7 +19,7 @@
     "dist-win": "npm run build && electron-builder --win --x64",
     "dist-all": "npm run build && electron-builder --win --mac --linux",
     "pack": "npm run build && electron-builder --dir",
-    "prepare-demo": "node build-demo.cjs",
+    "prepare-demo": "echo Demo hazır - main-demo.cjs manuel yönetiliyor",
     "build-demo": "npm run prepare-demo && npm run build && cross-env DEMO_VERSION=true electron-builder --config electron-builder-demo.yml --publish=never",
     "postinstall": "npx electron-builder install-app-deps",
     "uninstall-test": "powershell.exe -ExecutionPolicy Bypass -File scripts/smart-uninstaller.ps1 QUICK_UNINSTALL",

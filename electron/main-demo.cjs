@@ -639,7 +639,19 @@ async function processGIBFile(gibFilePath, metadata = {}) {
 
 // ========== DEMO VERSION - TRIAL INFO HANDLER ==========
 ipcMain.handle('get-trial-info', async () => {
-  return trialChecker.getTrialInfo();
+  try {
+    const trialInfo = trialChecker.getTrialInfo();
+    console.log('📊 [DEMO] get-trial-info çağrıldı:', trialInfo);
+    return trialInfo;
+  } catch (error) {
+    console.error('❌ [DEMO] get-trial-info hatası:', error);
+    return {
+      isDemo: true,
+      daysLeft: 0,
+      expiryDate: new Date().toISOString(),
+      isExpired: true
+    };
+  }
 });
 // =======================================================
 
@@ -3080,17 +3092,25 @@ ipcMain.handle('send-test-email-notification', async (event, accountantEmail) =>
   }
 });
 
-// ✅ TRIAL STATUS HANDLER - Tam sürüm (trial yok)
+// ✅ TRIAL STATUS HANDLER - Demo sürüm (trial-checker.cjs kullan)
 ipcMain.handle('check-trial-status', async () => {
-  return {
-    success: true,
-    trialInfo: {
-      isDemo: false,
-      daysLeft: 0,
-      expiryDate: null,
-      isExpired: false
-    }
-  };
+  try {
+    const result = trialChecker.checkTrialStatus();
+    console.log('📊 [DEMO] check-trial-status çağrıldı:', result);
+    return result;
+  } catch (error) {
+    console.error('❌ [DEMO] check-trial-status hatası:', error);
+    return {
+      success: false,
+      error: error.message,
+      trialInfo: {
+        isDemo: true,
+        daysLeft: 0,
+        expiryDate: new Date().toISOString(),
+        isExpired: true
+      }
+    };
+  }
 });
 
 // Şirket ZIP oluştur
