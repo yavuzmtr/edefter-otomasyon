@@ -216,17 +216,47 @@ function getTrialInfo() {
   const isExpired = isTrialExpired();
   
   return {
+    isDemo: true, // ✅ DEMO VERSİYON
+    daysLeft: remainingDays,
+    expiryDate: firstRunDate ? new Date(firstRunDate + TRIAL_DURATION).toISOString() : new Date().toISOString(),
+    isExpired: isExpired,
     isTrialVersion: true,
     firstRunDate: firstRunDate ? new Date(firstRunDate).toLocaleDateString('tr-TR') : null,
     remainingDays,
-    isExpired,
     totalDays: TRIAL_DAYS
   };
+}
+
+/**
+ * Trial durumu kontrolü (Dashboard için)
+ */
+function checkTrialStatus() {
+  try {
+    const trialInfo = getTrialInfo();
+    console.log('📊 [TRIAL-CHECKER] checkTrialStatus çağrıldı:', trialInfo);
+    return {
+      success: true,
+      trialInfo: trialInfo
+    };
+  } catch (error) {
+    console.error('❌ [TRIAL-CHECKER] checkTrialStatus hatası:', error);
+    return {
+      success: false,
+      error: error.message,
+      trialInfo: {
+        isDemo: true,
+        daysLeft: 0,
+        expiryDate: new Date().toISOString(),
+        isExpired: true
+      }
+    };
+  }
 }
 
 module.exports = {
   checkTrial,
   getTrialInfo,
+  checkTrialStatus, // ✅ Yeni eklenen
   isTrialExpired,
   getRemainingDays
 };
