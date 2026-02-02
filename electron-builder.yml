@@ -2,7 +2,7 @@ appId: com.edefter.klasorotomasyon
 productName: E-Defter Klasör Otomasyonu
 directories:
   buildResources: assets
-  output: dist-win
+  output: release
 
 files:
   - from: .

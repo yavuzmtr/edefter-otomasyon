@@ -178,7 +178,10 @@ function startBackgroundService() {
       });
     }
     
-    // 30 saniyede bir kontrol et
+    // ⏰ AKILLI ZAMANLAMA: Saatte bir kontrol et
+    // Frontend'deki schedule ayarına göre (günlük/haftalık/aylık) 
+    // son yedekleme zamanını kontrol eder ve gerekirse yedekleme tetikler
+    // Bu sayede sistem kaynaklarını verimli kullanır
     backgroundInterval = setInterval(async () => {
       try {
         const settings = store.get('automation-settings', {});
@@ -186,7 +189,7 @@ function startBackgroundService() {
         if (settings.backgroundService && settings.enabled) {
           logToFile('info', 'Arka Plan Servisi', 'Otomatik kontrol çalıştırılıyor');
           
-          // Frontend'e event gönder (backup için)
+          // Frontend'e event gönder (backup için - schedule kontrolü frontend'de yapılır)
           mainWindow?.webContents.send('perform-automated-scan');
           
           // Backend'de email automation çalıştır
@@ -197,9 +200,9 @@ function startBackgroundService() {
       } catch (err) {
         logToFile('error', 'Arka Plan Servisi', 'Kontrol hatası', err.message);
       }
-    }, 30000);
+    }, 3600000); // 1 saat = 60 * 60 * 1000 ms
     
-    logToFile('success', 'Arka Plan Servisi', '✅ Başlatıldı (30 sn interval)');
+    logToFile('success', 'Arka Plan Servisi', '✅ Başlatıldı (1 saat interval, akıllı zamanlama)');
     return { success: true, message: 'Başarıyla başlatıldı' };
   } catch (error) {
     logToFile('error', 'Arka Plan Servisi', 'Başlatma hatası', error.message);
@@ -407,6 +410,7 @@ async function createWindow(){
     height: 800,
     minWidth: 800,
     minHeight: 600,
+    title: 'E-Defter Otomasyon Sistemi',
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -1757,6 +1761,9 @@ const performScan = async (sourcePath, selectedYear, companies) => {
 
 // Yedekleme handler'ı
 ipcMain.handle('backup-files', async (event, sourcePath, destinationPath, isAutomated = false) => {
+  const startTime = Date.now();
+  const TIMEOUT_MS = 300000; // 5 dakika timeout
+  
   try {
     const backupType = isAutomated ? 'Otomatik yedekleme' : 'Manuel yedekleme';
     logToFile('info', 'Yedekleme', `${backupType} başlatılıyor: ${sourcePath} → ${destinationPath}`);
@@ -1772,8 +1779,15 @@ ipcMain.handle('backup-files', async (event, sourcePath, destinationPath, isAuto
     const MAX_BATCH_SIZE = 10; // ⚡ 50'den 10'a düşürüldü - RAM koruması
     let batch = [];
     let processedCount = 0; // İşlenen dosya sayacı
+    let isTimedOut = false;
 
     const copyFileIfNecessary = async (srcFile, destFile) => {
+      // Timeout kontrolü
+      if (Date.now() - startTime > TIMEOUT_MS) {
+        isTimedOut = true;
+        return false;
+      }
+      
       try {
         // Hedef dosya yoksa veya kaynak daha yeni ise kopyala
         let shouldCopy = false;
@@ -1819,6 +1833,12 @@ ipcMain.handle('backup-files', async (event, sourcePath, destinationPath, isAuto
     };
 
     const copyDirectoryRecursive = async (src, dest, depth = 0) => {
+      // Timeout kontrolü
+      if (isTimedOut) {
+        logToFile('warn', 'Yedekleme', 'Timeout nedeniyle durduruldu');
+        return;
+      }
+      
       // Çok derin özyinelemlemeleri engelle (güvenlik ve performans)
       if (depth > 20) {
         logToFile('warn', 'Yedekleme', `Maksimum klasör derinliğine ulaşıldı: ${src}`);
@@ -1830,6 +1850,9 @@ ipcMain.handle('backup-files', async (event, sourcePath, destinationPath, isAuto
         const entries = fs.readdirSync(src, { withFileTypes: true });
         
         for (const entry of entries) {
+          // Her dosya/klasör işleminde timeout kontrolü
+          if (isTimedOut) break;
+          
           try {
             const srcPath = path.join(src, entry.name);
             const destPath = path.join(dest, entry.name);
@@ -1889,12 +1912,24 @@ ipcMain.handle('backup-files', async (event, sourcePath, destinationPath, isAuto
     // Dosyaları kopyala
     try {
       await copyDirectoryRecursive(sourcePath, destinationPath);
+      
+      // Timeout kontrolü
+      if (isTimedOut) {
+        const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+        logToFile('warn', 'Yedekleme', `Timeout: ${elapsedTime}s sonra durduruldu. Kısmi yedekleme tamamlandı.`);
+        return { 
+          success: false, 
+          error: `Yedekleme ${elapsedTime}s sonra timeout oldu. Kısmi yedekleme yapıldı.`,
+          stats: { copiedFiles, skippedFiles, errorCount }
+        };
+      }
     } catch (err) {
       return { success: false, error: `Kopyalama hatası: ${err.message}` };
     }
     
+    const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
     const sizeInMB = (totalSize / (1024 * 1024)).toFixed(2);
-    logToFile('success', 'Yedekleme', `${backupType} tamamlandı. ${copiedFiles} yeni dosya kopyalandı, ${skippedFiles} dosya atlandı, ${errorCount} hata. Toplam boyut: ${sizeInMB} MB`);
+    logToFile('success', 'Yedekleme', `${backupType} tamamlandı (${elapsedTime}s). ${copiedFiles} yeni dosya kopyalandı, ${skippedFiles} dosya atlandı, ${errorCount} hata. Toplam boyut: ${sizeInMB} MB`);
     
     // ✅ Yedekleme aktivitesini kaydet
     const backupActivities = store.get('backupActivities', []);

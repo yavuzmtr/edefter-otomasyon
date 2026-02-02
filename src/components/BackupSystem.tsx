@@ -34,69 +34,7 @@ export const BackupSystem: React.FC = () => {
 
   useEffect(() => {
     loadBackupConfig();
-
-    // ✅ OTOMATİK BACKUP - Background service'in perform-automated-scan event'ini dinle
-    const handleAutomatedBackup = async () => {
-      try {
-        logService.log('info', 'Yedekleme', 'Otomasyon tarafından otomatik backup tetiklendi');
-        
-        // Otomasyon ve Backup ayarlarını kontrol et
-        const automationSettings = await ElectronService.loadData('automation-settings', {});
-        const backupSettings = await ElectronService.loadData('backup-config', {});
-        
-        if (!automationSettings.success || !backupSettings.success) {
-          logService.log('error', 'Yedekleme', 'Ayarlar yüklenemedi');
-          return;
-        }
-        
-        // Backup otomasyonu açık mı?
-        const backupConfigEnabled = automationSettings.data?.backupConfig?.enabled;
-        
-        if (!backupConfigEnabled) {
-          logService.log('info', 'Yedekleme', 'Otomatik yedekleme kapalı');
-          return;
-        }
-        
-        // Backup ayarlarından kaynak ve hedef yolları al
-        const sourcePath = backupSettings.data?.sourcePath;
-        const destinationPath = backupSettings.data?.destinationPath;
-        
-        // Backup yolları ayarlanmış mı?
-        if (!sourcePath || !destinationPath) {
-          logService.log('warning', 'Yedekleme', 'Yedekleme sayfasında kaynak veya hedef yolu ayarlanmamış');
-          console.warn('⚠️ Otomatik backup: Kaynak veya hedef yolu ayarlanmamış');
-          return;
-        }
-        
-        logService.log('info', 'Yedekleme', 'Otomatik yedekleme başlatıldı');
-        console.log('📦 Otomatik backup başlatılıyor...');
-        setIsBackingUp(true);
-        
-        // Otomatik backup yap - isAutomated=true parametresi ile
-        const result = await ElectronService.backupFiles(sourcePath, destinationPath, true);
-        
-        if (result?.success) {
-          logService.log('success', 'Yedekleme', 'Otomatik yedekleme başarılı');
-          console.log('✅ Otomatik backup başarılı');
-        } else {
-          logService.log('error', 'Yedekleme', 'Otomatik yedekleme başarısız');
-          console.error('❌ Otomatik backup hatası:', result?.error);
-        }
-        
-        setIsBackingUp(false);
-      } catch (error) {
-        logService.log('error', 'Yedekleme', 'Otomatik yedekleme başarısız');
-        console.error('❌ Otomatik backup tetikleme hatası:', error);
-        setIsBackingUp(false);
-      }
-    };
-
-    // perform-automated-scan event'ini dinle
-    ElectronService.onPerformAutomatedScan(handleAutomatedBackup);
-
-    return () => {
-      // Cleanup
-    };
+    // Not: Otomatik yedekleme AutomationSettings.tsx üzerinden yönetiliyor
   }, []);
 
   const loadBackupConfig = async () => {
@@ -314,14 +252,18 @@ export const BackupSystem: React.FC = () => {
                 onChange={(e) => {
                   const newConfig = { ...backupConfig, schedule: e.target.value as any };
                   saveBackupConfig(newConfig);
+                  showNotification('success', 'Zamanlama güncellendi');
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
-                <option value="manual">Manuel</option>
-                <option value="daily">Günlük</option>
-                <option value="weekly">Haftalık</option>
-                <option value="monthly">Aylık</option>
+                <option value="manual">Manuel (Sadece düğmeyle)</option>
+                <option value="daily">Günlük (24 saatte bir)</option>
+                <option value="weekly">Haftalık (7 günde bir)</option>
+                <option value="monthly">Aylık (30 günde bir)</option>
               </select>
+              <p className="mt-2 text-xs text-gray-600">
+                💡 Sistem saatte bir kontrol eder, seçtiğiniz süre dolduğunda yedekleme yapar
+              </p>
             </div>
             <div className="flex items-end space-x-3">
               <button
@@ -357,6 +299,28 @@ export const BackupSystem: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Son Yedekleme Bilgisi */}
+      {backupConfig.lastBackup && (
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl shadow-sm border border-blue-200 p-5">
+          <div className="flex items-center space-x-3">
+            <div className="flex-shrink-0">
+              <CheckCircle className="w-6 h-6 text-green-600" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-900">
+                Son Yedekleme: {new Date(backupConfig.lastBackup).toLocaleString('tr-TR')}
+              </p>
+              <p className="text-xs text-gray-600 mt-1">
+                {backupConfig.schedule === 'daily' && '📅 Bir sonraki yedekleme: 24 saat sonra'}
+                {backupConfig.schedule === 'weekly' && '📅 Bir sonraki yedekleme: 7 gün sonra'}
+                {backupConfig.schedule === 'monthly' && '📅 Bir sonraki yedekleme: 30 gün sonra'}
+                {backupConfig.schedule === 'manual' && '🖱️ Manuel mod: Sadece düğme ile yedekleme yapılır'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Backup Progress */}
       {isBackingUp && (

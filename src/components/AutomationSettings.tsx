@@ -83,6 +83,99 @@ export const AutomationSettings: React.FC = () => {
     
     ElectronService.onAutomationStateChanged(handleAutomationStateChange);
     
+    // ✅ OTOMATİK YEDEKLEME - Background service'in perform-automated-scan event'ini dinle
+    // Not: Yedekleme otomasyonu sadece buradan yönetiliyor (BackupSystem.tsx sadece manuel)
+    const handleAutomatedBackup = async () => {
+      try {
+        console.log('📦 Otomatik yedekleme kontrolü başlatıldı (AutomationSettings)');
+        
+        // Otomasyon ve Backup ayarlarını kontrol et
+        const automationResult = await ElectronService.loadData('automation-settings', {});
+        const backupResult = await ElectronService.loadData('backup-config', {});
+        
+        if (!automationResult.success || !backupResult.success) {
+          console.log('⚠️ Ayarlar yüklenemedi');
+          return;
+        }
+        
+        // Backup otomasyonu açık mı?
+        const backupConfigEnabled = automationResult.data?.backupConfig?.enabled;
+        
+        if (!backupConfigEnabled) {
+          console.log('⚠️ Otomatik yedekleme kapalı (Otomasyon Ayarları)');
+          return;
+        }
+        
+        // Backup ayarlarından kaynak ve hedef yolları al
+        const sourcePath = backupResult.data?.sourcePath;
+        const destinationPath = backupResult.data?.destinationPath;
+        const schedule = backupResult.data?.schedule || 'daily';
+        const lastBackup = backupResult.data?.lastBackup;
+        
+        // Backup yolları ayarlanmış mı?
+        if (!sourcePath || !destinationPath) {
+          console.warn('⚠️ Otomatik backup: Kaynak veya hedef yolu ayarlanmamış');
+          return;
+        }
+        
+        // ⏰ AKILLI ZAMANLAMA: Son yedeklemeden ne kadar zaman geçmiş?
+        if (lastBackup) {
+          const now = new Date();
+          const lastBackupDate = new Date(lastBackup);
+          const hoursSinceLastBackup = (now.getTime() - lastBackupDate.getTime()) / (1000 * 60 * 60);
+          
+          // Zamanlama ayarına göre yedekleme yapılmalı mı kontrolü
+          let shouldBackup = false;
+          let scheduleText = '';
+          
+          if (schedule === 'daily' && hoursSinceLastBackup >= 24) {
+            shouldBackup = true;
+            scheduleText = 'Günlük zamanlama - 24 saat geçti';
+          } else if (schedule === 'weekly' && hoursSinceLastBackup >= 168) { // 7 * 24
+            shouldBackup = true;
+            scheduleText = 'Haftalık zamanlama - 7 gün geçti';
+          } else if (schedule === 'monthly' && hoursSinceLastBackup >= 720) { // 30 * 24
+            shouldBackup = true;
+            scheduleText = 'Aylık zamanlama - 30 gün geçti';
+          }
+          
+          if (!shouldBackup) {
+            const hoursRemaining = Math.ceil(
+              (schedule === 'daily' ? 24 : schedule === 'weekly' ? 168 : 720) - hoursSinceLastBackup
+            );
+            console.log(`⏰ Yedekleme zamanı gelmedi: ${hoursRemaining} saat kaldı (Schedule: ${schedule})`);
+            return;
+          }
+          
+          console.log(`✅ ${scheduleText}`);
+        } else {
+          console.log('ℹ️ İlk yedekleme - lastBackup yok');
+        }
+        
+        console.log('📦 Otomatik backup başlatılıyor...');
+        
+        // Otomatik backup yap - isAutomated=true parametresi ile
+        const result = await ElectronService.backupFiles(sourcePath, destinationPath, true);
+        
+        if (result?.success) {
+          // Son yedekleme zamanını güncelle
+          const updatedBackupSettings = {
+            ...backupResult.data,
+            lastBackup: new Date()
+          };
+          await ElectronService.saveData('backup-config', updatedBackupSettings);
+          
+          console.log('✅ Otomatik backup başarılı - lastBackup güncellendi');
+        } else {
+          console.error('❌ Otomatik backup hatası:', result?.error);
+        }
+      } catch (error) {
+        console.error('❌ Otomatik backup tetikleme hatası:', error);
+      }
+    };
+    
+    ElectronService.onPerformAutomatedScan(handleAutomatedBackup);
+    
     return () => {
       // Cleanup
     };

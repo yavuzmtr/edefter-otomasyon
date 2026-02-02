@@ -62,9 +62,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>E-Defter</h1>
-              <span className="px-2 py-1 text-xs font-bold bg-orange-500 text-white rounded-md">
-                DEMO
-              </span>
+              {isDemo && (
+                <span className="px-2 py-1 text-xs font-bold bg-orange-500 text-white rounded-md">
+                  DEMO
+                </span>
+              )}
             </div>
             <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Otomasyon Sistemi</p>
           </div>
