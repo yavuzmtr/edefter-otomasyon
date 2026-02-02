@@ -87,7 +87,7 @@ ipcMain.handle('get-trial-info', async () => {
     appId: 'com.edefter.klasorotomasyon.demo',
     productName: 'E-Defter Otomasyon DEMO',
     directories: {
-      output: 'release-demo'
+      output: 'release-demo-v2'
     },
     files: [
       'dist/**/*',
