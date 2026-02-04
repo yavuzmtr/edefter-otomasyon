@@ -51,6 +51,7 @@ declare global {
       testEmailConnection: (emailConfig: any) => Promise<{success: boolean, message: string}>;
       sendTestEmailNotification: (accountantEmail: string) => Promise<{success: boolean, error?: string}>;
       checkTrialStatus: () => Promise<{success: boolean, trialInfo?: {isDemo: boolean, daysLeft: number, expiryDate: string, isExpired: boolean}, error?: string}>;
+      triggerEmailCheck: () => Promise<{success: boolean, message?: string, error?: string}>;
     };
   }
 }
@@ -487,6 +488,18 @@ export class ElectronService {
       return await window.electronAPI.checkTrialStatus();
     } catch (error: unknown) {
       console.error('Trial bilgisi yüklenemedi:', error);
+      return { success: false, error: getErrorMessage(error) };
+    }
+  }
+
+  static async triggerEmailCheck(): Promise<{success: boolean, message?: string, error?: string}> {
+    if (!this.isElectron()) {
+      return { success: false, error: 'Bu özellik sadece Electron uygulamasında çalışır' };
+    }
+    try {
+      return await window.electronAPI.triggerEmailCheck();
+    } catch (error: unknown) {
+      console.error('Email kontrolü tetiklenemedi:', error);
       return { success: false, error: getErrorMessage(error) };
     }
   }

@@ -6,8 +6,10 @@ Mali müşavir ofisleri için GIB'e gönderilen e-defter klasörlerini otomatik 
 
 - 📁 **E-Defter Klasör İzleme**: GIB'e gönderildikten sonra yerel klasörde oluşan e-defter klasörlerini 7/24 izler
 - 📧 **Müşteriye Otomatik Email**: Eksik e-defter dönemleri için müşterilere otomatik bilgilendirme
+- ⚡ **Anında Email Tetikleme**: Klasör taraması tamamlandığında otomatik email gönderimi (v1.0.1)
 - 📊 **Mali Müşavir Raporları**: Müşteri bazlı detaylı e-defter dönem raporları
 - 💾 **E-Defter Yedekleme**: Otomatik e-defter klasör yedekleme sistemi
+- 🔍 **Akıllı Filtreleme**: Şirket adı, vergi no, durum bazlı gelişmiş filtreleme sistemi
 - 🤖 **Tam Otomasyon**: 30 saniyede bir kontrol, Windows başlangıcında otomatik başlatma
 - 📈 **Monitoring**: Real-time sistem durumu ve istatistikler
 - ⚙️ **Tray Menüsü**: Sistem tepsisinden kolay erişim

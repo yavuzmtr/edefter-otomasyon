@@ -3,6 +3,7 @@ directories:
   buildResources: build
 appId: com.edefter.klasorotomasyon.demo
 productName: E-Defter Otomasyon DEMO
+compression: store
 files:
   - filter:
       - dist/**/*
@@ -31,5 +32,6 @@ nsis:
   installerHeaderIcon: icon.ico
   deleteAppDataOnUninstall: false
   shortcutName: E-Defter Otomasyon DEMO
+  differentialPackage: false
 publish: null
 electronVersion: 38.7.2

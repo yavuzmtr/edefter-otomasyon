@@ -3977,3 +3977,39 @@ ipcMain.handle('cleanup-temp-files', async (event, filePaths) => {
     return { success: false, error: error.message };
   }
 });
+
+// ✅ YENİ: Email kontrolünü manuel tetikle (tarama bitince hemen çalışsın)
+ipcMain.handle('trigger-email-check', async () => {
+  try {
+    logToFile('info', 'Email Trigger', '📧 Manuel email kontrolü tetiklendi (tarama sonrası)');
+    
+    const automationSettings = store.get('automation-settings', {});
+    
+    // Email config kontrolü
+    if (!automationSettings.emailConfig?.enabled) {
+      logToFile('info', 'Email Trigger', 'Email otomasyonu kapalı, atlandı');
+      return { success: false, message: 'Email otomasyonu kapalı' };
+    }
+    
+    // ✅ ASENKRON: Email gönderimi arka planda çalışsın, UI'yi beklemesin
+    performBackendEmailAutomation(automationSettings).catch(err => {
+      logToFile('error', 'Email Trigger', 'Email gönderimi hatası', err.message);
+    });
+    
+    return { success: true, message: 'Email kontrolü başlatıldı' };
+  } catch (error) {
+    logToFile('error', 'Email Trigger', 'Trigger hatası', error.message);
+    return { success: false, error: error.message };
+  }
+});
+
+// Gönderilmiş emailleri getir
+ipcMain.handle('get-sent-emails', async (event) => {
+  try {
+    const sentEmails = store.get('sentEmails', []);
+    return { success: true, data: sentEmails };
+  } catch (error) {
+    logToFile('error', 'Email', 'SentEmails alınırken hata', error.message);
+    return { success: false, error: error.message, data: [] };
+  }
+});

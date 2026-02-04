@@ -86,5 +86,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   sendTestEmailNotification: (accountantEmail) => ipcRenderer.invoke('send-test-email-notification', accountantEmail),
   
   // ✅ Trial Status - Demo süresi bilgisi
-  checkTrialStatus: () => ipcRenderer.invoke('check-trial-status')
+  checkTrialStatus: () => ipcRenderer.invoke('check-trial-status'),
+  
+  // ✅ YENİ: Email kontrolünü manuel tetikle (tarama bitince otomatik mail)
+  triggerEmailCheck: () => ipcRenderer.invoke('trigger-email-check')
 });

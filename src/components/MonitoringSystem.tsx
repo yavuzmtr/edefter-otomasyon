@@ -168,12 +168,19 @@ export const MonitoringSystem: React.FC = () => {
 
     // ✅ DÜZELTME: trigger-scan dinleyicisini DEBOUNCE ile ekle
     ElectronService.onTriggerScan(async (_) => {
-      // ✅ Kontrol: Kaynak klasörü seçilmiş mi?
+      // ✅ Kaynak klasörü selectedPath veya automation-settings'den al
       let pathToUse = selectedPath;
       
+      // ✅ FIX: selectedPath yoksa automation-settings'den yükle
       if (!pathToUse) {
-        console.warn('⚠️ trigger-scan çağırıldı ama kaynak klasör seçilmedi, işlem yapılmıyor');
-        return; // Kaynak klasör seçilmemişse işlem yapma
+        const settingsResult = await ElectronService.loadData('automation-settings', {});
+        if (settingsResult.success && settingsResult.data?.sourcePath) {
+          pathToUse = settingsResult.data.sourcePath;
+          console.log('📂 trigger-scan: Kaynak klasör automation-settings\'den yüklendi:', pathToUse);
+        } else {
+          console.warn('⚠️ trigger-scan çağırıldı ama kaynak klasör bulunamadı, işlem yapılmıyor');
+          return;
+        }
       }
       
       if (pathToUse) {
@@ -268,14 +275,20 @@ export const MonitoringSystem: React.FC = () => {
   };
 
   const refreshData = async () => {
-    // ✅ DÜZELTİLDİ: Kaynak klasörü seçilmeyse işlem yapma
+    // ✅ FIX: Kaynak klasörü selectedPath veya automation-settings'den al
     let pathToUse = selectedPath;
     
-    // Path yoksa hata göster ve işlem yapma
+    // ✅ selectedPath yoksa automation-settings'den yükle
     if (!pathToUse) {
-      logService.logManualAction('Veri Yenileme', 'Kaynak klasör seçilmeden yenileme denendi', 'error');
-      showNotification('error', 'Lütfen önce kaynak klasörü seçin');
-      return;
+      const settingsResult = await ElectronService.loadData('automation-settings', {});
+      if (settingsResult.success && settingsResult.data?.sourcePath) {
+        pathToUse = settingsResult.data.sourcePath;
+        console.log('📂 refreshData: Kaynak klasör automation-settings\'ten yüklendi:', pathToUse);
+      } else {
+        logService.logManualAction('Veri Yenileme', 'Kaynak klasör bulunamadı', 'error');
+        showNotification('error', 'Kaynak klasör ayarlanmamış');
+        return;
+      }
     }
 
     setLoading(true);
@@ -303,6 +316,18 @@ export const MonitoringSystem: React.FC = () => {
         const totalYears = [...new Set(formattedData.map(item => item.year))].length;
         showNotification('success', `GIB kontrol tamamlandı: ${totalYears} yıl, ${completeCount} tamamlanan, ${incompleteCount} eksik, ${missingCount} klasör yok`);
         logService.logMonitoringAction('GIB Tarama Tamamlandı', `${totalYears} yıl, ${completeCount} tamamlanan, ${incompleteCount} eksik, ${missingCount} klasör yok`, 'success');
+        
+        // ✅ YENİ: Tarama bitince HEMEN email kontrolü yap (saati bekleme)
+        if (completeCount > 0) {
+          console.log('📧 Tarama tamamlandı, email kontrolü tetikleniyor...');
+          ElectronService.triggerEmailCheck().then((result) => {
+            if (result.success) {
+              console.log('✅ Email kontrolü başarılı:', result.message);
+            }
+          }).catch((err) => {
+            console.error('❌ Email kontrolü hatası:', err);
+          });
+        }
       } else {
         logService.logMonitoringAction('GIB Tarama Hatası', result.error || 'Bilinmeyen hata', 'error');
         showNotification('error', result.error || 'Veriler güncellenemedi');

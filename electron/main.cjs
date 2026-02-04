@@ -1565,8 +1565,12 @@ const performScan = async (sourcePath, selectedYear, companies) => {
           logToFile('info', 'Dosya', `${company.name} ${folderYear}/${month}: KB=${gibFileStatus.hasKB}, YB=${gibFileStatus.hasYB}, Durum=${status}`, `Klasör: ${monthPath}`);
 
           // ✅ Dosya listesini oluştur (email için benzersiz hash)
-          const fileList = gibFiles.map(f => f).sort();
-          const fileCount = gibFiles.length;
+          const allGibFiles = [
+            ...(gibFileStatus.kbFile ? [gibFileStatus.kbFile] : []),
+            ...(gibFileStatus.ybFile ? [gibFileStatus.ybFile] : [])
+          ];
+          const fileList = allGibFiles.sort();
+          const fileCount = allGibFiles.length;
 
           results.push({
             companyName: company.name,
@@ -3116,6 +3120,31 @@ ipcMain.handle('check-trial-status', async () => {
       isExpired: false
     }
   };
+});
+
+// ✅ YENİ: Email kontrolünü manuel tetikle (tarama bitince hemen çalışsın)
+ipcMain.handle('trigger-email-check', async () => {
+  try {
+    logToFile('info', 'Email Trigger', '📧 Manuel email kontrolü tetiklendi (tarama sonrası)');
+    
+    const automationSettings = store.get('automation-settings', {});
+    
+    // Email config kontrolü
+    if (!automationSettings.emailConfig?.enabled) {
+      logToFile('info', 'Email Trigger', 'Email otomasyonu kapalı, atlandı');
+      return { success: false, message: 'Email otomasyonu kapalı' };
+    }
+    
+    // ✅ ASENKRON: Email gönderimi arka planda çalışsın, UI'yi beklemesin
+    performBackendEmailAutomation(automationSettings).catch(err => {
+      logToFile('error', 'Email Trigger', 'Email gönderimi hatası', err.message);
+    });
+    
+    return { success: true, message: 'Email kontrolü başlatıldı' };
+  } catch (error) {
+    logToFile('error', 'Email Trigger', 'Trigger hatası', error.message);
+    return { success: false, error: error.message };
+  }
 });
 
 // Şirket ZIP oluştur
