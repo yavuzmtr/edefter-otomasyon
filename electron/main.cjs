@@ -1210,7 +1210,7 @@ async function performBackendEmailAutomation(automationSettings) {
           }
           
           // ✅ Gönderim kaydını ekle - DÖNEM BAZLI (Complete olduğunda bir kez)
-          const uniqueHash = `${record.companyId}_${record.year}_${String(record.month).padStart(2, '0')}_${company.email.toLowerCase()}`;
+          // uniqueHash zaten yukarıda tanımlandı, tekrar tanımlamıyoruz
           
           sentEmails.push({
             companyId: record.companyId,
