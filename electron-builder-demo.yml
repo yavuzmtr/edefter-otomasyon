@@ -2,6 +2,7 @@ appId: com.edefter.klasorotomasyon.demo
 productName: E-Defter Otomasyon DEMO
 directories:
   output: release-demo
+compression: store
 files:
   - dist/**/*
   - electron/main-demo.cjs
@@ -29,4 +30,5 @@ nsis:
   installerHeaderIcon: icon.ico
   deleteAppDataOnUninstall: false
   shortcutName: E-Defter Otomasyon DEMO
+  differentialPackage: false
 publish: null
