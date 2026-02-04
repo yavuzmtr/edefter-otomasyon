@@ -189,7 +189,7 @@ export const Dashboard: React.FC = () => {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                📊 Kontrol Paneli
+                📊 Kontrol Paneli {trialInfo?.isDemo && <span className="text-orange-600 font-bold">🎯 DEMO VERSİYON</span>}
               </h1>
               <p className="text-gray-600 dark:text-gray-300">E-defter GIB sisteminin güncel durumu</p>
             </div>

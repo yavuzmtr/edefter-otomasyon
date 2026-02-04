@@ -46,6 +46,7 @@ declare global {
       generateActivitiesReport: (activities: any[], filters: any) => Promise<{success: boolean, filePath?: string, error?: string}>;
       getBackupActivities: () => Promise<{success: boolean, data?: any[], error?: string}>;
       getEmailActivities: () => Promise<{success: boolean, data?: any[], error?: string}>;
+      getSentEmails: () => Promise<{success: boolean, data?: any[], error?: string}>;
       runPowerShellScript: (scriptPath: string, args?: string[]) => Promise<{success: boolean, data?: any, error?: string}>;
       testEmailConnection: (emailConfig: any) => Promise<{success: boolean, message: string}>;
       sendTestEmailNotification: (accountantEmail: string) => Promise<{success: boolean, error?: string}>;
@@ -269,6 +270,18 @@ export class ElectronService {
       return await window.electronAPI.getEmailActivities();
     } catch (error: unknown) {
       console.error('E-posta aktiviteleri hatası:', error);
+      return { success: false, error: getErrorMessage(error) };
+    }
+  }
+
+  static async getSentEmails(): Promise<{success: boolean, data?: any[], error?: string}> {
+    if (!this.isElectron()) {
+      throw new Error('SentEmails sadece Electron uygulamasında çalışır');
+    }
+    try {
+      return await window.electronAPI.getSentEmails();
+    } catch (error: unknown) {
+      console.error('SentEmails hatası:', error);
       return { success: false, error: getErrorMessage(error) };
     }
   }

@@ -397,6 +397,63 @@ export const AutomationSettings: React.FC = () => {
           </div>
         </div>
       </div>
+      
+      {/* ✅ YENİ: Zamanlama Bilgilendirmesi */}
+      <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-6">
+        <div className="flex items-start space-x-3">
+          <Clock className="w-6 h-6 text-purple-600 mt-0.5" />
+          <div className="flex-1">
+            <h4 className="font-semibold text-purple-900 text-xl mb-3">⏰ Zamanlama ve Frekans Bilgileri</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white p-4 rounded-lg border border-purple-200 shadow-sm">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Mail className="w-5 h-5 text-purple-600" />
+                  <h5 className="font-semibold text-purple-900">📧 Email Gönderimi</h5>
+                </div>
+                <p className="text-sm text-purple-800 font-medium">
+                  ⏱️ Saatte 1 kez kontrol edilir
+                </p>
+                <p className="text-xs text-purple-600 mt-2">
+                  <strong>✅ Complete Durum:</strong> Bir dönem için KB+YB dosyaları geldiğinde (complete) tüm klasör tek seferde gönderilir.
+                </p>
+                <p className="text-xs text-purple-600 mt-1">
+                  <strong>🔒 Güvenlik:</strong> Bir dönem complete olarak gönderildikten sonra, o dönem için tekrar email gönderilmez.
+                </p>
+              </div>
+              <div className="bg-white p-4 rounded-lg border border-purple-200 shadow-sm">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Calendar className="w-5 h-5 text-purple-600" />
+                  <h5 className="font-semibold text-purple-900">💾 Yedekleme</h5>
+                </div>
+                <p className="text-sm text-purple-800 font-medium">
+                  ⏱️ Saatte 1 kez kontrol edilir
+                </p>
+                <p className="text-xs text-purple-600 mt-2">
+                  Yedekleme Sistemi'nde seçtiğiniz zamanlama (günlük/haftalık/aylık) ve son yedekleme zamanına göre otomatik yedekleme yapılır.
+                </p>
+              </div>
+              <div className="bg-white p-4 rounded-lg border border-purple-200 shadow-sm">
+                <div className="flex items-center space-x-2 mb-2">
+                  <CheckCircle className="w-5 h-5 text-purple-600" />
+                  <h5 className="font-semibold text-purple-900">📁 Dosya Tarama</h5>
+                </div>
+                <p className="text-sm text-purple-800 font-medium">
+                  ⏱️ Yeni dosya eklenince 10 saniye sonra
+                </p>
+                <p className="text-xs text-purple-600 mt-2">
+                  GIB klasörüne yeni dosya eklendiğinde 10 saniye bekler ve otomatik tarama başlatır (debounce).
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 p-3 bg-purple-100 border border-purple-300 rounded-lg">
+              <p className="text-sm text-purple-900">
+                <strong>💡 PERFORMANS:</strong> Sistem akıllı zamanlama kullanır. Her işlem için optimize edilmiş aralıklarla kontrol yapılır, 
+                bu sayede CPU ve RAM kullanımı minimumda tutulur. Eski 30 saniyelik tarama artık yok!
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Zorunlu Ayarlar */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">

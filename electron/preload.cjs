@@ -77,6 +77,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('generate-activities-report', activities, filters),
   getBackupActivities: () => ipcRenderer.invoke('get-backup-activities'),
   getEmailActivities: () => ipcRenderer.invoke('get-email-activities'),
+  getSentEmails: () => ipcRenderer.invoke('get-sent-emails'),
   
   // ✅ YENİ: E-posta bağlantı testi
   testEmailConnection: (emailConfig) => ipcRenderer.invoke('test-email-connection', emailConfig),

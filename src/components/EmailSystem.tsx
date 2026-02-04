@@ -110,6 +110,10 @@ export const EmailSystem: React.FC<EmailSystemProps> = ({ triggerScan = 0 }) => 
     isAutomated?: boolean;
   }
   const [emailReports, setEmailReports] = useState<EmailReport[]>([]);
+  
+  // ✅ YENİ: SentEmails yönetimi için state
+  const [showSentEmailsModal, setShowSentEmailsModal] = useState(false);
+  const [sentEmailsList, setSentEmailsList] = useState<any[]>([]);
 
   const monthNames = [
     '', 'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
@@ -177,12 +181,22 @@ export const EmailSystem: React.FC<EmailSystemProps> = ({ triggerScan = 0 }) => 
   };
 
   const createEmailHash = (companyId: string, period: { month: number, year: number }, recipientEmail: string): string => {
+    // ✅ DÖNEM BAZLI HASH - Complete durum (KB+YB) bir kez gönderilir
     return `${companyId}_${period.year}_${String(period.month).padStart(2, '0')}_${recipientEmail.toLowerCase()}`;
   };
 
   // ✅ Backend'den email aktivitelerini yükle (manuel + otomatik)
   const loadEmailActivities = async () => {
     try {
+      // sentEmails verisini de al (email adresleri için)
+      let sentEmailsData = [];
+      try {
+        const sentEmailsResult = await ElectronService.getSentEmails();
+        sentEmailsData = sentEmailsResult.success && sentEmailsResult.data ? sentEmailsResult.data : [];
+      } catch (err) {
+        console.warn('getSentEmails hatası (devam ediyor):', err);
+      }
+      
       const result = await ElectronService.getEmailActivities();
       if (result.success && result.data && Array.isArray(result.data)) {
         // Backend'den gelen aktiviteleri emailReports formatına dönüştür
@@ -194,16 +208,70 @@ export const EmailSystem: React.FC<EmailSystemProps> = ({ triggerScan = 0 }) => 
               activity.operation.includes('Email Hatası')
             )
           )
-          .map((activity: any) => ({
-            timestamp: `${activity.date} ${activity.time}`,
-            recipientEmail: activity.details.split('|')[0]?.trim() || 'Bilinmiyor',
-            recipientName: activity.details.split('-')[0]?.trim() || 'Bilinmiyor',
-            status: activity.status === 'Başarılı' ? 'success' as const : 'failed' as const,
-            periods: activity.details.match(/\d{1,2}\/\d{4}/)?.[0] || '-',
-            attachmentCount: activity.details.includes('ZIP') ? 1 : 0,
-            errorMessage: activity.status === 'Başarısız' ? activity.details : undefined,
-            isAutomated: activity.isAutomated || false
-          }));
+          .map((activity: any) => {
+            // Otomatik ve Manuel email formatları farklı parse ediliyor
+            const isAutomated = activity.isAutomated || false;
+            
+            if (isAutomated) {
+              // Otomatik: "ODAP ENERJI LIMITED SIRKETI - Kasım 2025 (2 dosya) | Email: firma@example.com"
+              const companyName = activity.details.split(' - ')[0]?.trim() || 'Bilinmiyor';
+              const periodMatch = activity.details.match(/(Ocak|Şubat|Mart|Nisan|Mayıs|Haziran|Temmuz|Ağustos|Eylül|Ekim|Kasım|Aralık)\s+(\d{4})/);
+              const period = periodMatch ? `${periodMatch[1]} ${periodMatch[2]}` : '-';
+              
+              // Email adresini | Email: sonrasından al
+              let email = 'Bilinmiyor';
+              const emailMatch = activity.details.match(/\|\s*Email:\s*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+              if (emailMatch) {
+                email = emailMatch[1];
+              } else {
+                // Eski loglarda email yok, sentEmails'den cross-reference yap
+                const monthMap: { [key: string]: number } = {
+                  'Ocak': 1, 'Şubat': 2, 'Mart': 3, 'Nisan': 4, 'Mayıs': 5, 'Haziran': 6,
+                  'Temmuz': 7, 'Ağustos': 8, 'Eylül': 9, 'Ekim': 10, 'Kasım': 11, 'Aralık': 12
+                };
+                const month = periodMatch ? monthMap[periodMatch[1]] : 0;
+                const year = periodMatch ? parseInt(periodMatch[2]) : 0;
+                
+                // sentEmails'de aynı şirket ve dönemi bul
+                const matchingSent = sentEmailsData.find((sent: any) => 
+                  sent.companyName === companyName && 
+                  sent.month === month && 
+                  sent.year === year
+                );
+                if (matchingSent) {
+                  email = matchingSent.recipientEmail;
+                }
+              }
+              
+              return {
+                timestamp: `${activity.date} ${activity.time}`,
+                recipientEmail: email,
+                recipientName: companyName,
+                status: activity.status === 'Başarılı' ? 'success' as const : 'failed' as const,
+                periods: period,
+                attachmentCount: activity.details.includes('dosya') ? 1 : 0,
+                errorMessage: activity.status === 'Başarısız' ? activity.details : undefined,
+                isAutomated: true
+              };
+            } else {
+              // Manuel: "atamuhasebe34@gmail.com | Konusu: E-Defter Dosyaları | Ekler: ..."
+              const email = activity.details.split('|')[0]?.trim() || 'Bilinmiyor';
+              const subject = activity.details.split('Konusu:')[1]?.split('|')[0]?.trim() || '-';
+              const periodMatch = activity.details.match(/(\d{1,2})\/(\d{4})/);
+              const period = periodMatch ? `${periodMatch[1]}/${periodMatch[2]}` : '-';
+              
+              return {
+                timestamp: `${activity.date} ${activity.time}`,
+                recipientEmail: email,
+                recipientName: subject,
+                status: activity.status === 'Başarılı' ? 'success' as const : 'failed' as const,
+                periods: period,
+                attachmentCount: activity.details.includes('ZIP') ? 1 : 0,
+                errorMessage: activity.status === 'Başarısız' ? activity.details : undefined,
+                isAutomated: false
+              };
+            }
+          });
         
         setEmailReports(formattedReports);
         logService.log('success', 'E-posta', `${formattedReports.length} email aktivitesi yüklendi`);
@@ -211,6 +279,54 @@ export const EmailSystem: React.FC<EmailSystemProps> = ({ triggerScan = 0 }) => 
     } catch (error) {
       console.error('Email aktiviteleri yüklenemedi:', error);
       logService.log('error', 'E-posta', 'Email aktiviteleri yüklenirken hata', error);
+    }
+  };
+  
+  // ✅ YENİ: SentEmails kayıtlarını yükle
+  const loadSentEmailsList = async () => {
+    try {
+      const result = await ElectronService.loadData('sentEmails', []);
+      if (result.success && Array.isArray(result.data)) {
+        setSentEmailsList(result.data);
+        logService.log('success', 'E-posta', `${result.data.length} gönderilmiş email kaydı yüklendi`);
+      }
+    } catch (error) {
+      console.error('SentEmails yüklenemedi:', error);
+      logService.log('error', 'E-posta', 'SentEmails yüklenirken hata', error);
+    }
+  };
+  
+  // ✅ YENİ: SentEmails kayıtlarını temizle
+  const clearSentEmails = async () => {
+    if (!confirm('⚠️ Tüm gönderilmiş email kayıtları silinecek ve tekrar email gönderimi yapılabilir. Emin misiniz?')) {
+      return;
+    }
+    
+    try {
+      await ElectronService.saveData('sentEmails', []);
+      setSentEmailsList([]);
+      showNotification('success', '✅ Gönderilmiş email kayıtları temizlendi');
+      logService.log('success', 'E-posta', 'SentEmails kayıtları temizlendi');
+    } catch (error) {
+      console.error('SentEmails temizlenemedi:', error);
+      showNotification('error', '❌ Kayıtlar temizlenirken hata oluştu');
+      logService.log('error', 'E-posta', 'SentEmails temizleme hatası', error);
+    }
+  };
+  
+  // ✅ YENİ: Tek bir sentEmail kaydını sil
+  const deleteSentEmail = async (index: number) => {
+    try {
+      const newList = [...sentEmailsList];
+      newList.splice(index, 1);
+      await ElectronService.saveData('sentEmails', newList);
+      setSentEmailsList(newList);
+      showNotification('success', '✅ Kayıt silindi');
+      logService.log('success', 'E-posta', 'SentEmail kaydı silindi');
+    } catch (error) {
+      console.error('SentEmail silinemedi:', error);
+      showNotification('error', '❌ Kayıt silinirken hata oluştu');
+      logService.log('error', 'E-posta', 'SentEmail silme hatası', error);
     }
   };
 
@@ -292,6 +408,12 @@ export const EmailSystem: React.FC<EmailSystemProps> = ({ triggerScan = 0 }) => 
       const pendingEmails: {company: any, period: SelectedPeriod, hash: string, record: any}[] = [];
       
       for (const record of qualifyingRecords) {
+        // ✅ SADECE COMPLETE DURUMLARI İŞLE (KB+YB var)
+        if (record.status !== 'complete') {
+          logService.log('debug', 'E-posta', `SKIP: ${record.companyName} - ${record.month}/${record.year} (Status: ${record.status}, KB+YB gerekli)`);
+          continue;
+        }
+        
         // Şirket bilgilerini bul
         const company = allCompanies.find((c: any) => c.id === record.companyId);
         
@@ -308,16 +430,17 @@ export const EmailSystem: React.FC<EmailSystemProps> = ({ triggerScan = 0 }) => 
         // Period objesi oluştur
         const period: SelectedPeriod = { month: record.month, year: record.year };
         
-        // Hash kontrolü (mükerrer gönderim engelleme)
+        // Hash kontrolü (mükerrer gönderim engelleme) - DÖNEM BAZLI
         const hash = createEmailHash(record.companyId, period, company.email);
         
         if (sentEmails.has(hash)) {
-          logService.log('info', 'E-posta', `SKIP: ${company.name} - ${period.month}/${period.year} (zaten gönderilmiş)`);
+          logService.log('info', 'E-posta', `SKIP: ${company.name} - ${period.month}/${period.year} (Complete klasör zaten gönderilmiş)`);
           continue;
         }
         
+        const fileInfo = record.fileCount ? ` (${record.fileCount} dosya)` : '';
         pendingEmails.push({ company, period, hash, record });
-        logService.log('info', 'E-posta', `QUEUE: ${company.name} - ${period.month}/${period.year}`);
+        logService.log('info', 'E-posta', `QUEUE: ${company.name} - ${period.month}/${period.year} - Complete klasör${fileInfo}`);
       }
       
       if (pendingEmails.length === 0) {
@@ -1400,11 +1523,24 @@ export const EmailSystem: React.FC<EmailSystemProps> = ({ triggerScan = 0 }) => 
             </div>
             {emailReports.length > 0 && (
               <div className="flex gap-3">
+                {/* SentEmails Yönetimi Butonu */}
+                <button
+                  onClick={() => {
+                    loadSentEmailsList();
+                    setShowSentEmailsModal(true);
+                  }}
+                  className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2 text-sm"
+                  title="Gönderilmiş email kayıtlarını görüntüle"
+                >
+                  <Settings className="w-4 h-4" />
+                  <span>Email Geçmişi ({sentEmailsList.length})</span>
+                </button>
+                
                 {/* Excel İndirme Butonu */}
                 <button
                   onClick={async () => {
                     try {
-                      // Basit Excel formatı (Tab-separated values) - Excel açabilir
+                      // HTML table formatı - Excel'in native desteği var
                       const headers = ['Tarih & Saat', 'Alıcı Adı', 'E-posta', 'Dönemler', 'Durum', 'Tip', 'Hata Mesajı'];
                       const rows = emailReports.map(r => [
                         r.timestamp,
@@ -1416,16 +1552,36 @@ export const EmailSystem: React.FC<EmailSystemProps> = ({ triggerScan = 0 }) => 
                         r.errorMessage || '-'
                       ]);
                       
-                      const tsvContent = [
-                        headers.join('\t'),
-                        ...rows.map(row => row.map(cell => `${cell}`).join('\t'))
-                      ].join('\n');
+                      // HTML table oluştur
+                      const htmlContent = `
+                        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+                        <head>
+                          <meta charset="utf-8">
+                          <!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>
+                          <x:Name>Email Raporları</x:Name>
+                          <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet>
+                          </x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
+                        </head>
+                        <body>
+                          <table border="1">
+                            <thead>
+                              <tr>
+                                ${headers.map(h => `<th>${h}</th>`).join('')}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              ${rows.map(row => `<tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>`).join('\n')}
+                            </tbody>
+                          </table>
+                        </body>
+                        </html>
+                      `;
                       
-                      const blob = new Blob([tsvContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+                      const blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
                       const link = document.createElement('a');
                       const url = URL.createObjectURL(blob);
                       link.setAttribute('href', url);
-                      link.setAttribute('download', `email-raporlari-${new Date().toISOString().split('T')[0]}.xlsx`);
+                      link.setAttribute('download', `email-raporlari-${new Date().toISOString().split('T')[0]}.xls`);
                       link.style.visibility = 'hidden';
                       document.body.appendChild(link);
                       link.click();
@@ -1495,34 +1651,28 @@ export const EmailSystem: React.FC<EmailSystemProps> = ({ triggerScan = 0 }) => 
               <p className="text-sm">Henüz e-posta gönderilmemiş</p>
             </div>
           ) : (
-            <div className="overflow-x-auto overflow-y-auto max-h-96">
+            <div className="overflow-y-auto max-h-96 border border-gray-200 rounded-lg">
               <table className="w-full">
                 <thead className="bg-gray-50 sticky top-0">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Tarih & Saat
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Tip
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Dönemler
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Durum
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      İşlem
-                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alıcı</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dönem</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tip</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tarih</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Durum</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {emailReports.map((report, index) => (
-                    <tr key={index} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {report.timestamp}
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                        {report.recipientName}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {report.periods}
+                      </td>
+                      <td className="px-4 py-3">
                         {report.isAutomated ? (
                           <span className="inline-flex items-center px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-md font-medium">
                             🤖 Otomatik
@@ -1533,23 +1683,26 @@ export const EmailSystem: React.FC<EmailSystemProps> = ({ triggerScan = 0 }) => 
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
-                        <div className="font-medium">{report.periods}</div>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {report.recipientEmail}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-lg text-sm font-medium ${
-                          report.status === 'success'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {report.status === 'success' ? '✅ BAŞARILI' : '❌ BAŞARIŞIZ'}
-                        </span>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {report.timestamp}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
-                        <div>{report.recipientName}</div>
-                        <div className="text-xs text-gray-500">{report.recipientEmail}</div>
-                        {report.errorMessage && (
-                          <div className="text-xs text-red-600 mt-1 font-medium">⚠️ Hata: {report.errorMessage}</div>
+                      <td className="px-4 py-3 text-center">
+                        {report.status === 'success' ? (
+                          <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-green-100 text-green-800">
+                            ✅ Başarılı
+                          </span>
+                        ) : (
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-red-100 text-red-800">
+                              ❌ Başarısız
+                            </span>
+                            {report.errorMessage && (
+                              <div className="text-xs text-red-600 font-medium">⚠️ {report.errorMessage}</div>
+                            )}
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -1560,6 +1713,111 @@ export const EmailSystem: React.FC<EmailSystemProps> = ({ triggerScan = 0 }) => 
           )}
                 </div>
       </div>
+      
+      {/* ✅ YENİ: SentEmails Modal */}
+      {showSentEmailsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[80vh] overflow-hidden">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">📨 Gönderilmiş Email Kayıtları</h3>
+                <p className="text-sm text-gray-500 mt-1">Otomatik email sisteminin tekrar gönderim engellemesi için tutulan kayıtlar</p>
+              </div>
+              <button
+                onClick={() => setShowSentEmailsModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              {sentEmailsList.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <Mail className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                  <p className="text-lg font-medium">Kayıt Bulunmuyor</p>
+                  <p className="text-sm mt-2">Henüz otomatik email gönderimi yapılmamış</p>
+                </div>
+              ) : (
+                <>
+                  <div className="mb-4 flex justify-between items-center">
+                    <p className="text-sm text-gray-600">
+                      Toplam <strong>{sentEmailsList.length}</strong> kayıt bulunuyor
+                    </p>
+                    <button
+                      onClick={clearSentEmails}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>Tüm Kayıtları Temizle</span>
+                    </button>
+                  </div>
+                  
+                  <div className="overflow-y-auto max-h-96 border border-gray-200 rounded-lg">
+                    <table className="w-full">
+                      <thead className="bg-gray-50 sticky top-0">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Şirket</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dönem</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dosyalar</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tarih</th>
+                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">İşlem</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {sentEmailsList.map((item, index) => (
+                          <tr key={index} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                              {item.companyName || 'Bilinmiyor'}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-600">
+                              {item.month}/{item.year}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-600">
+                              <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-100 text-blue-800 text-xs font-medium">
+                                {item.fileCount || 0} dosya
+                              </span>
+                              {item.fileList && item.fileList.length > 0 && (
+                                <div className="text-xs text-gray-500 mt-1" title={item.fileList.join(', ')}>
+                                  {item.fileList.slice(0, 2).join(', ')}
+                                  {item.fileList.length > 2 && '...'}
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-600">
+                              {item.recipientEmail || '-'}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-500">
+                              {item.sentDate ? new Date(item.sentDate).toLocaleString('tr-TR') : '-'}
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <button
+                                onClick={() => deleteSentEmail(index)}
+                                className="text-red-600 hover:text-red-800 p-1"
+                                title="Bu kaydı sil"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                  <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800">
+                      <strong>⚠️ DİKKAT:</strong> Bu kayıtlar silindiğinde, aynı dönemler için tekrar email gönderimi yapılabilir. 
+                      Test amaçlı kullanın.
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

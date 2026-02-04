@@ -1051,20 +1051,14 @@ async function performBackendEmailAutomation(automationSettings) {
       // Her kayıt için email gönder
       for (const record of qualifyingRecords) {
         try {
-          // Bu dönem daha önce gönderilmiş mi kontrol et
-          const alreadySent = sentEmails.some(sent => 
-            sent.companyId === record.companyId && 
-            sent.year === record.year && 
-            sent.month === record.month
-          );
-          
-          if (alreadySent) {
+          // ✅ SADECE COMPLETE DURUMLARI İŞLE
+          if (record.status !== 'complete') {
+            logToFile('debug', 'Email Otomasyonu', `SKIP: ${record.companyName} - ${record.month}/${record.year} (Status: ${record.status}, KB+YB gerekli)`);
             emailsSkipped++;
             continue;
           }
           
-          // ✅ FIX: Şirket bilgilerini taxNumber veya tcNumber ile bul (companyId = vergi/TC no)
-          // taxNumber/tcNumber array olabilir, string'e çevir
+          // ✅ Şirket bilgilerini bul
           const company = companies.find(c => {
             const taxNum = Array.isArray(c.taxNumber) ? c.taxNumber[0] : c.taxNumber;
             const tcNum = Array.isArray(c.tcNumber) ? c.tcNumber[0] : c.tcNumber;
@@ -1076,6 +1070,21 @@ async function performBackendEmailAutomation(automationSettings) {
             emailsSkipped++;
             continue;
           }
+          
+          // ✅ DÖNEM BAZLI HASH - Bir dönem bir kez gönderilir (KB+YB complete olduğunda)
+          // Format: companyId_year_month_email
+          const uniqueHash = `${record.companyId}_${record.year}_${String(record.month).padStart(2, '0')}_${company.email.toLowerCase()}`;
+          
+          // Bu dönem daha önce gönderilmiş mi kontrol et
+          const alreadySent = sentEmails.some(sent => sent.uniqueHash === uniqueHash);
+          
+          if (alreadySent) {
+            logToFile('debug', 'Email Otomasyonu', `SKIP: ${company.name} - ${record.month}/${record.year} (Dönem zaten complete olarak gönderilmiş)`);
+            emailsSkipped++;
+            continue;
+          }
+          
+          logToFile('info', 'Email Otomasyonu', `QUEUE: ${company.name} - ${record.month}/${record.year} - Complete klasör gönderilecek (${record.fileCount || 0} dosya)`);
           
           // ✅ ZIP dosyası oluştur
           let zipPath = null;
@@ -1200,18 +1209,26 @@ async function performBackendEmailAutomation(automationSettings) {
             }
           }
           
-          // Gönderim kaydını ekle
+          // ✅ Gönderim kaydını ekle - DÖNEM BAZLI (Complete olduğunda bir kez)
+          const uniqueHash = `${record.companyId}_${record.year}_${String(record.month).padStart(2, '0')}_${company.email.toLowerCase()}`;
+          
           sentEmails.push({
             companyId: record.companyId,
             companyName: company.name,
             year: record.year,
             month: record.month,
             sentDate: new Date().toISOString(),
-            recipientEmail: company.email
+            recipientEmail: company.email,
+            uniqueHash: uniqueHash,
+            status: 'complete',
+            fileList: record.fileList || [],
+            fileCount: record.fileCount || 0,
+            gibFileStatus: record.gibFileStatus || {}
           });
           
           emailsSent++;
-          logToFile('success', 'Email Otomasyonu', `✉️ Email gönderildi: ${company.name} - ${periodText}`);
+          const fileInfo = record.fileCount ? ` (${record.fileCount} dosya)` : '';
+          logToFile('success', 'Email Otomasyonu', `✉️ Email gönderildi: ${company.name} - ${periodText}${fileInfo} | Email: ${company.email}`);
           
           // Rate limiting - Email sunucusu yükünü azalt
           await new Promise(resolve => setTimeout(resolve, 2000)); // 2 saniye bekle
@@ -1547,6 +1564,10 @@ const performScan = async (sourcePath, selectedYear, companies) => {
 
           logToFile('info', 'Dosya', `${company.name} ${folderYear}/${month}: KB=${gibFileStatus.hasKB}, YB=${gibFileStatus.hasYB}, Durum=${status}`, `Klasör: ${monthPath}`);
 
+          // ✅ Dosya listesini oluştur (email için benzersiz hash)
+          const fileList = gibFiles.map(f => f).sort();
+          const fileCount = gibFiles.length;
+
           results.push({
             companyName: company.name,
             companyId: actualCompanyId, // Bulunan gerçek ID (TC veya Vergi)
@@ -1561,7 +1582,9 @@ const performScan = async (sourcePath, selectedYear, companies) => {
             missingFiles: 2 - ((gibFileStatus.hasKB ? 1 : 0) + (gibFileStatus.hasYB ? 1 : 0)),
             status: status,
             lastCheck: new Date(),
-            gibFileStatus: gibFileStatus
+            gibFileStatus: gibFileStatus,
+            fileList: fileList,  // ✅ YENİ: Dosya listesi
+            fileCount: fileCount  // ✅ YENİ: Dosya sayısı
           });
         }
       }
@@ -1633,6 +1656,7 @@ const performScan = async (sourcePath, selectedYear, companies) => {
                 kbFile: null,
                 ybFile: null
               };
+              let gibFiles = []; // ✅ YENİ: Dosya listesi için
 
               if (fs.existsSync(monthPath)) {
                 let files = [];
@@ -1645,6 +1669,12 @@ const performScan = async (sourcePath, selectedYear, companies) => {
 
                 const kbFile = files.find(file => file.includes('-KB-') && file.endsWith('.zip'));
                 const ybFile = files.find(file => file.includes('-YB-') && file.endsWith('.zip'));
+                
+                // ✅ YENİ: Tüm GIB dosyalarını topla
+                const gibFiles = files.filter(file => 
+                  (file.includes('-KB-') || file.includes('-YB-') || file.startsWith('GIB-')) &&
+                  (file.endsWith('.zip') || file.endsWith('.xml'))
+                );
 
                 gibFileStatus = {
                   hasKB: !!kbFile,
@@ -1662,6 +1692,10 @@ const performScan = async (sourcePath, selectedYear, companies) => {
                 }
               }
 
+              // ✅ Dosya listesini oluştur
+              const fileList = gibFiles.map(f => f).sort();
+              const fileCount = gibFiles.length;
+
               results.push({
                 companyName: `Tanımlanmamış (${companyId})`,
                 companyId: companyId,
@@ -1675,7 +1709,9 @@ const performScan = async (sourcePath, selectedYear, companies) => {
                 missingFiles: 2 - ((gibFileStatus.hasKB ? 1 : 0) + (gibFileStatus.hasYB ? 1 : 0)),
                 status: status,
                 lastCheck: new Date(),
-                gibFileStatus: gibFileStatus
+                gibFileStatus: gibFileStatus,
+                fileList: fileList,  // ✅ YENİ: Dosya listesi
+                fileCount: fileCount  // ✅ YENİ: Dosya sayısı
               });
             }
           }
@@ -3897,6 +3933,17 @@ ipcMain.handle('get-email-activities', async (event) => {
     return { success: true, data: activities };
   } catch (error) {
     logToFile('error', 'Email', 'Email aktiviteleri alınırken hata', error.message);
+    return { success: false, error: error.message, data: [] };
+  }
+});
+
+// ✅ YENİ: SentEmails Listesini Getir
+ipcMain.handle('get-sent-emails', async (event) => {
+  try {
+    const sentEmails = store.get('sentEmails', []);
+    return { success: true, data: sentEmails };
+  } catch (error) {
+    logToFile('error', 'Email', 'SentEmails alınırken hata', error.message);
     return { success: false, error: error.message, data: [] };
   }
 });
