@@ -31,6 +31,8 @@ TEST-*.md
 
 # Release builds (too large for GitHub)
 release/
+release-demo/
+release-demo-v2/
 *.exe
 *.blockmap
 build-log.txt
