@@ -1,7 +1,7 @@
 appId: com.edefter.klasorotomasyon.demo
 productName: E-Defter Otomasyon DEMO
 directories:
-  output: release-demo
+  output: release-demo-v3
 compression: store
 files:
   - dist/**/*
