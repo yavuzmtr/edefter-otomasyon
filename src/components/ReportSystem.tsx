@@ -248,12 +248,10 @@ export const ReportSystem: React.FC = () => {
             </div>
           </div>
         <div className="flex items-center space-x-3">
-          {activeReportTab === 'gib' && (
-            <div className="text-sm text-gray-600 bg-blue-50 px-3 py-2 rounded-lg border">
-              <div className="font-medium">Rapor Kapsamı</div>
-              <div className="text-xs">Filtrelenmiş: {Array.isArray(filteredData) ? filteredData.length : 0} / Toplam: {Array.isArray(reportData) ? reportData.length : 0} kayıt</div>
-            </div>
-          )}
+          <div className="text-sm text-gray-600 bg-blue-50 px-3 py-2 rounded-lg border">
+            <div className="font-medium">Rapor Kapsamı</div>
+            <div className="text-xs">Filtrelenmiş: {Array.isArray(filteredData) ? filteredData.length : 0} / Toplam: {Array.isArray(reportData) ? reportData.length : 0} kayıt</div>
+          </div>
           <button
             onClick={generateReport}
             disabled={loading}
