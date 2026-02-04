@@ -1,11 +1,11 @@
 {
-  "name": "edefter-automation-demo",
+  "name": "edefter-automation",
   "private": true,
   "version": "1.0.0",
-  "description": "E-Defter Klasör Otomasyonu - DEMO VERSİYON (5 Günlük Deneme)",
+  "description": "E-Defter Klasör Otomasyonu - TAM VERSİYON",
   "author": "YAVUZ MERCİMEK",
   "type": "module",
-  "main": "electron/main-demo.cjs",
+  "main": "electron/main.cjs",
   "homepage": "./",
   "scripts": {
     "dev": "vite",
