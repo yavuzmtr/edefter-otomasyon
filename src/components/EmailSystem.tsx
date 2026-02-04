@@ -418,7 +418,8 @@ export const EmailSystem: React.FC<EmailSystemProps> = ({ triggerScan = 0 }) => 
         const company = allCompanies.find((c: any) => c.id === record.companyId);
         
         if (!company) {
-          logService.log('warning', 'E-posta', `Şirket bulunamadı: ${record.companyId} (${record.companyName})`);
+          // Bu normal: Monitoring-data'da var ama companies'de yok (silinmiş/devre dışı)
+          // logService.log('debug', 'E-posta', `Şirket bulunamadı: ${record.companyId} (${record.companyName})`);
           continue;
         }
         

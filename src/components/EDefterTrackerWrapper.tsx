@@ -244,21 +244,14 @@ const EDefterTrackerWrapper: React.FC = () => {
   const loadDeadlineData = async () => {
     try {
       setLoading(true);
-      console.log('🔄 EDefterTracker: Veri yükleme başlıyor...');
+      // Sessiz yükleme - sadece hata durumunda log
       
       const companiesResult = await ElectronService.loadData('companies', []);
       const monitoringResult = await ElectronService.loadData('monitoring-data', []);
       const ignoredResult = await ElectronService.loadData('ignored-companies', []);
       const completedResult = await ElectronService.loadData('completed-periods', {});
 
-      console.log('📊 EDefterTracker Yükleme Sonuçları:', {
-        companiesSuccess: companiesResult.success,
-        companiesCount: companiesResult?.data?.length || 0,
-        monitoringSuccess: monitoringResult.success,
-        monitoringCount: monitoringResult?.data?.length || 0,
-        ignoredSuccess: ignoredResult.success,
-        completedSuccess: completedResult.success
-      });
+      // Production: Sadece hata durumunda log
 
       if (!companiesResult.success || !companiesResult.data) {
         console.error('❌ EDefterTracker: Şirket verisi yüklenemedi');
@@ -283,13 +276,7 @@ const EDefterTrackerWrapper: React.FC = () => {
       const ignoredList = Array.isArray(ignoredResult.data) ? ignoredResult.data : [];
       const completedData = completedResult.data || {};
       
-      console.log('📋 EDefterTracker İşleme Hazırlık:', {
-        totalCompanies: companiesResult.data.length,
-        activeCompanies: companies.length,
-        monitoringRecords: monitoringData.length,
-        ignoredCompanies: ignoredList.length,
-        completedData: Object.keys(completedData).length
-      });
+      // İşleme başlıyor - sessiz mod
       
       // Tamamlanan dönemleri Map'e çevir
       const completedMap = new Map<string, Set<string>>();
@@ -467,7 +454,7 @@ const EDefterTrackerWrapper: React.FC = () => {
         overdue
       };
       
-      console.log('📊 EDefterTracker İstatistikler:', finalStats);
+      // İstatistikler hazır - sessiz güncelleme
       
       setStats(finalStats);
     } catch (error) {
@@ -540,13 +527,8 @@ const EDefterTrackerWrapper: React.FC = () => {
 
   const filteredData = getFilteredTrackers();
 
-  console.log('🎯 EDefterTracker Render:', {
-    trackersLength: trackers.length,
-    filteredDataLength: filteredData.length,
-    stats: stats,
-    loading: loading,
-    filterStatus: filterStatus
-  });
+  // Production: Sadece kritik hatalar loglanacak
+  // console.log('🎯 EDefterTracker Render:', {trackersLength: trackers.length, ...})
 
   return (
     <div className="space-y-6">
