@@ -274,7 +274,7 @@ export const AutomationSettings: React.FC = () => {
       await saveAutomationSettings(newSettings);
 
       if (newEnabled) {
-        showNotification('success', '🚀 Sistem Başlatıldı! Her 30 saniyede otomatik kontrol edilecek ve uygun dönemler için email gönderilecek. Bilgisayar yeniden başladığında da otomatik çalışacak.');
+        showNotification('success', '🚀 Sistem Başlatıldı! Saatte 1 kez otomatik kontrol edilecek ve uygun dönemler için email gönderilecek. Bilgisayar yeniden başladığında da otomatik çalışacak.');
       } else {
         showNotification('success', '🛑 Sistem Durduruldu - Otomatik email gönderimi pasif. Bilgisayar başlangıcında çalışmayacak.');
       }
@@ -448,7 +448,7 @@ export const AutomationSettings: React.FC = () => {
             <div className="mt-4 p-3 bg-purple-100 border border-purple-300 rounded-lg">
               <p className="text-sm text-purple-900">
                 <strong>💡 PERFORMANS:</strong> Sistem akıllı zamanlama kullanır. Her işlem için optimize edilmiş aralıklarla kontrol yapılır, 
-                bu sayede CPU ve RAM kullanımı minimumda tutulur. Eski 30 saniyelik tarama artık yok!
+                bu sayede CPU ve RAM kullanımı minimumda tutulur. Gereksiz tekrarlı taramalar yapılmaz!
               </p>
             </div>
           </div>
@@ -483,8 +483,15 @@ export const AutomationSettings: React.FC = () => {
                 <span>Seç</span>
               </button>
             </div>
+            <p className="text-xs text-gray-500 mt-2">
+              💡 <strong>Başlangıç tarihi neden gerekli?</strong>
+            </p>
             <p className="text-xs text-gray-500 mt-1">
-              💡 Sistem her 30 saniyede monitoring verilerini kontrol eder ve bu tarihten sonraki <strong>complete</strong> dönemleri otomatik email gönderir.
+              Örnek: Ocak 2025 seçerseniz, <strong>sadece Ocak 2025 ve sonrası</strong> dönemler için e-posta gönderilir. 
+              Aralık 2024 ve öncesi dönemler görmezden gelinir. Bu sayede geçmişe ait eski dönemleri tekrar göndermezsiniz.
+            </p>
+            <p className="text-xs text-green-600 mt-1">
+              ✅ Boş bırakırsanız, tüm dönemler kontrol edilir ve uygun olanlar gönderilir.
             </p>
           </div>
 
@@ -513,7 +520,7 @@ export const AutomationSettings: React.FC = () => {
                   <CheckCircle className="w-5 h-5 text-green-600" />
                   <div>
                     <label className="text-sm text-green-900 font-medium">🔄 Arka Plan Hizmeti</label>
-                    <p className="text-xs text-green-700">Uygulama açıldığında otomatik başlar, her 30 saniyede kontrol eder</p>
+                    <p className="text-xs text-green-700">Uygulama açıldığında otomatik başlar, saatte 1 kez kontrol yapar</p>
                   </div>
                 </div>
                 <div className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-bold">
@@ -672,8 +679,15 @@ export const AutomationSettings: React.FC = () => {
               <p className="text-xs text-blue-800">
                 <strong>Seçilen Tarih:</strong> {monthNames[automationSettings.startMonth]} {automationSettings.startYear}
               </p>
+              <p className="text-xs text-blue-800 mt-2">
+                <strong>Ne anlama geliyor?</strong>
+              </p>
               <p className="text-xs text-blue-800 mt-1">
-                Bu tarihten itibaren tüm GIB dosyaları kontrol edilecek ve e-posta gönderilecektir.
+                Bu tarihten <strong>ÖNCEKİ</strong> dönemler görmezden gelinir ve e-posta gönderilmez. 
+                Sadece bu tarih ve <strong>SONRASI</strong> dönemler için otomatik e-posta gönderilir.
+              </p>
+              <p className="text-xs text-green-700 mt-2">
+                ✅ Örnek: Ekim 2025 seçtiyseniz → Eylül 2025 ve öncesi dönemler görmezden gelinir.
               </p>
             </div>
             
