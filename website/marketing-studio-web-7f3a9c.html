@@ -191,7 +191,18 @@ function bind(){
   document.querySelectorAll('.copy-title').forEach(btn=>btn.onclick=()=>copyText(btn.closest('.post').querySelector('h4').innerText));
   document.querySelectorAll('.open-x').forEach(btn=>btn.onclick=()=>{const id=btn.closest('.post').dataset.id; const p=postIndex[id]; if(!p)return; window.open('https://x.com/intent/tweet?text='+encodeURIComponent(p.body||''),'_blank')});
   document.querySelectorAll('.download-one').forEach(btn=>btn.onclick=()=>{const id=btn.closest('.post').dataset.id; const p=postIndex[id]; if(!p)return; downloadFile('paket-'+(p.title||'icerik').replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,50)+'.txt',postPackageText(p),'text/plain;charset=utf-8')});
-  document.querySelectorAll('.ai-image').forEach(btn=>btn.onclick=()=>{const id=btn.closest('.post').dataset.id; const p=postIndex[id]; if(!p)return; const prompt=buildImagePrompt(p); copyText(prompt); const size=p.platform==='youtube'?{w:1280,h:720}:{w:1080,h:1080}; window.open('https://image.pollinations.ai/prompt/'+encodeURIComponent(prompt)+'?width='+size.w+'&height='+size.h+'&seed='+Date.now(), '_blank')});
+  document.querySelectorAll('.ai-image').forEach(btn=>btn.onclick=()=>{
+    const id=btn.closest('.post').dataset.id;
+    const p=postIndex[id];
+    if(!p)return;
+    const prompt=buildImagePrompt(p);
+    copyText(prompt);
+    const trimmed = prompt.slice(0, 350);
+    const bingUrl = 'https://www.bing.com/images/create?q=' + encodeURIComponent(trimmed);
+    const pollinationsUrl = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(trimmed) + '?model=flux&seed=' + Date.now();
+    window.open(bingUrl, '_blank');
+    setTimeout(() => window.open(pollinationsUrl, '_blank'), 500);
+  });
   document.querySelectorAll('.ai-video').forEach(btn=>btn.onclick=()=>{const id=btn.closest('.post').dataset.id; const p=postIndex[id]; if(!p)return; const t=buildVideoPrompt(p); copyText(t); downloadFile('video-prompt.txt', t, 'text/plain;charset=utf-8')});
   document.querySelectorAll('.mark').forEach(btn=>btn.onclick=()=>setStatus(btn.closest('.post').dataset.id,'ready'));
   document.querySelectorAll('.publish').forEach(btn=>btn.onclick=()=>setStatus(btn.closest('.post').dataset.id,'published'));

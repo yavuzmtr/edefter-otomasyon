@@ -360,9 +360,11 @@ function bindActions(){
       if (!p) return;
       const prompt = buildImagePrompt(p);
       copyText(prompt);
-      const size = p.platform === 'youtube' ? { w: 1280, h: 720 } : { w: 1080, h: 1080 };
-      const imageUrl = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(prompt) + '?width=' + size.w + '&height=' + size.h + '&seed=' + Date.now();
-      window.open(imageUrl, '_blank');
+      const trimmed = prompt.slice(0, 350);
+      const bingUrl = 'https://www.bing.com/images/create?q=' + encodeURIComponent(trimmed);
+      const pollinationsUrl = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(trimmed) + '?model=flux&seed=' + Date.now();
+      window.open(bingUrl, '_blank');
+      setTimeout(() => window.open(pollinationsUrl, '_blank'), 500);
     };
   });
 
