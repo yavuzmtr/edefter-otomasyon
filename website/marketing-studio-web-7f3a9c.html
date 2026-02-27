@@ -56,6 +56,15 @@
         <button id="waOpenAll" class="secondary">Toplu WhatsApp Ac</button>
         <button id="waCopyStatus" class="secondary">Durum Metni Kopyala</button>
       </div>
+      <div class="row" style="margin-top:8px">
+        <select id="waMode">
+          <option value="wa_me">wa.me (manual)</option>
+          <option value="meta_api">Meta API (gateway)</option>
+        </select>
+        <input id="waApiBase" placeholder="Gateway URL (or: https://api.senin-domain.com)">
+        <input id="waApiKey" placeholder="Gateway API Key">
+        <button id="waTestApi" class="secondary">Gateway Test</button>
+      </div>
       <div id="waContacts"></div>
     </div>
     <div class="card"><h3>Taslaklar</h3><div id="drafts"></div></div>
@@ -65,6 +74,7 @@
 const DEMO_URL = 'https://edefterotomasyon.com.tr/download-form.html';
 const STORE_KEY = 'marketing_studio_web_posts_v1';
 const WA_STORE_KEY = 'marketing_studio_web_wa_contacts_v1';
+const WA_SETTINGS_KEY = 'marketing_studio_web_wa_settings_v1';
 const FEATURES = [
   'e-defter berat takip otomasyonu',
   '7/3/son gun e-posta uyari sistemi',
@@ -102,9 +112,34 @@ function savePosts(posts){localStorage.setItem(STORE_KEY, JSON.stringify(posts||
 function loadPosts(){try{return JSON.parse(localStorage.getItem(STORE_KEY)||'[]')}catch(e){return []}}
 function saveContacts(list){localStorage.setItem(WA_STORE_KEY, JSON.stringify(list||[]))}
 function loadContacts(){try{return JSON.parse(localStorage.getItem(WA_STORE_KEY)||'[]')}catch(e){return []}}
+function saveWaSettings(s){localStorage.setItem(WA_SETTINGS_KEY, JSON.stringify(s||{}))}
+function loadWaSettings(){try{return JSON.parse(localStorage.getItem(WA_SETTINGS_KEY)||'{}')}catch(e){return {}}}
 function indexPosts(posts){(posts||[]).forEach(p=>postIndex[p.id]=p)}
 function nowIso(){return new Date().toISOString()}
 function hashtags(platform){return platform==='youtube' ? ['edefter','maliMusavir','otomasyon','beratTakip','raporlama'] : ['#edefter','#muhasebe','#maliMusavir','#otomasyon']}
+
+function getWaConfig(){
+  const mode = document.getElementById('waMode').value;
+  const apiBase = (document.getElementById('waApiBase').value || '').trim().replace(/\/+$/,'');
+  const apiKey = (document.getElementById('waApiKey').value || '').trim();
+  return { mode, apiBase, apiKey };
+}
+
+async function sendViaMetaApi(phone, text){
+  const cfg = getWaConfig();
+  if(!cfg.apiBase) throw new Error('Gateway URL girin');
+  const res = await fetch(cfg.apiBase + '/api/wa/send-text', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': cfg.apiKey || ''
+    },
+    body: JSON.stringify({ to: phone, text })
+  });
+  const data = await res.json();
+  if(!res.ok || !data.ok) throw new Error(data.error || ('Gateway hata: ' + res.status));
+  return data;
+}
 
 function createPost(platform, tone, objective, i){
   const feature = pick(FEATURES, i);
@@ -248,10 +283,20 @@ function renderContacts(){
   document.getElementById('waContacts').innerHTML = html || '<p class="meta">Musteri yok</p>';
 
   document.querySelectorAll('.wa-open').forEach((btn) => {
-    btn.onclick = () => {
+    btn.onclick = async () => {
       const parent = btn.closest('.post');
       const phone = parent.getAttribute('data-phone');
       const msg = document.getElementById('waMessage').value || 'Merhaba';
+      const cfg = getWaConfig();
+      if (cfg.mode === 'meta_api') {
+        try {
+          await sendViaMetaApi(phone, msg);
+          alert('Mesaj gonderildi: ' + phone);
+        } catch (error) {
+          alert('Meta API hata: ' + (error.message || error));
+        }
+        return;
+      }
       window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(msg), '_blank');
     };
   });
@@ -337,15 +382,61 @@ document.getElementById('waCopyStatus').onclick = () => {
   copyText(waStatusText);
 };
 
-document.getElementById('waOpenAll').onclick = () => {
+document.getElementById('waOpenAll').onclick = async () => {
   const list = loadContacts();
   if(!list.length) return alert('Musteri listesi bos');
   const msg = document.getElementById('waMessage').value || 'Merhaba';
+  const cfg = getWaConfig();
+  if (cfg.mode === 'meta_api') {
+    let success = 0;
+    let fail = 0;
+    for (const c of list.slice(0, 50)) {
+      try {
+        await sendViaMetaApi(c.phone, msg);
+        success += 1;
+      } catch (error) {
+        fail += 1;
+      }
+    }
+    alert('Meta API gonderim tamamlandi. Basarili: ' + success + ' / Hatali: ' + fail);
+    return;
+  }
   list.slice(0, 20).forEach((c, i) => {
     setTimeout(() => window.open('https://wa.me/' + c.phone + '?text=' + encodeURIComponent(msg), '_blank'), i * 350);
   });
 };
 
+document.getElementById('waTestApi').onclick = async () => {
+  const cfg = getWaConfig();
+  if(!cfg.apiBase) return alert('Gateway URL girin');
+  try {
+    const res = await fetch(cfg.apiBase + '/health');
+    const data = await res.json();
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    if (data.ok) alert('Gateway OK');
+    else alert('Gateway acik ama Meta ayarlari eksik: ' + (data.missing || '-'));
+  } catch (error) {
+    alert('Gateway erisim hatasi: ' + (error.message || error));
+  }
+};
+
+function hydrateWaSettings(){
+  const s = loadWaSettings();
+  if(s.mode) document.getElementById('waMode').value = s.mode;
+  if(s.apiBase) document.getElementById('waApiBase').value = s.apiBase;
+  if(s.apiKey) document.getElementById('waApiKey').value = s.apiKey;
+}
+
+function persistWaSettings(){
+  saveWaSettings(getWaConfig());
+}
+
+['waMode','waApiBase','waApiKey'].forEach((id) => {
+  document.getElementById(id).addEventListener('change', persistWaSettings);
+  document.getElementById(id).addEventListener('blur', persistWaSettings);
+});
+
+hydrateWaSettings();
 renderSaved();
 renderContacts();
 </script>
