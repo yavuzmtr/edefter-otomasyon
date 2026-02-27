@@ -395,7 +395,7 @@ function buildImagePrompt(p){
 }
 
 function buildVideoPrompt(p){
-  const cta = p.cta || ('Demo indir: ' + '${DEMO_URL}');
+  const cta = p.cta || ('Demo indir: ' + DEMO_URL);
   return [
     'TR DILINDE 60 saniyelik tanitim videosu olustur.',
     'Kitle: Mali musavir ofisleri.',
@@ -446,6 +446,11 @@ loadSaved();
 </html>`;
 
 const server = http.createServer(async (req, res) => {
+  if (req.method === 'GET' && req.url === '/api/health') {
+    json(res, 200, { ok: true });
+    return;
+  }
+
   if (req.method === 'GET' && req.url === '/') {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(html);
@@ -504,5 +509,7 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, HOST, () => {
   const url = `http://${HOST}:${PORT}`;
   console.log(`[marketing-studio] ${url}`);
-  exec(`start "" "${url}"`);
+  if (process.env.MARKETING_STUDIO_NO_OPEN !== '1') {
+    exec(`start "" "${url}"`);
+  }
 });

@@ -26,6 +26,7 @@
     "license:hardware": "node scripts/get-hardware-id.cjs",
     "license:generate": "node scripts/generate-license.cjs",
     "marketing:studio": "node scripts/marketing-studio.cjs",
+    "marketing:test": "node scripts/test-marketing-studio.cjs",
     "postinstall": "npx electron-builder install-app-deps",
     "uninstall-test": "powershell.exe -ExecutionPolicy Bypass -File scripts/smart-uninstaller.ps1 QUICK_UNINSTALL",
     "uninstall-full": "powershell.exe -ExecutionPolicy Bypass -File scripts/smart-uninstaller.ps1 FULL_CLEANUP",
