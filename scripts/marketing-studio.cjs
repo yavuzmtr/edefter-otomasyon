@@ -288,6 +288,8 @@ function postHtml(p, editable){
     '<div class="row" style="margin-top:8px">'+
       '<button class="copy secondary">Metni Kopyala</button>'+
       '<button class="copy-title secondary">Baslik Kopyala</button>'+
+      '<button class="ai-image secondary">AI Gorsel Uret</button>'+
+      '<button class="ai-video secondary">AI Video Prompt</button>'+
       xBtn+
       '<button class="download-one secondary">Paket indir</button>'+
       (editable ? '<button class="mark" data-status="ready">Ready</button><button class="mark secondary" data-status="published">Published</button>' : '')+
@@ -350,6 +352,62 @@ function bindActions(){
       downloadFile('paket-' + safeTitle + '.txt', postPackageText(p), 'text/plain;charset=utf-8');
     };
   });
+
+  document.querySelectorAll('.ai-image').forEach(btn=>{
+    btn.onclick = () => {
+      const id = btn.closest('.post').getAttribute('data-id');
+      const p = postIndex[id];
+      if (!p) return;
+      const prompt = buildImagePrompt(p);
+      copyText(prompt);
+      const size = p.platform === 'youtube' ? { w: 1280, h: 720 } : { w: 1080, h: 1080 };
+      const imageUrl = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(prompt) + '?width=' + size.w + '&height=' + size.h + '&seed=' + Date.now();
+      window.open(imageUrl, '_blank');
+    };
+  });
+
+  document.querySelectorAll('.ai-video').forEach(btn=>{
+    btn.onclick = () => {
+      const id = btn.closest('.post').getAttribute('data-id');
+      const p = postIndex[id];
+      if (!p) return;
+      const videoPrompt = buildVideoPrompt(p);
+      copyText(videoPrompt);
+      const safeTitle = (p.title || 'video-prompt').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 50);
+      downloadFile('video-prompt-' + safeTitle + '.txt', videoPrompt, 'text/plain;charset=utf-8');
+    };
+  });
+}
+
+function buildImagePrompt(p){
+  const tags = (p.hashtags || p.tags || []).join(', ');
+  const formatText = p.platform === 'youtube' ? 'youtube thumbnail, high contrast, readable title area' : 'social media post visual, clean layout';
+  return [
+    'Professional fintech style visual',
+    p.title || '',
+    p.hook || '',
+    'Topic: E-Defter otomasyon, mali musavir ofisi',
+    formatText,
+    'Color palette: navy blue, cyan accents, white text',
+    'No watermark, no logo distortion, sharp details',
+    'Keywords: ' + tags
+  ].join('. ');
+}
+
+function buildVideoPrompt(p){
+  const cta = p.cta || ('Demo indir: ' + '${DEMO_URL}');
+  return [
+    'TR DILINDE 60 saniyelik tanitim videosu olustur.',
+    'Kitle: Mali musavir ofisleri.',
+    'Baslik: ' + (p.title || ''),
+    'Acilis hook: ' + (p.hook || ''),
+    'Sahne 1 (0-5sn): Problem cümlesi, hızlı giriş.',
+    'Sahne 2 (5-20sn): Manuel takip kaynaklı riskleri göster.',
+    'Sahne 3 (20-45sn): Uygulama ekrani, klasor/berat/mail takip akışı.',
+    'Sahne 4 (45-60sn): Sonuc + net CTA.',
+    'Ses tonu: guven veren, profesyonel, net.',
+    'Ekran yazi cagrisi: ' + cta
+  ].join('\\n');
 }
 
 document.getElementById('generate').onclick = async () => {
