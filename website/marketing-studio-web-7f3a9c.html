@@ -42,12 +42,29 @@
         <button id="exportJson" class="secondary">Taslaklari JSON indir</button>
       </div>
     </div>
+    <div class="card">
+      <h3>WhatsApp Iletisim Botu</h3>
+      <div class="row">
+        <input id="waName" placeholder="Musteri adi">
+        <input id="waPhone" placeholder="Telefon (9053xxxxxxx)">
+        <button id="waAdd" class="secondary">Musteri Ekle</button>
+        <button id="waStatusGen">Durum Metni Uret</button>
+      </div>
+      <textarea id="waMessage" placeholder="AI mesaj burada olusur veya elle yazabilirsiniz."></textarea>
+      <div class="row" style="margin-top:8px">
+        <button id="waMsgFromDraft" class="secondary">AI Mesaj Uret (Taslak)</button>
+        <button id="waOpenAll" class="secondary">Toplu WhatsApp Ac</button>
+        <button id="waCopyStatus" class="secondary">Durum Metni Kopyala</button>
+      </div>
+      <div id="waContacts"></div>
+    </div>
     <div class="card"><h3>Taslaklar</h3><div id="drafts"></div></div>
     <div class="card"><h3>Kayitli Icerikler</h3><div id="saved"></div></div>
   </div>
 <script>
 const DEMO_URL = 'https://edefterotomasyon.com.tr/download-form.html';
 const STORE_KEY = 'marketing_studio_web_posts_v1';
+const WA_STORE_KEY = 'marketing_studio_web_wa_contacts_v1';
 const FEATURES = [
   'e-defter berat takip otomasyonu',
   '7/3/son gun e-posta uyari sistemi',
@@ -70,6 +87,7 @@ const HOOKS = {
 
 let currentDrafts = [];
 let postIndex = {};
+let waStatusText = '';
 
 function pick(arr, i){return arr[i % arr.length]}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')}
@@ -82,6 +100,8 @@ function downloadFile(name, content, type){
 }
 function savePosts(posts){localStorage.setItem(STORE_KEY, JSON.stringify(posts||[]))}
 function loadPosts(){try{return JSON.parse(localStorage.getItem(STORE_KEY)||'[]')}catch(e){return []}}
+function saveContacts(list){localStorage.setItem(WA_STORE_KEY, JSON.stringify(list||[]))}
+function loadContacts(){try{return JSON.parse(localStorage.getItem(WA_STORE_KEY)||'[]')}catch(e){return []}}
 function indexPosts(posts){(posts||[]).forEach(p=>postIndex[p.id]=p)}
 function nowIso(){return new Date().toISOString()}
 function hashtags(platform){return platform==='youtube' ? ['edefter','maliMusavir','otomasyon','beratTakip','raporlama'] : ['#edefter','#muhasebe','#maliMusavir','#otomasyon']}
@@ -146,6 +166,34 @@ function buildVideoPrompt(p){
   ].join('\n');
 }
 
+function normalizePhone(raw){
+  return String(raw||'').replace(/\D/g,'').replace(/^0/,'90');
+}
+
+function generateWaMessageFromPost(p){
+  if(!p) return 'Merhaba, e-defter surecleriniz icin otomasyon cozumumuzu paylasmak isterim. Demo: ' + DEMO_URL;
+  const shortBody = (p.body || '').split('\n').slice(0,4).join(' ');
+  return [
+    'Merhaba,',
+    shortBody,
+    'Kisa bir demo ile gosterebilirim:',
+    DEMO_URL
+  ].join('\n');
+}
+
+function generateStatusText(){
+  const tone = document.getElementById('tone').value;
+  const objective = document.getElementById('objective').value || 'surec kolayligi';
+  const line = pick(HOOKS[tone] || HOOKS.sade, Date.now() % 3);
+  return [
+    line,
+    'E-defter gonderiminden sonra kontrol yukunu azaltin.',
+    'Berat takip + klasor izleme + mail uyari tek yerde.',
+    'Hedef: ' + objective,
+    'Demo: ' + DEMO_URL
+  ].join('\n');
+}
+
 function postHtml(p, editable){
   const tags = p.hashtags || p.tags || [];
   const xBtn = p.platform === 'x' ? '<button class="open-x secondary">Xte Ac</button>' : '';
@@ -184,6 +232,36 @@ function setStatus(id, status){
   if(!p) return;
   p.status = status; p.updatedAt = nowIso();
   savePosts(posts); renderSaved();
+}
+
+function renderContacts(){
+  const list = loadContacts();
+  const html = list.map((c) => (
+    '<div class="post" data-phone="'+esc(c.phone)+'">'+
+      '<div><strong>'+esc(c.name||'Musteri')+'</strong> - '+esc(c.phone)+'</div>'+
+      '<div class="row" style="margin-top:8px">'+
+        '<button class="wa-open secondary">WhatsApp Ac</button>'+
+        '<button class="wa-remove secondary">Sil</button>'+
+      '</div>'+
+    '</div>'
+  )).join('');
+  document.getElementById('waContacts').innerHTML = html || '<p class="meta">Musteri yok</p>';
+
+  document.querySelectorAll('.wa-open').forEach((btn) => {
+    btn.onclick = () => {
+      const parent = btn.closest('.post');
+      const phone = parent.getAttribute('data-phone');
+      const msg = document.getElementById('waMessage').value || 'Merhaba';
+      window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(msg), '_blank');
+    };
+  });
+  document.querySelectorAll('.wa-remove').forEach((btn) => {
+    btn.onclick = () => {
+      const phone = btn.closest('.post').getAttribute('data-phone');
+      saveContacts(loadContacts().filter(c => c.phone !== phone));
+      renderContacts();
+    };
+  });
 }
 
 function bind(){
@@ -231,7 +309,45 @@ document.getElementById('exportJson').onclick = () => {
   downloadFile('taslaklar.json', JSON.stringify(currentDrafts, null, 2), 'application/json;charset=utf-8');
 };
 
+document.getElementById('waAdd').onclick = () => {
+  const name = document.getElementById('waName').value.trim();
+  const phone = normalizePhone(document.getElementById('waPhone').value);
+  if(!phone || phone.length < 10) return alert('Telefon gecersiz');
+  const list = loadContacts();
+  if(!list.some(c => c.phone === phone)) list.unshift({ name, phone, createdAt: nowIso() });
+  saveContacts(list.slice(0, 300));
+  document.getElementById('waName').value = '';
+  document.getElementById('waPhone').value = '';
+  renderContacts();
+};
+
+document.getElementById('waMsgFromDraft').onclick = () => {
+  const first = currentDrafts[0] || loadPosts()[0];
+  const msg = generateWaMessageFromPost(first);
+  document.getElementById('waMessage').value = msg;
+};
+
+document.getElementById('waStatusGen').onclick = () => {
+  waStatusText = generateStatusText();
+  document.getElementById('waMessage').value = waStatusText;
+};
+
+document.getElementById('waCopyStatus').onclick = () => {
+  if(!waStatusText) waStatusText = generateStatusText();
+  copyText(waStatusText);
+};
+
+document.getElementById('waOpenAll').onclick = () => {
+  const list = loadContacts();
+  if(!list.length) return alert('Musteri listesi bos');
+  const msg = document.getElementById('waMessage').value || 'Merhaba';
+  list.slice(0, 20).forEach((c, i) => {
+    setTimeout(() => window.open('https://wa.me/' + c.phone + '?text=' + encodeURIComponent(msg), '_blank'), i * 350);
+  });
+};
+
 renderSaved();
+renderContacts();
 </script>
 </body>
 </html>
