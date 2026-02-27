@@ -93,9 +93,9 @@ process.on('unhandledRejection', (reason, promise) => {
   }
 });
 
-// NODE_ENV ayarı (eğer ayarlanmamışsa development olarak varsay)
+// Varsayılanı production yap: paketli uygulamada yanlışlıkla development'a düşmesin
 if (!process.env.NODE_ENV) {
-  process.env.NODE_ENV = 'development';
+  process.env.NODE_ENV = 'production';
 }
 console.log(`🟢 NODE_ENV: ${process.env.NODE_ENV}`);
 
@@ -149,6 +149,7 @@ if (!gotTheLock) {
 }
 
 const store = new Store();
+const STARTUP_HIDDEN_ARG = '--startup-hidden';
 let mainWindow;
 let tray = null;
 let trayUpdateInterval = null; // ✅ Tray menüsü güncelleme interval'i
@@ -379,6 +380,7 @@ async function waitForDevServer(url, maxAttempts = 30, delay = 300) {
 }
 
 async function createWindow(){
+  const isStartupHiddenLaunch = app.isPackaged && process.argv.includes(STARTUP_HIDDEN_ARG);
   // Startup'ta eski logları temizle
   cleanupOldLogs();
   
@@ -393,9 +395,9 @@ async function createWindow(){
       // Otomatik başlatmayı aç - Minimize başlatabilirsin (openAsHidden: true)
       app.setLoginItemSettings({
         openAtLogin: true,
-        openAsHidden: false, // false = Pencere göster, true = Arka planda başlat
+        openAsHidden: true,
         path: process.execPath,
-        args: []
+        args: [STARTUP_HIDDEN_ARG]
       });
       logToFile('success', 'Windows Startup', '✅ Otomatik başlatma AKTİF - Bilgisayar her açıldığında uygulama başlayacak ve arka planda çalışacak');
     } else {
@@ -424,7 +426,7 @@ async function createWindow(){
     show: false
   });
 
-  const isDev = process.env.NODE_ENV === 'development';
+  const isDev = !app.isPackaged && process.env.NODE_ENV === 'development';
   
   if (isDev) {
     // Development modunda DevTools'u aç
@@ -438,14 +440,14 @@ async function createWindow(){
         await mainWindow.loadURL(serverUrl);
         console.log(`✅ UI yüklendi: ${serverUrl}`);
         // UI yüklendikten sonra pencereyi göster
-        mainWindow.show();
+        if (!isStartupHiddenLaunch) mainWindow.show();
         logToFile('info', 'Sistem', 'E-Defter Otomasyon Sistemi başlatıldı');
         console.log('🟢 Pencere gösterildi');
       } catch (error) {
         console.error('❌ UI yükleme hatası:', error.message);
         logToFile('error', 'Sistem', 'UI yükleme hatası', error.message);
         // Hata durumunda yine de pencereyi göster (boş olsa da)
-        mainWindow.show();
+        if (!isStartupHiddenLaunch) mainWindow.show();
       }
     } else {
       console.error('❌ Vite dev server açılmadı. Lütfen npm run dev komutunu kontrol et.');
@@ -455,11 +457,11 @@ async function createWindow(){
       if (fs.existsSync(distPath)) {
         console.log('⚠️ dist/index.html dosyasından yükleniyor...');
         mainWindow.loadFile(distPath);
-        mainWindow.show();
+        if (!isStartupHiddenLaunch) mainWindow.show();
       } else {
         // En son çare: boş pencereyi göster
         mainWindow.loadURL('about:blank');
-        mainWindow.show();
+        if (!isStartupHiddenLaunch) mainWindow.show();
       }
     }
   } else {
@@ -468,12 +470,12 @@ async function createWindow(){
     if (fs.existsSync(indexPath)) {
       mainWindow.loadFile(indexPath);
       console.log(`✅ Production UI yüklendi: ${indexPath}`);
-      mainWindow.show();
+      if (!isStartupHiddenLaunch) mainWindow.show();
     } else {
       console.error('❌ dist/index.html bulunamadı. Önce npm run build çalıştırın.');
       logToFile('error', 'Sistem', 'dist/index.html bulunamadı', indexPath);
       mainWindow.loadURL('about:blank');
-      mainWindow.show();
+      if (!isStartupHiddenLaunch) mainWindow.show();
     }
   }
 
@@ -639,19 +641,7 @@ async function processGIBFile(gibFilePath, metadata = {}) {
 
 // ========== DEMO VERSION - TRIAL INFO HANDLER ==========
 ipcMain.handle('get-trial-info', async () => {
-  try {
-    const trialInfo = trialChecker.getTrialInfo();
-    console.log('📊 [DEMO] get-trial-info çağrıldı:', trialInfo);
-    return trialInfo;
-  } catch (error) {
-    console.error('❌ [DEMO] get-trial-info hatası:', error);
-    return {
-      isDemo: true,
-      daysLeft: 0,
-      expiryDate: new Date().toISOString(),
-      isExpired: true
-    };
-  }
+  return trialChecker.getTrialInfo();
 });
 // =======================================================
 
@@ -820,12 +810,12 @@ ipcMain.handle('save-data', async (event, key, data) => {
         
         if (shouldAutoStart) {
           // Otomatik başlatmayı aç
-          app.setLoginItemSettings({
-            openAtLogin: true,
-            openAsHidden: false,
-            path: process.execPath,
-            args: []
-          });
+      app.setLoginItemSettings({
+        openAtLogin: true,
+        openAsHidden: true,
+        path: process.execPath,
+        args: [STARTUP_HIDDEN_ARG]
+      });
           logToFile('success', 'Windows Startup', '✅ Otomatik başlatma AKTİF - Bilgisayar her açıldığında başlayacak ve arka planda çalışacak');
         } else {
           // Otomatik başlatmayı kapat
@@ -1074,20 +1064,14 @@ async function performBackendEmailAutomation(automationSettings) {
       // Her kayıt için email gönder
       for (const record of qualifyingRecords) {
         try {
-          // Bu dönem daha önce gönderilmiş mi kontrol et
-          const alreadySent = sentEmails.some(sent => 
-            sent.companyId === record.companyId && 
-            sent.year === record.year && 
-            sent.month === record.month
-          );
-          
-          if (alreadySent) {
+          // ✅ SADECE COMPLETE DURUMLARI İŞLE
+          if (record.status !== 'complete') {
+            logToFile('debug', 'Email Otomasyonu', `SKIP: ${record.companyName} - ${record.month}/${record.year} (Status: ${record.status}, KB+YB gerekli)`);
             emailsSkipped++;
             continue;
           }
           
-          // ✅ FIX: Şirket bilgilerini taxNumber veya tcNumber ile bul (companyId = vergi/TC no)
-          // taxNumber/tcNumber array olabilir, string'e çevir
+          // ✅ Şirket bilgilerini bul
           const company = companies.find(c => {
             const taxNum = Array.isArray(c.taxNumber) ? c.taxNumber[0] : c.taxNumber;
             const tcNum = Array.isArray(c.tcNumber) ? c.tcNumber[0] : c.tcNumber;
@@ -1099,6 +1083,21 @@ async function performBackendEmailAutomation(automationSettings) {
             emailsSkipped++;
             continue;
           }
+          
+          // ✅ DÖNEM BAZLI HASH - Bir dönem bir kez gönderilir (KB+YB complete olduğunda)
+          // Format: companyId_year_month_email
+          const uniqueHash = `${record.companyId}_${record.year}_${String(record.month).padStart(2, '0')}_${company.email.toLowerCase()}`;
+          
+          // Bu dönem daha önce gönderilmiş mi kontrol et
+          const alreadySent = sentEmails.some(sent => sent.uniqueHash === uniqueHash);
+          
+          if (alreadySent) {
+            logToFile('debug', 'Email Otomasyonu', `SKIP: ${company.name} - ${record.month}/${record.year} (Dönem zaten complete olarak gönderilmiş)`);
+            emailsSkipped++;
+            continue;
+          }
+          
+          logToFile('info', 'Email Otomasyonu', `QUEUE: ${company.name} - ${record.month}/${record.year} - Complete klasör gönderilecek (${record.fileCount || 0} dosya)`);
           
           // ✅ ZIP dosyası oluştur
           let zipPath = null;
@@ -1223,18 +1222,26 @@ async function performBackendEmailAutomation(automationSettings) {
             }
           }
           
-          // Gönderim kaydını ekle
+          // ✅ Gönderim kaydını ekle - DÖNEM BAZLI (Complete olduğunda bir kez)
+          // uniqueHash zaten yukarıda tanımlandı, tekrar tanımlamıyoruz
+          
           sentEmails.push({
             companyId: record.companyId,
             companyName: company.name,
             year: record.year,
             month: record.month,
             sentDate: new Date().toISOString(),
-            recipientEmail: company.email
+            recipientEmail: company.email,
+            uniqueHash: uniqueHash,
+            status: 'complete',
+            fileList: record.fileList || [],
+            fileCount: record.fileCount || 0,
+            gibFileStatus: record.gibFileStatus || {}
           });
           
           emailsSent++;
-          logToFile('success', 'Email Otomasyonu', `✉️ Email gönderildi: ${company.name} - ${periodText}`);
+          const fileInfo = record.fileCount ? ` (${record.fileCount} dosya)` : '';
+          logToFile('success', 'Email Otomasyonu', `✉️ Email gönderildi: ${company.name} - ${periodText}${fileInfo} | Email: ${company.email}`);
           
           // Rate limiting - Email sunucusu yükünü azalt
           await new Promise(resolve => setTimeout(resolve, 2000)); // 2 saniye bekle
@@ -1570,6 +1577,14 @@ const performScan = async (sourcePath, selectedYear, companies) => {
 
           logToFile('info', 'Dosya', `${company.name} ${folderYear}/${month}: KB=${gibFileStatus.hasKB}, YB=${gibFileStatus.hasYB}, Durum=${status}`, `Klasör: ${monthPath}`);
 
+          // ✅ Dosya listesini oluştur (email için benzersiz hash)
+          const allGibFiles = [
+            ...(gibFileStatus.kbFile ? [gibFileStatus.kbFile] : []),
+            ...(gibFileStatus.ybFile ? [gibFileStatus.ybFile] : [])
+          ];
+          const fileList = allGibFiles.sort();
+          const fileCount = allGibFiles.length;
+
           results.push({
             companyName: company.name,
             companyId: actualCompanyId, // Bulunan gerçek ID (TC veya Vergi)
@@ -1584,7 +1599,9 @@ const performScan = async (sourcePath, selectedYear, companies) => {
             missingFiles: 2 - ((gibFileStatus.hasKB ? 1 : 0) + (gibFileStatus.hasYB ? 1 : 0)),
             status: status,
             lastCheck: new Date(),
-            gibFileStatus: gibFileStatus
+            gibFileStatus: gibFileStatus,
+            fileList: fileList,  // ✅ YENİ: Dosya listesi
+            fileCount: fileCount  // ✅ YENİ: Dosya sayısı
           });
         }
       }
@@ -1656,6 +1673,7 @@ const performScan = async (sourcePath, selectedYear, companies) => {
                 kbFile: null,
                 ybFile: null
               };
+              let gibFiles = []; // ✅ YENİ: Dosya listesi için
 
               if (fs.existsSync(monthPath)) {
                 let files = [];
@@ -1668,6 +1686,12 @@ const performScan = async (sourcePath, selectedYear, companies) => {
 
                 const kbFile = files.find(file => file.includes('-KB-') && file.endsWith('.zip'));
                 const ybFile = files.find(file => file.includes('-YB-') && file.endsWith('.zip'));
+                
+                // ✅ YENİ: Tüm GIB dosyalarını topla
+                const gibFiles = files.filter(file => 
+                  (file.includes('-KB-') || file.includes('-YB-') || file.startsWith('GIB-')) &&
+                  (file.endsWith('.zip') || file.endsWith('.xml'))
+                );
 
                 gibFileStatus = {
                   hasKB: !!kbFile,
@@ -1685,6 +1709,10 @@ const performScan = async (sourcePath, selectedYear, companies) => {
                 }
               }
 
+              // ✅ Dosya listesini oluştur
+              const fileList = gibFiles.map(f => f).sort();
+              const fileCount = gibFiles.length;
+
               results.push({
                 companyName: `Tanımlanmamış (${companyId})`,
                 companyId: companyId,
@@ -1698,7 +1726,9 @@ const performScan = async (sourcePath, selectedYear, companies) => {
                 missingFiles: 2 - ((gibFileStatus.hasKB ? 1 : 0) + (gibFileStatus.hasYB ? 1 : 0)),
                 status: status,
                 lastCheck: new Date(),
-                gibFileStatus: gibFileStatus
+                gibFileStatus: gibFileStatus,
+                fileList: fileList,  // ✅ YENİ: Dosya listesi
+                fileCount: fileCount  // ✅ YENİ: Dosya sayısı
               });
             }
           }
@@ -3092,24 +3122,41 @@ ipcMain.handle('send-test-email-notification', async (event, accountantEmail) =>
   }
 });
 
-// ✅ TRIAL STATUS HANDLER - Demo sürüm (trial-checker.cjs kullan)
+// ✅ TRIAL STATUS HANDLER - Tam sürüm (trial yok)
 ipcMain.handle('check-trial-status', async () => {
+  return {
+    success: true,
+    trialInfo: {
+      isDemo: false,
+      daysLeft: 0,
+      expiryDate: null,
+      isExpired: false
+    }
+  };
+});
+
+// ✅ YENİ: Email kontrolünü manuel tetikle (tarama bitince hemen çalışsın)
+ipcMain.handle('trigger-email-check', async () => {
   try {
-    const result = trialChecker.checkTrialStatus();
-    console.log('📊 [DEMO] check-trial-status çağrıldı:', result);
-    return result;
+    logToFile('info', 'Email Trigger', '📧 Manuel email kontrolü tetiklendi (tarama sonrası)');
+    
+    const automationSettings = store.get('automation-settings', {});
+    
+    // Email config kontrolü
+    if (!automationSettings.emailConfig?.enabled) {
+      logToFile('info', 'Email Trigger', 'Email otomasyonu kapalı, atlandı');
+      return { success: false, message: 'Email otomasyonu kapalı' };
+    }
+    
+    // ✅ ASENKRON: Email gönderimi arka planda çalışsın, UI'yi beklemesin
+    performBackendEmailAutomation(automationSettings).catch(err => {
+      logToFile('error', 'Email Trigger', 'Email gönderimi hatası', err.message);
+    });
+    
+    return { success: true, message: 'Email kontrolü başlatıldı' };
   } catch (error) {
-    console.error('❌ [DEMO] check-trial-status hatası:', error);
-    return {
-      success: false,
-      error: error.message,
-      trialInfo: {
-        isDemo: true,
-        daysLeft: 0,
-        expiryDate: new Date().toISOString(),
-        isExpired: true
-      }
-    };
+    logToFile('error', 'Email Trigger', 'Trigger hatası', error.message);
+    return { success: false, error: error.message };
   }
 });
 
@@ -3939,6 +3986,17 @@ ipcMain.handle('get-email-activities', async (event) => {
   }
 });
 
+// ✅ YENİ: SentEmails Listesini Getir
+ipcMain.handle('get-sent-emails', async (event) => {
+  try {
+    const sentEmails = store.get('sentEmails', []);
+    return { success: true, data: sentEmails };
+  } catch (error) {
+    logToFile('error', 'Email', 'SentEmails alınırken hata', error.message);
+    return { success: false, error: error.message, data: [] };
+  }
+});
+
 // Geçici dosyaları temizle
 ipcMain.handle('cleanup-temp-files', async (event, filePaths) => {
   try {
@@ -3975,41 +4033,5 @@ ipcMain.handle('cleanup-temp-files', async (event, filePaths) => {
   } catch (error) {
     logToFile('error', 'Temizlik', 'Geçici dosya temizleme hatası', error.message);
     return { success: false, error: error.message };
-  }
-});
-
-// ✅ YENİ: Email kontrolünü manuel tetikle (tarama bitince hemen çalışsın)
-ipcMain.handle('trigger-email-check', async () => {
-  try {
-    logToFile('info', 'Email Trigger', '📧 Manuel email kontrolü tetiklendi (tarama sonrası)');
-    
-    const automationSettings = store.get('automation-settings', {});
-    
-    // Email config kontrolü
-    if (!automationSettings.emailConfig?.enabled) {
-      logToFile('info', 'Email Trigger', 'Email otomasyonu kapalı, atlandı');
-      return { success: false, message: 'Email otomasyonu kapalı' };
-    }
-    
-    // ✅ ASENKRON: Email gönderimi arka planda çalışsın, UI'yi beklemesin
-    performBackendEmailAutomation(automationSettings).catch(err => {
-      logToFile('error', 'Email Trigger', 'Email gönderimi hatası', err.message);
-    });
-    
-    return { success: true, message: 'Email kontrolü başlatıldı' };
-  } catch (error) {
-    logToFile('error', 'Email Trigger', 'Trigger hatası', error.message);
-    return { success: false, error: error.message };
-  }
-});
-
-// Gönderilmiş emailleri getir
-ipcMain.handle('get-sent-emails', async (event) => {
-  try {
-    const sentEmails = store.get('sentEmails', []);
-    return { success: true, data: sentEmails };
-  } catch (error) {
-    logToFile('error', 'Email', 'SentEmails alınırken hata', error.message);
-    return { success: false, error: error.message, data: [] };
   }
 });

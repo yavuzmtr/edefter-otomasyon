@@ -89,9 +89,9 @@ process.on('unhandledRejection', (reason, promise) => {
   }
 });
 
-// NODE_ENV ayarı (eğer ayarlanmamışsa development olarak varsay)
+// Varsayılanı production yap: paketli uygulamada yanlışlıkla development'a düşmesin
 if (!process.env.NODE_ENV) {
-  process.env.NODE_ENV = 'development';
+  process.env.NODE_ENV = 'production';
 }
 console.log(`🟢 NODE_ENV: ${process.env.NODE_ENV}`);
 
@@ -145,6 +145,7 @@ if (!gotTheLock) {
 }
 
 const store = new Store();
+const STARTUP_HIDDEN_ARG = '--startup-hidden';
 let mainWindow;
 let tray = null;
 let trayUpdateInterval = null; // ✅ Tray menüsü güncelleme interval'i
@@ -375,6 +376,7 @@ async function waitForDevServer(url, maxAttempts = 30, delay = 300) {
 }
 
 async function createWindow(){
+  const isStartupHiddenLaunch = app.isPackaged && process.argv.includes(STARTUP_HIDDEN_ARG);
   // Startup'ta eski logları temizle
   cleanupOldLogs();
   
@@ -389,9 +391,9 @@ async function createWindow(){
       // Otomatik başlatmayı aç - Minimize başlatabilirsin (openAsHidden: true)
       app.setLoginItemSettings({
         openAtLogin: true,
-        openAsHidden: false, // false = Pencere göster, true = Arka planda başlat
+        openAsHidden: true,
         path: process.execPath,
-        args: []
+        args: [STARTUP_HIDDEN_ARG]
       });
       logToFile('success', 'Windows Startup', '✅ Otomatik başlatma AKTİF - Bilgisayar her açıldığında uygulama başlayacak ve arka planda çalışacak');
     } else {
@@ -420,7 +422,7 @@ async function createWindow(){
     show: false
   });
 
-  const isDev = process.env.NODE_ENV === 'development';
+  const isDev = !app.isPackaged && process.env.NODE_ENV === 'development';
   
   if (isDev) {
     // Development modunda DevTools'u aç
@@ -434,14 +436,14 @@ async function createWindow(){
         await mainWindow.loadURL(serverUrl);
         console.log(`✅ UI yüklendi: ${serverUrl}`);
         // UI yüklendikten sonra pencereyi göster
-        mainWindow.show();
+        if (!isStartupHiddenLaunch) mainWindow.show();
         logToFile('info', 'Sistem', 'E-Defter Otomasyon Sistemi başlatıldı');
         console.log('🟢 Pencere gösterildi');
       } catch (error) {
         console.error('❌ UI yükleme hatası:', error.message);
         logToFile('error', 'Sistem', 'UI yükleme hatası', error.message);
         // Hata durumunda yine de pencereyi göster (boş olsa da)
-        mainWindow.show();
+        if (!isStartupHiddenLaunch) mainWindow.show();
       }
     } else {
       console.error('❌ Vite dev server açılmadı. Lütfen npm run dev komutunu kontrol et.');
@@ -451,11 +453,11 @@ async function createWindow(){
       if (fs.existsSync(distPath)) {
         console.log('⚠️ dist/index.html dosyasından yükleniyor...');
         mainWindow.loadFile(distPath);
-        mainWindow.show();
+        if (!isStartupHiddenLaunch) mainWindow.show();
       } else {
         // En son çare: boş pencereyi göster
         mainWindow.loadURL('about:blank');
-        mainWindow.show();
+        if (!isStartupHiddenLaunch) mainWindow.show();
       }
     }
   } else {
@@ -464,12 +466,12 @@ async function createWindow(){
     if (fs.existsSync(indexPath)) {
       mainWindow.loadFile(indexPath);
       console.log(`✅ Production UI yüklendi: ${indexPath}`);
-      mainWindow.show();
+      if (!isStartupHiddenLaunch) mainWindow.show();
     } else {
       console.error('❌ dist/index.html bulunamadı. Önce npm run build çalıştırın.');
       logToFile('error', 'Sistem', 'dist/index.html bulunamadı', indexPath);
       mainWindow.loadURL('about:blank');
-      mainWindow.show();
+      if (!isStartupHiddenLaunch) mainWindow.show();
     }
   }
 
@@ -797,12 +799,12 @@ ipcMain.handle('save-data', async (event, key, data) => {
         
         if (shouldAutoStart) {
           // Otomatik başlatmayı aç
-          app.setLoginItemSettings({
-            openAtLogin: true,
-            openAsHidden: false,
-            path: process.execPath,
-            args: []
-          });
+      app.setLoginItemSettings({
+        openAtLogin: true,
+        openAsHidden: true,
+        path: process.execPath,
+        args: [STARTUP_HIDDEN_ARG]
+      });
           logToFile('success', 'Windows Startup', '✅ Otomatik başlatma AKTİF - Bilgisayar her açıldığında başlayacak ve arka planda çalışacak');
         } else {
           // Otomatik başlatmayı kapat

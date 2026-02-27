@@ -54,7 +54,6 @@ export const SettingsPage: React.FC = () => {
         const result = await ElectronService.loadData('email-notification-config', null);
         if (result.success && result.data) {
           const loadedConfig = result.data as EmailNotificationConfig;
-          // Güvenli config yükleme - eksik alanları varsayılan değerlerle doldur
           setEmailNotificationConfig({
             accountantEmail: loadedConfig.accountantEmail || '',
             enabled: loadedConfig.enabled || false,
@@ -62,12 +61,23 @@ export const SettingsPage: React.FC = () => {
             sendAtEvening: loadedConfig.sendAtEvening !== undefined ? loadedConfig.sendAtEvening : true,
             alertDays: Array.isArray(loadedConfig.alertDays) ? loadedConfig.alertDays : [7, 3, 1, 0]
           });
+          // --- Kesin çözüm: Servisi başlat/güncelle (sadece Electron ortamında) ---
+          if (ElectronService.isElectron && ElectronService.isElectron()) {
+            if (typeof emailNotificationService !== 'undefined' && emailNotificationService.updateConfig) {
+              await emailNotificationService.updateConfig({
+                accountantEmail: loadedConfig.accountantEmail || '',
+                enabled: loadedConfig.enabled || false,
+                sendAtMorning: loadedConfig.sendAtMorning !== undefined ? loadedConfig.sendAtMorning : true,
+                sendAtEvening: loadedConfig.sendAtEvening !== undefined ? loadedConfig.sendAtEvening : true,
+                alertDays: Array.isArray(loadedConfig.alertDays) ? loadedConfig.alertDays : [7, 3, 1, 0]
+              });
+            }
+          }
         }
       } catch (error) {
         console.error('Email notification config yükleme hatası:', error);
       }
     };
-    
     loadEmailNotificationConfig();
   }, []);
 
@@ -148,6 +158,23 @@ export const SettingsPage: React.FC = () => {
 
       // Veritabanına kaydet
       await ElectronService.saveData('email-notification-config', emailNotificationConfig);
+
+      const automationResult = await ElectronService.loadData('automation-settings', {});
+      const currentAutomationSettings = (automationResult?.success && automationResult?.data)
+        ? automationResult.data
+        : {};
+
+      const syncedAutomationSettings = {
+        ...currentAutomationSettings,
+        enabled: emailNotificationConfig.enabled ? true : (currentAutomationSettings.enabled ?? false),
+        backgroundService: emailNotificationConfig.enabled ? true : (currentAutomationSettings.backgroundService ?? true),
+        emailConfig: {
+          ...(currentAutomationSettings.emailConfig || {}),
+          ...emailNotificationConfig
+        }
+      };
+
+      await ElectronService.saveData('automation-settings', syncedAutomationSettings);
       
       // Servisi güncelle
       await emailNotificationService.updateConfig(emailNotificationConfig);

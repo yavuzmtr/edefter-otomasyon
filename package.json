@@ -113,7 +113,8 @@
       "shortcutName": "E-Defter Otomasyon",
       "runAfterFinish": true,
       "uninstallDisplayName": "E-Defter Otomasyon Sistemi",
-      "deleteAppDataOnUninstall": false,
+      "deleteAppDataOnUninstall": true,
+      "include": "scripts/installer.nsh",
       "allowElevation": true,
       "perMachine": false
     },

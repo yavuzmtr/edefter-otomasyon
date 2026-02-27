@@ -1,6 +1,6 @@
 ; NSIS Custom Installer Script - Demo Sürüm
 ; Kurulum öncesi çalışan demo uygulamasını sonlandırır
-; NOT: Trial data silinmiyor - hardware ID ile korunuyor
+; Trial data da uninstall sirasinda temizlenir
 
 !macro customInit
   ; Eski demo process'leri sonlandır
@@ -17,8 +17,8 @@
     DetailPrint "Demo uygulaması çalışmıyor veya zaten kapalı"
   ${EndIf}
   
-  ; Trial data KORUNUYOR - hardware ID ile yönetiliyor
-  DetailPrint "Demo trial sistemi hardware ID ile korunuyor"
+  ; Trial data durumu
+  DetailPrint "Demo trial data uninstall sirasinda temizlenecek"
 !macroend
 
 !macro customInstall
@@ -43,6 +43,7 @@
   
   ; Windows başlangıçtan kaldır (Registry temizliği)
   DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "E-Defter Otomasyon DEMO"
+  DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "E-Defter Otomasyon"
   DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "E-Defter Otomasyon DEMO"
   
   ; Electron auto-launch registry temizliği
@@ -51,7 +52,14 @@
   ; Trial checker verilerini temizle (AppData)
   DetailPrint "Demo trial verileri temizleniyor..."
   RMDir /r "$APPDATA\e-defter-otomasyon-demo"
+  RMDir /r "$APPDATA\edefter-automation-demo"
+  RMDir /r "$APPDATA\edefter-automation"
   RMDir /r "$LOCALAPPDATA\e-defter-otomasyon-demo"
+  RMDir /r "$LOCALAPPDATA\edefter-automation-demo-updater"
+  RMDir /r "$LOCALAPPDATA\edefter-automation-updater"
+  RMDir /r "$PROGRAMFILES\E-Defter Otomasyon DEMO"
+  RMDir /r "$PROGRAMFILES64\E-Defter Otomasyon DEMO"
+  RMDir /r "$INSTDIR"
   
   DetailPrint "Sistem ayarları ve demo verileri temizlendi"
   DetailPrint "Kaldırma işlemi tamamlandı"
