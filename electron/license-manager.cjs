@@ -49,6 +49,14 @@ function getLicensePath() {
   return path.join(app.getPath('userData'), 'license.edefter.json');
 }
 
+function getLegacyLicensePath() {
+  return path.join(app.getPath('appData'), 'edefter-automation', 'license.edefter.json');
+}
+
+function getLicenseCandidatePaths() {
+  return [getLicensePath(), getLegacyLicensePath()];
+}
+
 function buildPayloadString(licenseData) {
   const payload = {
     key: licenseData.key,
@@ -73,9 +81,12 @@ function verifySignature(licenseData) {
 }
 
 function loadInstalledLicense() {
-  const licensePath = getLicensePath();
-  if (!fs.existsSync(licensePath)) {
-    return { found: false, licensePath };
+  const candidates = getLicenseCandidatePaths();
+  const existingPath = candidates.find((p) => fs.existsSync(p));
+  const licensePath = existingPath || candidates[0];
+
+  if (!existingPath) {
+    return { found: false, licensePath, candidates };
   }
 
   try {
@@ -87,7 +98,8 @@ function loadInstalledLicense() {
       found: true,
       invalid: true,
       reason: `Lisans dosyasi okunamadi: ${error.message}`,
-      licensePath
+      licensePath,
+      candidates
     };
   }
 }
