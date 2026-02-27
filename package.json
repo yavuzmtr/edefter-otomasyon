@@ -21,6 +21,7 @@
     "pack": "npm run build && electron-builder --dir",
     "prepare-demo": "node build-demo.cjs",
     "build-demo": "npm run prepare-demo && npm run build && cross-env DEMO_VERSION=true electron-builder --config electron-builder-demo.yml --publish=never",
+    "license:studio": "node scripts/license-studio.cjs",
     "license:keys": "node scripts/generate-license-keys.cjs",
     "license:hardware": "node scripts/get-hardware-id.cjs",
     "license:generate": "node scripts/generate-license.cjs",

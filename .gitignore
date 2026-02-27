@@ -24,6 +24,7 @@ dist-ssr
 *.sw?
 .env
 .license-keys/
+data/license-studio/
 
 # Test and backup files (prevent regeneration)
 BACKUP-*.md
