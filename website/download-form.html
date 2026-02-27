@@ -189,6 +189,7 @@
         const form = document.getElementById('downloadForm');
         const submitBtn = document.getElementById('submitBtn');
         const successMessage = document.getElementById('successMessage');
+        const DEMO_DOWNLOAD_URL = 'https://github.com/yavuzmtr/edefter-otomasyon/releases/download/v1.0.0-demo/E-Defter.Otomasyon.DEMO.Setup.1.0.1.exe';
         
         // URL'den success parametresini kontrol et
         const urlParams = new URLSearchParams(window.location.search);
@@ -198,7 +199,7 @@
             
             // İndirmeyi başlat
             setTimeout(() => {
-                window.location.href = 'https://github.com/yavuzmtr/edefter-otomasyon/releases/download/v1.0.0-demo/E-Defter.Otomasyon.DEMO.Setup.1.0.1.exe';
+                window.location.href = DEMO_DOWNLOAD_URL;
                 
                 // URL'i temizle
                 setTimeout(() => {

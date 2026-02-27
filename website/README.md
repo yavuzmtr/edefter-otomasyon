@@ -57,12 +57,11 @@ Tüm dosyaları web sunucunuza yükleyin ve domain'inizi yapılandırın.
 - Şirket bilgileri
 
 ### İndirme Linkleri
-`index.html` içindeki download bölümünde:
-```html
-<a href="#" class="btn btn-primary btn-large">
-    <!-- Gerçek indirme linkini buraya ekleyin -->
-</a>
-```
+Demo indirme linki `download-form.html` içindeki `DEMO_DOWNLOAD_URL` sabitinden yönetilir.
+
+Her yeni demo release sonrası sadece bu satırı güncelleyin:
+- `website/download-form.html` (script bloğu)
+- `const DEMO_DOWNLOAD_URL = '...';`
 
 ## 📱 Responsive Tasarım
 Web sitesi tüm cihazlarda mükemmel görünüm sağlar:
