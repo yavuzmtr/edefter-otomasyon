@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: edefter-wa-gateway
+    runtime: node
+    plan: free
+    rootDir: .
+    buildCommand: npm ci --omit=optional
+    startCommand: npm run wa:gateway
+    healthCheckPath: /health
+    envVars:
+      - key: WA_GATEWAY_PORT
+        value: "10000"
+      - key: WA_GATEWAY_HOST
+        value: "0.0.0.0"
+      - key: WA_ALLOWED_ORIGIN
+        value: "https://edefterotomasyon.com.tr"
+      - key: WA_GATEWAY_KEY
+        sync: false
+      - key: WA_GRAPH_VERSION
+        value: "v22.0"
+      - key: WA_PHONE_NUMBER_ID
+        sync: false
+      - key: WA_ACCESS_TOKEN
+        sync: false
+      - key: WA_VERIFY_TOKEN
+        sync: false
+      - key: WA_DEFAULT_COUNTRY_CODE
+        value: "90"

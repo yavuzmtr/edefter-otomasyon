@@ -248,3 +248,8 @@ YAVUZ MERCİMEK
 ## Versiyon
 
 1.0.0
+
+## WhatsApp Business API
+
+- Gateway calistirma: `npm run wa:gateway`
+- Ayrintili kurulum: [docs/WHATSAPP_BUSINESS_KURULUM.md](docs/WHATSAPP_BUSINESS_KURULUM.md)
