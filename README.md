@@ -154,7 +154,7 @@ Lütfen pull request gönderin veya issue açın. Tüm geliştirmeler test edilm
 
 ## 👤 Hakkında
 
-**Geliştirici**: Yavuz Metan  
+**Geliştirici**: Yavuz Mercimek  
 **GitHub**: [@yavuzmtr](https://github.com/yavuzmtr)  
 **Sürüm**: 1.0.0  
 **Son Güncelleme**: 9 Ocak 2026
