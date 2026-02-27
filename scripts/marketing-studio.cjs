@@ -217,6 +217,8 @@ const html = `<!doctype html>
         <input id="count" type="number" min="1" max="20" value="5" />
         <button id="generate">Icerik Uret</button>
         <button id="save" class="secondary">Kaydet</button>
+        <button id="exportDraftsTxt" class="secondary">Taslaklari TXT indir</button>
+        <button id="exportDraftsJson" class="secondary">Taslaklari JSON indir</button>
       </div>
       <p class="meta">Hazir taslak uretir. Kopyala -> paylas akisi icin tasarlandi.</p>
     </div>
@@ -231,6 +233,7 @@ const html = `<!doctype html>
   </div>
 <script>
 let currentDrafts = [];
+let postIndex = {};
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')}
 function joinTags(tags){ return (tags||[]).map(t=>'<span class="chip">'+esc(t)+'</span>').join('');}
 
@@ -238,8 +241,44 @@ function copyText(v){
   navigator.clipboard.writeText(v || '').then(()=>alert('Kopyalandi'));
 }
 
+function indexPosts(posts){
+  (posts || []).forEach((p) => { postIndex[p.id] = p; });
+}
+
+function downloadFile(fileName, content, mimeType){
+  const blob = new Blob([content], { type: mimeType || 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function postPackageText(post){
+  const tags = post.hashtags || post.tags || [];
+  const lines = [
+    'PLATFORM: ' + (post.platform || ''),
+    'DURUM: ' + (post.status || 'draft'),
+    'BASLIK: ' + (post.title || ''),
+    'HOOK: ' + (post.hook || ''),
+    'CTA: ' + (post.cta || ''),
+    'ETIKETLER: ' + tags.join(', '),
+    '',
+    'METIN:',
+    post.body || ''
+  ];
+  if (post.videoFlow) {
+    lines.push('', 'VIDEO AKISI:', post.videoFlow);
+  }
+  return lines.join('\\n');
+}
+
 function postHtml(p, editable){
   const tags = p.hashtags || p.tags || [];
+  const xBtn = p.platform === 'x' ? '<button class="open-x secondary">Xte Ac</button>' : '';
   return '<div class="post" data-id="'+p.id+'">'+
     '<h4>'+esc(p.title)+'</h4>'+
     '<div class="meta">Hook: '+esc(p.hook || '-')+'</div>'+
@@ -249,6 +288,8 @@ function postHtml(p, editable){
     '<div class="row" style="margin-top:8px">'+
       '<button class="copy secondary">Metni Kopyala</button>'+
       '<button class="copy-title secondary">Baslik Kopyala</button>'+
+      xBtn+
+      '<button class="download-one secondary">Paket indir</button>'+
       (editable ? '<button class="mark" data-status="ready">Ready</button><button class="mark secondary" data-status="published">Published</button>' : '')+
     '</div>'+
   '</div>';
@@ -256,11 +297,13 @@ function postHtml(p, editable){
 
 async function loadSaved(){
   const res = await fetch('/api/state'); const data = await res.json();
+  indexPosts(data.posts || []);
   document.getElementById('saved').innerHTML = data.posts.map(p=>postHtml(p,true)).join('') || '<p>Kayit yok</p>';
   bindActions();
 }
 
 function renderDrafts(){
+  indexPosts(currentDrafts);
   document.getElementById('drafts').innerHTML = currentDrafts.map(p=>postHtml(p,false)).join('') || '<p>Taslak yok</p>';
   bindActions();
 }
@@ -287,6 +330,26 @@ function bindActions(){
       copyText(title);
     };
   });
+
+  document.querySelectorAll('.open-x').forEach(btn=>{
+    btn.onclick = () => {
+      const id = btn.closest('.post').getAttribute('data-id');
+      const p = postIndex[id];
+      if (!p) return;
+      const url = 'https://x.com/intent/tweet?text=' + encodeURIComponent(p.body || '');
+      window.open(url, '_blank');
+    };
+  });
+
+  document.querySelectorAll('.download-one').forEach(btn=>{
+    btn.onclick = () => {
+      const id = btn.closest('.post').getAttribute('data-id');
+      const p = postIndex[id];
+      if (!p) return;
+      const safeTitle = (p.title || 'icerik').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 50);
+      downloadFile('paket-' + safeTitle + '.txt', postPackageText(p), 'text/plain;charset=utf-8');
+    };
+  });
 }
 
 document.getElementById('generate').onclick = async () => {
@@ -306,6 +369,17 @@ document.getElementById('save').onclick = async () => {
   if (!currentDrafts.length) return;
   await fetch('/api/save', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({posts:currentDrafts})});
   await loadSaved();
+};
+
+document.getElementById('exportDraftsTxt').onclick = () => {
+  if (!currentDrafts.length) return alert('Once icerik uret');
+  const text = currentDrafts.map((p, i) => '--- Taslak ' + (i + 1) + ' ---\\n' + postPackageText(p)).join('\\n\\n');
+  downloadFile('taslaklar.txt', text, 'text/plain;charset=utf-8');
+};
+
+document.getElementById('exportDraftsJson').onclick = () => {
+  if (!currentDrafts.length) return alert('Once icerik uret');
+  downloadFile('taslaklar.json', JSON.stringify(currentDrafts, null, 2), 'application/json;charset=utf-8');
 };
 
 loadSaved();
