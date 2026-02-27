@@ -63,6 +63,10 @@ Her yeni demo release sonrası sadece bu satırı güncelleyin:
 - `website/download-form.html` (script bloğu)
 - `const DEMO_DOWNLOAD_URL = '...';`
 
+Full surum icin gizli indirme sayfasi:
+- `website/full-download-portal-7f3a9c.html`
+- `ACCESS_CODE` ve `FULL_DOWNLOAD_URL` degiskenlerini release sonrasinda guncelleyin.
+
 ## 📱 Responsive Tasarım
 Web sitesi tüm cihazlarda mükemmel görünüm sağlar:
 - 💻 Desktop (1200px+)

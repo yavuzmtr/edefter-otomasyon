@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Full Surum Indirme</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .portal-wrap {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        }
+        .portal-card {
+            width: 100%;
+            max-width: 460px;
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: 0 16px 50px rgba(0, 0, 0, 0.28);
+        }
+        .portal-card h1 {
+            margin: 0 0 8px;
+            font-size: 26px;
+            color: #0f172a;
+        }
+        .portal-card p {
+            margin: 0 0 18px;
+            color: #475569;
+        }
+        .portal-card input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            font-size: 15px;
+            margin-bottom: 12px;
+        }
+        .portal-card button {
+            width: 100%;
+            border: 0;
+            border-radius: 10px;
+            padding: 12px;
+            background: #0ea5e9;
+            color: #ffffff;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .error {
+            display: none;
+            margin-top: 10px;
+            color: #dc2626;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <main class="portal-wrap">
+        <section class="portal-card">
+            <h1>Full Surum Indirme</h1>
+            <p>Lutfen size iletilen erisim kodunu girin.</p>
+            <input id="accessCode" type="password" placeholder="Erisim kodu">
+            <button id="downloadBtn" type="button">Dogrula ve indir</button>
+            <div id="errorMsg" class="error">Kod hatali.</div>
+        </section>
+    </main>
+
+    <script>
+        const ACCESS_CODE = "MUSTERI-2026";
+        const FULL_DOWNLOAD_URL = "https://github.com/yavuzmtr/edefter-otomasyon/releases/download/v1.0.1-full/E-Defter.Otomasyon.Setup.1.0.1.exe";
+        const input = document.getElementById("accessCode");
+        const btn = document.getElementById("downloadBtn");
+        const error = document.getElementById("errorMsg");
+
+        btn.addEventListener("click", () => {
+            if (input.value === ACCESS_CODE) {
+                window.location.href = FULL_DOWNLOAD_URL;
+                return;
+            }
+            error.style.display = "block";
+        });
+    </script>
+</body>
+</html>
