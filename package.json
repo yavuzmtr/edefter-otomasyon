@@ -21,6 +21,8 @@
     "pack": "npm run build && electron-builder --dir",
     "prepare-demo": "node build-demo.cjs",
     "build-demo": "npm run prepare-demo && npm run build && cross-env DEMO_VERSION=true electron-builder --config electron-builder-demo.yml --publish=never",
+    "license:keys": "node scripts/generate-license-keys.cjs",
+    "license:generate": "node scripts/generate-license.cjs",
     "postinstall": "npx electron-builder install-app-deps",
     "uninstall-test": "powershell.exe -ExecutionPolicy Bypass -File scripts/smart-uninstaller.ps1 QUICK_UNINSTALL",
     "uninstall-full": "powershell.exe -ExecutionPolicy Bypass -File scripts/smart-uninstaller.ps1 FULL_CLEANUP",

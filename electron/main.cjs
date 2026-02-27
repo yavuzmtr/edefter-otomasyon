@@ -116,6 +116,7 @@ try {
 }
 const archiver = require('archiver');
 const Store = require('electron-store');
+const licenseManager = require('./license-manager.cjs');
 
 // Handle Squirrel Windows installer events
 if (require('electron-squirrel-startup')) app.quit();
@@ -3124,6 +3125,22 @@ ipcMain.handle('check-trial-status', async () => {
   };
 });
 
+ipcMain.handle('check-license-status', async () => {
+  try {
+    return { success: true, ...licenseManager.validateInstalledLicense() };
+  } catch (error) {
+    return { success: false, valid: false, reason: error.message };
+  }
+});
+
+ipcMain.handle('get-license-hardware-id', async () => {
+  try {
+    return { success: true, hardwareId: licenseManager.getHardwareFingerprint() };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
 // ✅ YENİ: Email kontrolünü manuel tetikle (tarama bitince hemen çalışsın)
 ipcMain.handle('trigger-email-check', async () => {
   try {
@@ -3690,6 +3707,28 @@ ipcMain.handle('create-excel-template', async (event, data, options = {}) => {
 
 // App başlatıldığında pencereyi oluştur
 app.whenReady().then(() => {
+  if (app.isPackaged) {
+    const licenseStatus = licenseManager.validateInstalledLicense();
+    if (!licenseStatus.valid) {
+      const detail = [
+        `Neden: ${licenseStatus.reason || 'Lisans gecersiz'}`,
+        '',
+        `Cihaz Kimligi: ${licenseStatus.hardwareId || '-'}`,
+        `Lisans Dosya Yolu: ${licenseStatus.licensePath || '-'}`
+      ].join('\n');
+
+      dialog.showMessageBoxSync({
+        type: 'error',
+        title: 'Lisans Dogrulama Basarisiz',
+        message: 'Bu cihazda gecerli bir Full lisans bulunamadi.',
+        detail
+      });
+
+      app.quit();
+      return;
+    }
+  }
+
   createWindow();
   createTray(); // ✅ Sistem tepsisi ikonu oluştur
   logToFile('info', 'Sistem', 'App başlatıldı, pencere ve tray oluşturuldu');

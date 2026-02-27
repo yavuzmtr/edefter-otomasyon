@@ -51,6 +51,8 @@ declare global {
       testEmailConnection: (emailConfig: any) => Promise<{success: boolean, message: string}>;
       sendTestEmailNotification: (accountantEmail: string) => Promise<{success: boolean, error?: string}>;
       checkTrialStatus: () => Promise<{success: boolean, trialInfo?: {isDemo: boolean, daysLeft: number, expiryDate: string, isExpired: boolean}, error?: string}>;
+      checkLicenseStatus: () => Promise<{success: boolean, valid?: boolean, reason?: string, hardwareId?: string, licensePath?: string, license?: any, error?: string}>;
+      getLicenseHardwareId: () => Promise<{success: boolean, hardwareId?: string, error?: string}>;
       triggerEmailCheck: () => Promise<{success: boolean, message?: string, error?: string}>;
     };
   }
@@ -500,6 +502,30 @@ export class ElectronService {
       return await window.electronAPI.triggerEmailCheck();
     } catch (error: unknown) {
       console.error('Email kontrolü tetiklenemedi:', error);
+      return { success: false, error: getErrorMessage(error) };
+    }
+  }
+
+  static async checkLicenseStatus(): Promise<{success: boolean, valid?: boolean, reason?: string, hardwareId?: string, licensePath?: string, license?: any, error?: string}> {
+    if (!this.isElectron()) {
+      return { success: false, error: 'Bu özellik sadece Electron uygulamasında çalışır' };
+    }
+    try {
+      return await window.electronAPI.checkLicenseStatus();
+    } catch (error: unknown) {
+      console.error('Lisans bilgisi yüklenemedi:', error);
+      return { success: false, error: getErrorMessage(error) };
+    }
+  }
+
+  static async getLicenseHardwareId(): Promise<{success: boolean, hardwareId?: string, error?: string}> {
+    if (!this.isElectron()) {
+      return { success: false, error: 'Bu özellik sadece Electron uygulamasında çalışır' };
+    }
+    try {
+      return await window.electronAPI.getLicenseHardwareId();
+    } catch (error: unknown) {
+      console.error('Cihaz lisans kimliği alınamadı:', error);
       return { success: false, error: getErrorMessage(error) };
     }
   }

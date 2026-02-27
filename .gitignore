@@ -23,6 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 .env
+.license-keys/
 
 # Test and backup files (prevent regeneration)
 BACKUP-*.md

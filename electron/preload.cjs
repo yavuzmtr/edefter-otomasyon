@@ -87,6 +87,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // ✅ Trial Status - Demo süresi bilgisi
   checkTrialStatus: () => ipcRenderer.invoke('check-trial-status'),
+  checkLicenseStatus: () => ipcRenderer.invoke('check-license-status'),
+  getLicenseHardwareId: () => ipcRenderer.invoke('get-license-hardware-id'),
   
   // ✅ YENİ: Email kontrolünü manuel tetikle (tarama bitince otomatik mail)
   triggerEmailCheck: () => ipcRenderer.invoke('trigger-email-check')
