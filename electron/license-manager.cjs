@@ -49,12 +49,46 @@ function getLicensePath() {
   return path.join(app.getPath('userData'), 'license.edefter.json');
 }
 
+function getLicencePath() {
+  return path.join(app.getPath('userData'), 'licence.edefter.json');
+}
+
 function getLegacyLicensePath() {
   return path.join(app.getPath('appData'), 'edefter-automation', 'license.edefter.json');
 }
 
+function getLegacyLicencePath() {
+  return path.join(app.getPath('appData'), 'edefter-automation', 'licence.edefter.json');
+}
+
+function listDynamicLicenseFiles(dirPath) {
+  try {
+    if (!fs.existsSync(dirPath)) return [];
+    const files = fs.readdirSync(dirPath);
+    return files
+      .filter((name) => /^licen[cs]e-.*\.json$/i.test(name))
+      .map((name) => path.join(dirPath, name));
+  } catch {
+    return [];
+  }
+}
+
 function getLicenseCandidatePaths() {
-  return [getLicensePath(), getLegacyLicensePath()];
+  const userDataDir = app.getPath('userData');
+  const legacyDir = path.join(app.getPath('appData'), 'edefter-automation');
+  const baseCandidates = [
+    getLicensePath(),
+    getLicencePath(),
+    getLegacyLicensePath(),
+    getLegacyLicencePath()
+  ];
+
+  const dynamicCandidates = [
+    ...listDynamicLicenseFiles(userDataDir),
+    ...listDynamicLicenseFiles(legacyDir)
+  ];
+
+  return Array.from(new Set([...baseCandidates, ...dynamicCandidates]));
 }
 
 function buildPayloadString(licenseData) {
@@ -82,7 +116,10 @@ function verifySignature(licenseData) {
 
 function loadInstalledLicense() {
   const candidates = getLicenseCandidatePaths();
-  const existingPath = candidates.find((p) => fs.existsSync(p));
+  const existingCandidates = candidates.filter((p) => fs.existsSync(p));
+  const existingPath = existingCandidates
+    .map((p) => ({ p, mtime: fs.statSync(p).mtimeMs || 0 }))
+    .sort((a, b) => b.mtime - a.mtime)[0]?.p;
   const licensePath = existingPath || candidates[0];
 
   if (!existingPath) {
