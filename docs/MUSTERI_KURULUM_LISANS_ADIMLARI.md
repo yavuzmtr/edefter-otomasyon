@@ -28,6 +28,7 @@ Tarafimizdan size cihaziniza ozel lisans dosyasi gonderilecektir.
 
 Not:
 - `license-LCN-....json` veya `licence.edefter.json` iki format da desteklenir.
+- Lisans yoneticide "Anahtari Yenile" yapildiysa yeni kurulum dosyasi gerekir. Eski kurulum ile yeni lisans uyusmayabilir.
 
 ## 5) Programi yeniden ac
 

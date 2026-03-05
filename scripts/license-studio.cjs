@@ -47,8 +47,28 @@ function saveRecords(records) {
   fs.writeFileSync(RECORDS_PATH, JSON.stringify({ records }, null, 2), 'utf8');
 }
 
-function createLicenseKeys() {
+function getPublicKeyFingerprint() {
+  if (!fs.existsSync(PUBLIC_KEY_PATH)) return null;
+  const pem = fs.readFileSync(PUBLIC_KEY_PATH, 'utf8');
+  return crypto.createHash('sha256').update(pem).digest('hex').slice(0, 16);
+}
+
+function createLicenseKeys({ force = false } = {}) {
   ensureDir(KEY_DIR);
+
+  if (!force && fs.existsSync(PRIVATE_KEY_PATH) && fs.existsSync(PUBLIC_KEY_PATH)) {
+    if (!fs.existsSync(APP_PUBLIC_KEY_PATH)) {
+      fs.copyFileSync(PUBLIC_KEY_PATH, APP_PUBLIC_KEY_PATH);
+    }
+    return {
+      reused: true,
+      privateKeyPath: PRIVATE_KEY_PATH,
+      publicKeyPath: PUBLIC_KEY_PATH,
+      appPublicKeyPath: APP_PUBLIC_KEY_PATH,
+      fingerprint: getPublicKeyFingerprint()
+    };
+  }
+
   const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
     modulusLength: 2048,
     publicKeyEncoding: { type: 'spki', format: 'pem' },
@@ -60,9 +80,11 @@ function createLicenseKeys() {
   fs.writeFileSync(APP_PUBLIC_KEY_PATH, publicKey, 'utf8');
 
   return {
+    reused: false,
     privateKeyPath: PRIVATE_KEY_PATH,
     publicKeyPath: PUBLIC_KEY_PATH,
-    appPublicKeyPath: APP_PUBLIC_KEY_PATH
+    appPublicKeyPath: APP_PUBLIC_KEY_PATH,
+    fingerprint: getPublicKeyFingerprint()
   };
 }
 
@@ -195,7 +217,8 @@ function getUiHtml() {
   <div class="card">
     <h2>Hazirlik</h2>
     <div class="row">
-      <button id="btnInitKeys" class="muted">Anahtar Olustur / Yenile</button>
+      <button id="btnInitKeys" class="muted">Anahtar Hazirla</button>
+      <button id="btnRotateKeys" class="warn">Anahtari Yenile (Dikkat)</button>
       <span id="keyStatus" class="small mono"></span>
     </div>
   </div>
@@ -266,14 +289,22 @@ function getUiHtml() {
     async function refreshKeyStatus() {
       const st = await api('/api/status');
       document.getElementById('keyStatus').textContent = st.hasPrivateKey
-        ? 'Private key hazir'
+        ? ('Private key hazir | Fingerprint: ' + (st.fingerprint || '-'))
         : 'Private key yok';
     }
 
     document.getElementById('btnInitKeys').onclick = async () => {
-      const res = await api('/api/init-keys', 'POST');
+      const res = await api('/api/init-keys', 'POST', { force: false });
       if (!res.success) { alert(res.error || 'Anahtar olusturma hatasi'); return; }
-      alert('Anahtarlar hazirlandi.');
+      alert(res.result.reused ? 'Mevcut anahtar kullanildi.' : 'Yeni anahtar olusturuldu.');
+      await refreshKeyStatus();
+    };
+
+    document.getElementById('btnRotateKeys').onclick = async () => {
+      if (!confirm('Anahtar yenilenirse eski kurulumlardaki lisanslar gecersiz olabilir. Devam edilsin mi?')) return;
+      const res = await api('/api/init-keys', 'POST', { force: true });
+      if (!res.success) { alert(res.error || 'Anahtar yenileme hatasi'); return; }
+      alert('Anahtar yenilendi. Yeni build alinmadan lisans dagitmayin.');
       await refreshKeyStatus();
     };
 
@@ -315,6 +346,7 @@ async function requestHandler(req, res) {
       json(res, 200, {
         success: true,
         hasPrivateKey: hasPrivateKey(),
+        fingerprint: getPublicKeyFingerprint(),
         dataDir: DATA_DIR,
         licenseDir: LICENSE_DIR
       });
@@ -322,7 +354,8 @@ async function requestHandler(req, res) {
     }
 
     if (req.method === 'POST' && req.url === '/api/init-keys') {
-      const result = createLicenseKeys();
+      const body = await parseBody(req);
+      const result = createLicenseKeys({ force: Boolean(body.force) });
       json(res, 200, { success: true, result });
       return;
     }
