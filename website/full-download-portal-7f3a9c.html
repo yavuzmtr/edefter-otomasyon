@@ -56,6 +56,13 @@
             color: #dc2626;
             font-size: 14px;
         }
+        .meta {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #64748b;
+            line-height: 1.4;
+            word-break: break-all;
+        }
     </style>
 </head>
 <body>
@@ -65,6 +72,11 @@
             <p>Lutfen size iletilen erisim kodunu girin.</p>
             <input id="accessCode" type="password" placeholder="Erisim kodu">
             <button id="downloadBtn" type="button">Dogrula ve indir</button>
+            <div class="meta">
+                Kurulumda lisans sozlesmesi onayi istenir.<br>
+                Dosya boyutu: 101 MB<br>
+                SHA256: 88e3554365c69720bcc20f6c3522bd4e0b0d23b928a8e25d982893cc9547e17c
+            </div>
             <div id="errorMsg" class="error">Kod hatali.</div>
         </section>
     </main>

@@ -190,12 +190,13 @@
         const submitBtn = document.getElementById('submitBtn');
         const successMessage = document.getElementById('successMessage');
         const DEMO_DOWNLOAD_URL = 'https://github.com/yavuzmtr/edefter-otomasyon/releases/download/v1.0.0-demo/E-Defter.Otomasyon.DEMO.Setup.1.0.1.exe';
+        const DEMO_FILE_SIZE = '101 MB';
         
         // URL'den success parametresini kontrol et
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('success') === 'true') {
             successMessage.style.display = 'block';
-            successMessage.textContent = '✅ Form gönderildi! İndirme başlıyor...';
+            successMessage.textContent = `✅ Form gönderildi! İndirme başlıyor... (Dosya: ${DEMO_FILE_SIZE})`;
             
             // İndirmeyi başlat
             setTimeout(() => {
