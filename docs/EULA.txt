@@ -1,0 +1,22 @@
+E-DEFTER OTOMASYON SISTEMI - KULLANIM SOZLESMESI
+
+Bu yazilimi kurarak ve kullanarak asagidaki sartlari kabul etmis olursunuz.
+
+1. LISANS
+Bu yazilim, sadece lisans sahibi kullanici/kurum tarafindan kullanilabilir.
+Lisans anahtari cihaz/kurum bazlidir ve devredilemez.
+
+2. KOPYALAMA VE DAGITIM
+Yazilimin kopyalanmasi, tersine muhendisligi, izinsiz dagitimi yasaktir.
+
+3. SORUMLULUK
+Yazilim "oldugu gibi" saglanir. Dogrudan veya dolayli zararlar
+icin sorumluluk kabul edilmez.
+
+4. GUNCELLEME
+Guncellemeler lisans kosullari ile birlikte uygulanabilir.
+
+5. FIKRI MULKIYET
+Yazilimin tum haklari E-Defter Otomasyon Sistemine aittir.
+
+Bu sozlesmeyi kabul etmiyorsaniz kurulumu iptal ediniz.

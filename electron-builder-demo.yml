@@ -27,6 +27,7 @@ nsis:
   installerIcon: icon.ico
   uninstallerIcon: icon.ico
   installerHeaderIcon: icon.ico
+  license: docs/EULA.txt
   deleteAppDataOnUninstall: false
   shortcutName: E-Defter Otomasyon DEMO
 publish: null

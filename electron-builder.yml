@@ -34,6 +34,7 @@ nsis:
   installerIcon: icon.ico
   uninstallerIcon: icon.ico
   installerHeaderIcon: icon.ico
+  license: docs/EULA.txt
   installerSidebar: null
   include: scripts/installer.nsh
   # Uninstall handler
