@@ -191,6 +191,7 @@
         const successMessage = document.getElementById('successMessage');
         const DEMO_DOWNLOAD_URL = 'https://github.com/yavuzmtr/edefter-otomasyon/releases/download/v1.0.0-demo/E-Defter.Otomasyon.DEMO.Setup.1.0.1.exe';
         const DEMO_FILE_SIZE = '101 MB';
+        const DEMO_SHA256 = '949b4f3a7fbb9f82f6139067531168fbaee0d87aaada3c74e45042a074f...';
         
         // URL'den success parametresini kontrol et
         const urlParams = new URLSearchParams(window.location.search);
@@ -209,6 +210,15 @@
                 }, 2000);
             }, 1000);
         }
+
+        // Demo hash bilgisini sayfada göster (isteğe bağlı)
+        const hashInfo = document.createElement('div');
+        hashInfo.style.marginTop = '12px';
+        hashInfo.style.fontSize = '12px';
+        hashInfo.style.color = '#64748b';
+        hashInfo.style.wordBreak = 'break-all';
+        hashInfo.textContent = `SHA256: ${DEMO_SHA256}`;
+        successMessage.parentNode.appendChild(hashInfo);
         
         // Tarih alanını otomatik doldur
         document.getElementById('timestamp').value = new Date().toLocaleString('tr-TR');

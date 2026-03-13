@@ -62,6 +62,7 @@ Demo indirme linki `download-form.html` içindeki `DEMO_DOWNLOAD_URL` sabitinden
 Her yeni demo release sonrası sadece bu satırı güncelleyin:
 - `website/download-form.html` (script bloğu)
 - `const DEMO_DOWNLOAD_URL = '...';`
+ - `const DEMO_SHA256 = '...';`
 
 Full surum icin gizli indirme sayfasi:
 - `website/full-download-portal-7f3a9c.html`
