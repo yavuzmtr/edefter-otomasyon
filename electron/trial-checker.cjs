@@ -77,11 +77,11 @@ const trialStore = new Store({
 });
 
 // DEMO SÜRÜM: 10 dakikalık deneme süresi (TEST İÇİN)
-// DEMO SÜRESİ: Varsayılan 2 dakika (TEST için)
+// DEMO SÜRESİ: Varsayılan 15 dakika
 // İstenirse build sırasında DEMO_TRIAL_MINUTES env ile ayarlanabilir.
 const TRIAL_DURATION_MINUTES = Math.max(
   1,
-  parseInt(process.env.DEMO_TRIAL_MINUTES || '2', 10)
+  parseInt(process.env.DEMO_TRIAL_MINUTES || '15', 10)
 );
 const TRIAL_DURATION = TRIAL_DURATION_MINUTES * 60 * 1000; // dakika -> ms
 const TRIAL_DAYS = Math.max(1, Math.ceil(TRIAL_DURATION / (24 * 60 * 60 * 1000)));
