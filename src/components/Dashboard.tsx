@@ -35,6 +35,10 @@ export const Dashboard: React.FC = () => {
     daysLeft: number;
     expiryDate: string;
     isExpired: boolean;
+    remainingMinutes?: number;
+    totalMinutes?: number;
+    isShortTrial?: boolean;
+    timeLeftText?: string;
   } | null>(null);
 
   const [pieData, setPieData] = useState([
@@ -215,12 +219,16 @@ export const Dashboard: React.FC = () => {
                     }`}>
                       {trialInfo.isExpired 
                         ? 'Demo Süresi Doldu' 
-                        : `${trialInfo.daysLeft} Gün Kaldı`}
+                        : trialInfo.isShortTrial
+                          ? `${trialInfo.remainingMinutes ?? 0} Dakika Kaldı`
+                          : `${trialInfo.daysLeft} Gün Kaldı`}
                     </p>
                     <p className="text-xs text-gray-600">
                       {trialInfo.isExpired 
                         ? 'Lisans satın alın' 
-                        : `Son: ${new Date(trialInfo.expiryDate).toLocaleDateString('tr-TR')}`}
+                        : trialInfo.isShortTrial
+                          ? `Son: ${new Date(trialInfo.expiryDate).toLocaleString('tr-TR')}`
+                          : `Son: ${new Date(trialInfo.expiryDate).toLocaleDateString('tr-TR')}`}
                     </p>
                   </div>
                 </div>

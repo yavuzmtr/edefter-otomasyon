@@ -280,6 +280,18 @@ function getTrialInfo() {
   const firstRunDate = trialStore.get('firstRunDate');
   const remainingDays = getRemainingDays();
   const isExpired = isTrialExpired();
+  const now = Date.now();
+  const elapsed = firstRunDate ? now - firstRunDate : 0;
+  const remainingMs = Math.max(0, TRIAL_DURATION - elapsed);
+  const remainingMinutes = Math.ceil(remainingMs / 60000);
+  const totalMinutes = Math.ceil(TRIAL_DURATION / 60000);
+  const isShortTrial = TRIAL_DURATION < (24 * 60 * 60 * 1000);
+
+  const timeLeftText = isExpired
+    ? 'Süre doldu'
+    : isShortTrial
+      ? `${Math.max(0, remainingMinutes)} dakika kaldı`
+      : `${remainingDays} gün kaldı`;
   
   return {
     isDemo: true, // ✅ DEMO VERSİYON
@@ -289,7 +301,11 @@ function getTrialInfo() {
     isTrialVersion: true,
     firstRunDate: firstRunDate ? new Date(firstRunDate).toLocaleDateString('tr-TR') : null,
     remainingDays,
-    totalDays: TRIAL_DAYS
+    totalDays: TRIAL_DAYS,
+    remainingMinutes,
+    totalMinutes,
+    isShortTrial,
+    timeLeftText
   };
 }
 
