@@ -76,14 +76,13 @@ const trialStore = new Store({
   cwd: resolveTrialStoreDir()
 });
 
-// DEMO SÜRÜM: 10 dakikalık deneme süresi (TEST İÇİN)
-// DEMO SÜRESİ: Varsayılan 15 dakika
-// İstenirse build sırasında DEMO_TRIAL_MINUTES env ile ayarlanabilir.
-const TRIAL_DURATION_MINUTES = Math.max(
+// DEMO SÜRESİ: Varsayılan 15 gün
+// İstenirse build sırasında DEMO_TRIAL_DAYS env ile ayarlanabilir.
+const TRIAL_DURATION_DAYS = Math.max(
   1,
-  parseInt(process.env.DEMO_TRIAL_MINUTES || '15', 10)
+  parseInt(process.env.DEMO_TRIAL_DAYS || '15', 10)
 );
-const TRIAL_DURATION = TRIAL_DURATION_MINUTES * 60 * 1000; // dakika -> ms
+const TRIAL_DURATION = TRIAL_DURATION_DAYS * 24 * 60 * 60 * 1000; // gün -> ms
 const TRIAL_DAYS = Math.max(1, Math.ceil(TRIAL_DURATION / (24 * 60 * 60 * 1000)));
 
 /**
@@ -250,8 +249,8 @@ async function checkTrial() {
     safeLog('[DEMO] Trial süresi doldu! Uygulama kapatılıyor...');
     await showTrialExpiredDialog();
     return false;
-  } else if (remaining <= 2 * 60 * 1000) {
-    // Son 2 dakika - uyarı göster (TEST için daha erken)
+  } else if (remaining <= 2 * 24 * 60 * 60 * 1000) {
+    // Son 2 gün - uyarı göster
     let timeLeft;
     if (remainingMinutes > 60) {
       timeLeft = `${remainingHours} saat`;
