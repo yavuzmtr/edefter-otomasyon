@@ -40,6 +40,11 @@ if (whenReadyPattern.test(mainContent)) {
     whenReadyPattern,
     `app.whenReady().then(async () => {
   // ========== DEMO VERSION - TRIAL CHECK ==========
+  if (IS_DEMO_BUILD) {
+    try {
+      app.setLoginItemSettings({ openAtLogin: false });
+    } catch (e) {}
+  }
   const canContinue = await trialChecker.checkTrial();
   if (!canContinue) {
     return; // Trial expired, app will quit
@@ -94,6 +99,27 @@ ipcMain.handle('check-trial-status', async () => {
     console.log('✅ check-trial-status demo mekanizması ile değiştirildi');
   } else {
     console.warn('⚠️ Uyarı: check-trial-status handler bulunamadı!');
+  }
+
+  // 4.7. Demo versiyonda tray ve arka plan çalışmasını kapat
+  mainContent = mainContent.replace(
+    /createTray\(\);/g,
+    'if (!IS_DEMO_BUILD) { createTray(); }'
+  );
+
+  // 4.8. Demo versiyonda pencere kapanınca tamamen çık
+  const windowAllClosedPattern = /app\.on\('window-all-closed',\s*\(\)\s*=>\s*\{[\s\S]*?\}\);/;
+  if (windowAllClosedPattern.test(mainContent)) {
+    mainContent = mainContent.replace(
+      windowAllClosedPattern,
+      `app.on('window-all-closed', () => {
+  logToFile('info', 'Sistem', 'Demo: Tüm pencereler kapatıldı - uygulama kapatılıyor');
+  app.quit();
+});`
+    );
+    console.log('✅ Demo için window-all-closed davranışı güncellendi');
+  } else {
+    console.warn('⚠️ Uyarı: window-all-closed handler bulunamadı!');
   }
 
   // 4.6. Demo versiyonda lisans doğrulama kontrolünü devre dışı bırak
