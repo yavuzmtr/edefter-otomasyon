@@ -135,8 +135,8 @@
     <div class="download-form-container">
         <div class="form-card">
             <div class="form-header">
-                <h1>🎯 Demo Sürümünü İndirin</h1>
-                <p>15 günlük ücretsiz deneme için bilgilerinizi girin</p>
+                <h1>🔧 Demo İndirme Geçici Olarak Kapalı</h1>
+                <p>Teknik çalışma nedeniyle demo şu an indirilemiyor.</p>
             </div>
             
             <form id="downloadForm" action="https://formsubmit.co/edefterotomasyon@gmail.com" method="POST">
@@ -167,15 +167,15 @@
                 <input type="hidden" name="Tarih" id="timestamp">
                 
                 <button type="submit" class="submit-btn" id="submitBtn">
-                    💾 Demo İndir
+                    📩 Bilgilerimi Gönder
                 </button>
                 
                 <div class="success-message" id="successMessage">
-                    ✅ İndirme başlıyor! Bilgileriniz kaydedildi.
+                    ✅ Bilgileriniz kaydedildi. Demo sürüm e‑posta ile paylaşılacaktır.
                 </div>
                 
                 <p class="privacy-note">
-                    Bilgileriniz sadece demo takibi için kullanılacaktır. Spam göndermiyoruz.
+                    Bilgileriniz sadece demo paylaşımı için kullanılacaktır. Spam göndermiyoruz.
                 </p>
             </form>
             
@@ -197,28 +197,21 @@
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('success') === 'true') {
             successMessage.style.display = 'block';
-            successMessage.textContent = `✅ Form gönderildi! İndirme başlıyor... (Dosya: ${DEMO_FILE_SIZE})`;
+            successMessage.textContent = '✅ Bilgileriniz kaydedildi. Demo sürüm e‑posta ile paylaşılacaktır.';
             
-            // İndirmeyi başlat
+            // URL'i temizle
             setTimeout(() => {
-                window.location.href = DEMO_DOWNLOAD_URL;
-                
-                // URL'i temizle
-                setTimeout(() => {
-                    window.history.replaceState({}, document.title, 'download-form.html');
-                    successMessage.style.display = 'none';
-                }, 2000);
-            }, 1000);
+                window.history.replaceState({}, document.title, 'download-form.html');
+            }, 2000);
         }
 
-        // Demo hash bilgisini sayfada göster (isteğe bağlı)
-        const hashInfo = document.createElement('div');
-        hashInfo.style.marginTop = '12px';
-        hashInfo.style.fontSize = '12px';
-        hashInfo.style.color = '#64748b';
-        hashInfo.style.wordBreak = 'break-all';
-        hashInfo.textContent = `SHA256: ${DEMO_SHA256}`;
-        successMessage.parentNode.appendChild(hashInfo);
+        // Demo indirmenin kapalı olduğunu vurgula
+        const notice = document.createElement('div');
+        notice.style.marginTop = '12px';
+        notice.style.fontSize = '12px';
+        notice.style.color = '#64748b';
+        notice.textContent = 'Teknik çalışma bitince demo dosyası e‑posta ile paylaşılacaktır.';
+        successMessage.parentNode.appendChild(notice);
         
         // Tarih alanını otomatik doldur
         document.getElementById('timestamp').value = new Date().toLocaleString('tr-TR');
