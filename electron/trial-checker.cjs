@@ -4,6 +4,8 @@ const Store = require('electron-store');
 const { app, dialog } = require('electron');
 const os = require('os');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 
 // Safe console logging için helper
 function safeLog(...args) {
@@ -34,14 +36,55 @@ function getHardwareId() {
   return hwId;
 }
 
-const trialStore = new Store({ 
+function resolveTrialStoreDir() {
+  const preferredDir = process.env.DEMO_TRIAL_STORE_DIR
+    ? process.env.DEMO_TRIAL_STORE_DIR
+    : path.join(app.getPath('appData'), 'edefter-automation-demo');
+
+  const legacyDirs = [
+    app.getPath('userData'),
+    path.join(app.getPath('appData'), 'e-defter-otomasyon-demo')
+  ];
+
+  try {
+    if (!fs.existsSync(preferredDir)) {
+      fs.mkdirSync(preferredDir, { recursive: true });
+    }
+  } catch (e) {
+    // Klasor olusmazsa electron-store kendi defaultuna duser
+  }
+
+  const trialFile = 'trial-data.json';
+  const preferredFile = path.join(preferredDir, trialFile);
+
+  for (const dir of legacyDirs) {
+    try {
+      const legacyFile = path.join(dir, trialFile);
+      if (fs.existsSync(legacyFile) && !fs.existsSync(preferredFile)) {
+        fs.copyFileSync(legacyFile, preferredFile);
+      }
+    } catch (e) {
+      // Eski dosyayi tasima hatasi olursa sessiz gec
+    }
+  }
+
+  return preferredDir;
+}
+
+const trialStore = new Store({
   name: 'trial-data',
-  cwd: app.getPath('userData')
+  cwd: resolveTrialStoreDir()
 });
 
-// DEMO SÜRÜM: 15 günlük deneme süresi
-const TRIAL_DAYS = 15;
-const TRIAL_DURATION = 15 * 24 * 60 * 60 * 1000; // 15 gün (1296000000 ms)
+// DEMO SÜRÜM: 10 dakikalık deneme süresi (TEST İÇİN)
+// DEMO SÜRESİ: Varsayılan 2 dakika (TEST için)
+// İstenirse build sırasında DEMO_TRIAL_MINUTES env ile ayarlanabilir.
+const TRIAL_DURATION_MINUTES = Math.max(
+  1,
+  parseInt(process.env.DEMO_TRIAL_MINUTES || '2', 10)
+);
+const TRIAL_DURATION = TRIAL_DURATION_MINUTES * 60 * 1000; // dakika -> ms
+const TRIAL_DAYS = Math.max(1, Math.ceil(TRIAL_DURATION / (24 * 60 * 60 * 1000)));
 
 /**
  * Demo deneme süresini başlatır (ilk kurulumda)
@@ -60,7 +103,7 @@ function initializeTrial() {
     trialStore.set('isTrialVersion', true);
     safeLog('[DEMO] Yeni makine - Trial başlatıldı:', new Date(now).toLocaleString('tr-TR'));
     safeLog('[DEMO] Hardware ID:', hwId.substring(0, 16) + '...');
-    safeLog('[DEMO] Trial data path:', app.getPath('userData'));
+    safeLog('[DEMO] Trial data path:', resolveTrialStoreDir());
     return true; // İlk kurulum
   } else if (firstRunDate) {
     safeLog('[DEMO] Aynı makine - Trial devam ediyor:', new Date(firstRunDate).toLocaleString('tr-TR'));
@@ -96,13 +139,29 @@ function isTrialExpired() {
   const now = Date.now();
   const elapsed = now - firstRunDate;
   
-  return elapsed > TRIAL_DURATION;
+  return elapsed >= TRIAL_DURATION;
 }
 
 /**
  * Demo süresi uyarısı gösterir ve uygulamayı kapatır
  */
 async function showTrialExpiredDialog() {
+  // Demo bitince bir daha otomatik başlatılmasın
+  try {
+    app.setLoginItemSettings({ openAtLogin: false });
+  } catch (e) {
+    // ignore
+  }
+
+  // Kullanıcı tıklamasa bile kısa süre sonra uygulamayı kapat
+  const forceExitTimer = setTimeout(() => {
+    try {
+      app.exit(0);
+    } catch (e) {
+      // ignore
+    }
+  }, 4000);
+
   // Süreyi dinamik olarak hesapla
   const durationInDays = TRIAL_DURATION / (24 * 60 * 60 * 1000);
   const durationInMinutes = TRIAL_DURATION / (60 * 1000);
@@ -133,6 +192,13 @@ async function showTrialExpiredDialog() {
   
   // Uygulamayı kapat
   app.quit();
+  clearTimeout(forceExitTimer);
+  // Güvenli kapanış için
+  try {
+    app.exit(0);
+  } catch (e) {
+    // ignore
+  }
 }
 
 /**
@@ -256,7 +322,8 @@ function checkTrialStatus() {
 module.exports = {
   checkTrial,
   getTrialInfo,
-  checkTrialStatus, // ✅ Yeni eklenen
+  checkTrialStatus,
+  showTrialExpiredDialog,
   isTrialExpired,
   getRemainingDays
 };

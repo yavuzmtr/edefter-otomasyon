@@ -20,6 +20,7 @@ let mainContent = fs.readFileSync(mainPath, 'utf8');
 // 3. Trial checker import ekle (dosyanın başına)
 const trialImport = `// ========== DEMO VERSION - TRIAL CHECKER ==========
 const trialChecker = require('./trial-checker.cjs');
+const IS_DEMO_BUILD = true;
 // ==================================================
 
 `;
@@ -43,6 +44,17 @@ if (whenReadyPattern.test(mainContent)) {
   if (!canContinue) {
     return; // Trial expired, app will quit
   }
+
+  // Demo Expire Background Monitor - Check every 1 minute
+  setInterval(async () => {
+    try {
+      if (trialChecker.isTrialExpired()) {
+        console.log('⚠️ [DEMO] Deneme süresi arka planda doldu. Uygulama kapatılıyor...');
+        await trialChecker.showTrialExpiredDialog();
+        app.quit();
+      }
+    } catch(e) {}
+  }, 60000);
   // ==================================================
 `
   );
@@ -60,6 +72,40 @@ ipcMain.handle('get-trial-info', async () => {
   const ipcHandlersPattern = /(\/\/ IPC Handlers)/;
   if (ipcHandlersPattern.test(mainContent)) {
     mainContent = mainContent.replace(ipcHandlersPattern, `$1\n${ipcHandlerCode}`);
+  }
+
+  // 4.5. check-trial-status'u demo versiyonu ile değiştir
+  const checkTrialStatusPattern = /\/\/ ✅ TRIAL STATUS HANDLER - Tam sürüm \(trial yok\)[\s\S]*?\}\);/;
+  if (checkTrialStatusPattern.test(mainContent)) {
+    mainContent = mainContent.replace(
+      checkTrialStatusPattern,
+      `// ✅ TRIAL STATUS HANDLER - DEMO VERSİYON
+ipcMain.handle('check-trial-status', async () => {
+  const result = await trialChecker.checkTrialStatus();
+  if (!result.success || (result.trialInfo && result.trialInfo.isExpired)) {
+    // If the frontend asks and it's expired, forcefully trigger the exit sequence
+    setTimeout(() => {
+       trialChecker.showTrialExpiredDialog().then(() => app.quit());
+    }, 1000);
+  }
+  return result;
+});`
+    );
+    console.log('✅ check-trial-status demo mekanizması ile değiştirildi');
+  } else {
+    console.warn('⚠️ Uyarı: check-trial-status handler bulunamadı!');
+  }
+
+  // 4.6. Demo versiyonda lisans doğrulama kontrolünü devre dışı bırak
+  const licenseCheckPattern = /if\s*\(\s*app\.isPackaged\s*\)\s*\{\s*const\s+licenseStatus\s*=\s*licenseManager\.validateInstalledLicense\(\);\s*if\s*\(\s*!licenseStatus\.valid\s*\)\s*\{\s*const\s+detail\s*=\s*\[[\s\S]*?\]\.join\('\\n'\);\s*dialog\.showMessageBoxSync\([\s\S]*?\);\s*app\.quit\(\);\s*return;\s*\}\s*\}/;
+  if (licenseCheckPattern.test(mainContent)) {
+    mainContent = mainContent.replace(
+      licenseCheckPattern,
+      (match) => match.replace(/app\.isPackaged/, 'app.isPackaged && !IS_DEMO_BUILD')
+    );
+    console.log('✅ Demo için lisans doğrulama kontrolü devre dışı bırakıldı');
+  } else {
+    console.warn('⚠️ Uyarı: Lisans doğrulama bloğu bulunamadı!');
   }
   
   // 5. Demo main.cjs'i kaydet
@@ -87,13 +133,13 @@ ipcMain.handle('get-trial-info', async () => {
     appId: 'com.edefter.klasorotomasyon.demo',
     productName: 'E-Defter Otomasyon DEMO',
     directories: {
-      output: 'release-demo-v2'
+      output: 'release-demo-v3'
     },
     files: [
       'dist/**/*',
-      'electron/main-demo.cjs',
-      'electron/preload.cjs',
-      'electron/trial-checker.cjs',
+      'electron/**/*',
+      '!electron/main.cjs',
+      '!electron/main.cjs.backup',
       'node_modules/**/*',
       'package.json'
     ],
@@ -122,7 +168,8 @@ ipcMain.handle('get-trial-info', async () => {
       uninstallerIcon: 'icon.ico',
       installerHeaderIcon: 'icon.ico',
       deleteAppDataOnUninstall: false,
-      shortcutName: 'E-Defter Otomasyon DEMO'
+      shortcutName: 'E-Defter Otomasyon DEMO',
+      license: 'docs/EULA.txt'
     },
     publish: null
   };

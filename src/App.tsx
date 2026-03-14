@@ -18,6 +18,12 @@ import { EDefterDeadlineTracker as EDefterInfo } from './components/EDefterDeadl
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [triggerEmailScan, setTriggerEmailScan] = useState(0);
+  const [trialInfo, setTrialInfo] = useState<{
+    isDemo: boolean;
+    daysLeft: number;
+    expiryDate: string;
+    isExpired: boolean;
+  } | null>(null);
 
   React.useEffect(() => {
     console.log('🚀 [App] Component mount oldu');
@@ -112,6 +118,29 @@ function App() {
     // Cleanup
     return () => {
       emailNotificationService.destroy();
+    };
+  }, []);
+
+  // ✅ DEMO SÜRESİ GLOBAL KONTROL (UI kilitleme için)
+  React.useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+
+    const loadTrialStatus = async () => {
+      try {
+        const result = await ElectronService.checkTrialStatus();
+        if (result.success && result.trialInfo) {
+          setTrialInfo(result.trialInfo);
+        }
+      } catch (error) {
+        // Sessiz geç - demo kontrolü başarısız olsa bile UI çalışabilir
+      }
+    };
+
+    loadTrialStatus();
+    intervalId = setInterval(loadTrialStatus, 15000);
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
     };
   }, []);
 
@@ -264,15 +293,40 @@ function App() {
     }
   };
 
+  const isTrialExpired = !!trialInfo?.isDemo && !!trialInfo?.isExpired;
+
   return (
     <ThemeProvider>
-      <div className="flex h-screen" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-        <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-        <main className="flex-1 overflow-auto" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-          <div className="p-8">
-            {renderContent()}
+      <div className="flex h-screen relative" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+        <div className={isTrialExpired ? 'pointer-events-none select-none opacity-40' : ''}>
+          <div className="flex h-screen">
+            <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+            <main className="flex-1 overflow-auto" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+              <div className="p-8">
+                {renderContent()}
+              </div>
+            </main>
           </div>
-        </main>
+        </div>
+
+        {isTrialExpired && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60">
+            <div className="max-w-lg w-full mx-6 rounded-2xl bg-white p-6 shadow-2xl border border-red-200">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                  <span className="text-xl">⛔</span>
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-red-700">Demo süresi doldu</h2>
+                  <p className="text-sm text-gray-600">Bu sürüm artık kullanılamaz.</p>
+                </div>
+              </div>
+              <div className="mt-4 text-sm text-gray-700">
+                Tam sürüme geçmek için lisans satın almanız gerekir. Bu ekran açıkken uygulama kullanılamaz.
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </ThemeProvider>
   );

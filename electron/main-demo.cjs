@@ -1,5 +1,6 @@
 // ========== DEMO VERSION - TRIAL CHECKER ==========
 const trialChecker = require('./trial-checker.cjs');
+const IS_DEMO_BUILD = true;
 // ==================================================
 
 // ═════════════════════════════════════════════════════════════
@@ -120,6 +121,7 @@ try {
 }
 const archiver = require('archiver');
 const Store = require('electron-store');
+const licenseManager = require('./license-manager.cjs');
 
 // Handle Squirrel Windows installer events
 if (require('electron-squirrel-startup')) app.quit();
@@ -3122,17 +3124,32 @@ ipcMain.handle('send-test-email-notification', async (event, accountantEmail) =>
   }
 });
 
-// ✅ TRIAL STATUS HANDLER - Tam sürüm (trial yok)
+// ✅ TRIAL STATUS HANDLER - DEMO VERSİYON
 ipcMain.handle('check-trial-status', async () => {
-  return {
-    success: true,
-    trialInfo: {
-      isDemo: false,
-      daysLeft: 0,
-      expiryDate: null,
-      isExpired: false
-    }
-  };
+  const result = await trialChecker.checkTrialStatus();
+  if (!result.success || (result.trialInfo && result.trialInfo.isExpired)) {
+    // If the frontend asks and it's expired, forcefully trigger the exit sequence
+    setTimeout(() => {
+       trialChecker.showTrialExpiredDialog().then(() => app.quit());
+    }, 1000);
+  }
+  return result;
+});
+
+ipcMain.handle('check-license-status', async () => {
+  try {
+    return { success: true, ...licenseManager.validateInstalledLicense() };
+  } catch (error) {
+    return { success: false, valid: false, reason: error.message };
+  }
+});
+
+ipcMain.handle('get-license-hardware-id', async () => {
+  try {
+    return { success: true, hardwareId: licenseManager.getHardwareFingerprint() };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 });
 
 // ✅ YENİ: Email kontrolünü manuel tetikle (tarama bitince hemen çalışsın)
@@ -3706,7 +3723,40 @@ app.whenReady().then(async () => {
   if (!canContinue) {
     return; // Trial expired, app will quit
   }
+
+  // Demo Expire Background Monitor - Check every 1 minute
+  setInterval(async () => {
+    try {
+      if (trialChecker.isTrialExpired()) {
+        console.log('⚠️ [DEMO] Deneme süresi arka planda doldu. Uygulama kapatılıyor...');
+        await trialChecker.showTrialExpiredDialog();
+        app.quit();
+      }
+    } catch(e) {}
+  }, 60000);
   // ==================================================
+
+  if (app.isPackaged && !IS_DEMO_BUILD) {
+    const licenseStatus = licenseManager.validateInstalledLicense();
+    if (!licenseStatus.valid) {
+      const detail = [
+        `Neden: ${licenseStatus.reason || 'Lisans gecersiz'}`,
+        '',
+        `Cihaz Kimligi: ${licenseStatus.hardwareId || '-'}`,
+        `Lisans Dosya Yolu: ${licenseStatus.licensePath || '-'}`
+      ].join('\n');
+
+      dialog.showMessageBoxSync({
+        type: 'error',
+        title: 'Lisans Dogrulama Basarisiz',
+        message: 'Bu cihazda gecerli bir Full lisans bulunamadi.',
+        detail
+      });
+
+      app.quit();
+      return;
+    }
+  }
 
   createWindow();
   createTray(); // ✅ Sistem tepsisi ikonu oluştur
