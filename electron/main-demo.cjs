@@ -3719,11 +3719,6 @@ ipcMain.handle('create-excel-template', async (event, data, options = {}) => {
 // App başlatıldığında pencereyi oluştur
 app.whenReady().then(async () => {
   // ========== DEMO VERSION - TRIAL CHECK ==========
-  if (IS_DEMO_BUILD) {
-    try {
-      app.setLoginItemSettings({ openAtLogin: false });
-    } catch (e) {}
-  }
   const canContinue = await trialChecker.checkTrial();
   if (!canContinue) {
     return; // Trial expired, app will quit
@@ -3764,7 +3759,7 @@ app.whenReady().then(async () => {
   }
 
   createWindow();
-  if (!IS_DEMO_BUILD) { createTray(); } // ✅ Sistem tepsisi ikonu oluştur
+  createTray(); // ✅ Sistem tepsisi ikonu oluştur
   logToFile('info', 'Sistem', 'App başlatıldı, pencere ve tray oluşturuldu');
 }).catch(err => {
   logToFile('error', 'Sistem', 'App başlatma hatası', err.message);
@@ -3773,8 +3768,14 @@ app.whenReady().then(async () => {
 
 // ✅ SÜREKLI İZLEME: Pencere kapatıldığında app'i kapatma, arka planda çalışmaya devam et
 app.on('window-all-closed', () => {
-  logToFile('info', 'Sistem', 'Demo: Tüm pencereler kapatıldı - uygulama kapatılıyor');
-  app.quit();
+  // ❌ app.quit() ÇAĞRILMAYACAK - Arka planda çalışmaya devam eder
+  // Kullanıcı tray menüsünden "Çıkış" yapana kadar süreç devam eder
+  logToFile('info', 'Sistem', 'Tüm pencereler kapatıldı - Arka planda çalışmaya devam ediyor');
+  
+  // macOS'ta bile kapatmıyoruz, sürekli background çalışsın
+  // if (process.platform !== 'darwin') {
+  //   app.quit();
+  // }
 });
 
 // macOS için: app yeniden aktif edildiğinde pencereyi aç
