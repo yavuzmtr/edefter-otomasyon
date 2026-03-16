@@ -157,6 +157,12 @@ body {
   background-color: var(--bg-secondary, #f8fafc);
 }
 
+/* Ensure app pages can use full width even when Tailwind's container is used */
+.container {
+  max-width: none !important;
+  width: 100%;
+}
+
 /* Universal theme support for common elements */
 .themed-card {
   background-color: var(--bg-card) !important;
