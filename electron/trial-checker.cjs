@@ -209,6 +209,9 @@ async function checkTrial() {
   
   const remainingDays = getRemainingDays();
   const expired = isTrialExpired();
+  const currentVersion = app.getVersion();
+  const lastWelcomeVersion = trialStore.get('welcomeShownVersion');
+  const shouldShowWelcome = isFirstRun || lastWelcomeVersion !== currentVersion;
   
   // Kalan süreyi hesapla (ms)
   const firstRunDate = trialStore.get('firstRunDate');
@@ -221,7 +224,7 @@ async function checkTrial() {
   safeLog('[DEMO] Trial check - Kalan ms:', remaining, 'Expired:', expired);
   
   // İlk çalıştırmada hoş geldiniz mesajı
-  if (isFirstRun) {
+  if (shouldShowWelcome) {
     // Süreyi dinamik olarak hesapla
     const durationInDays = TRIAL_DURATION / (24 * 60 * 60 * 1000);
     const durationInMinutes = TRIAL_DURATION / (60 * 1000);
@@ -235,13 +238,14 @@ async function checkTrial() {
       durationText = `${Math.floor(durationInMinutes)} dakika`;
     }
     
-    dialog.showMessageBox({
+    await dialog.showMessageBox({
       type: 'info',
       title: '🎉 Demo Versiyonuna Hoş Geldiniz!',
       message: 'E-Defter Klasör Otomasyonu - Demo Başladı',
       detail: `Demo versiyonunu ${durationText} boyunca ücretsiz kullanabilirsiniz.\n\n✨ Tüm özellikleri keşfedin\n📊 Sistemi test edin\n⚡ Otomasyonun gücünü görün\n\nDemo süresi sonunda tam sürüme geçerek sınırsız kullanım hakkı kazanabilirsiniz.\n\nİyi kullanımlar! 🚀`,
       buttons: ['Başlayalım!']
     });
+    trialStore.set('welcomeShownVersion', currentVersion);
   }
   
   if (expired) {
