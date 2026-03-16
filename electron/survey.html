@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geri Bildiriminiz Bizim İçin Değerli</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --accent: #818cf8;
+            --success: #22c55e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            z-index: 1;
+            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            background: linear-gradient(to right, #fff, var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p.subtitle {
+            font-size: 14px;
+            color: var(--text-dim);
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text-dim);
+        }
+
+        /* Star Rating */
+        .rating {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 8px;
+        }
+
+        .star {
+            font-size: 32px;
+            cursor: pointer;
+            transition: transform 0.2s, color 0.2s;
+            color: #334155;
+        }
+
+        .star.active {
+            color: #fbbf24;
+            transform: scale(1.1);
+        }
+
+        .star:hover {
+            transform: scale(1.2);
+        }
+
+        /* Custom Radio/Checkbox */
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .option-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+        }
+
+        .option-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--accent);
+        }
+
+        .option-item.selected {
+            background: rgba(79, 70, 229, 0.15);
+            border-color: var(--primary);
+            color: var(--accent);
+        }
+
+        .option-item input {
+            display: none;
+        }
+
+        .submit-btn {
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 10px;
+            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.4);
+        }
+
+        .submit-btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Success State */
+        .success-box {
+            display: none;
+            text-align: center;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .coupon-box {
+            background: rgba(34, 197, 94, 0.1);
+            border: 2px dashed var(--success);
+            padding: 20px;
+            border-radius: 16px;
+            margin-top: 24px;
+        }
+
+        .coupon-code {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--success);
+            letter-spacing: 2px;
+            margin: 10px 0;
+        }
+
+        .close-btn {
+            margin-top: 24px;
+            background: transparent;
+            color: var(--text-dim);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .close-btn:hover {
+            background: rgba(255,255,255,0.05);
+            color: white;
+        }
+
+        /* Background Glow */
+        .glow {
+            position: absolute;
+            top: -100px;
+            left: -100px;
+            width: 300px;
+            height: 300px;
+            background: var(--primary);
+            filter: blur(120px);
+            opacity: 0.2;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="glow"></div>
+    <div class="container">
+        <div id="survey-form">
+            <div class="header">
+                <h1>Fikriniz Bizim İçin Önemli</h1>
+                <p class="subtitle">Deneyimini paylaş, sana özel teklifi yakala!</p>
+            </div>
+
+            <div class="form-group">
+                <label>Uygulamayı nasıl değerlendirirsiniz?</label>
+                <div class="rating" id="rating-stars">
+                    <span class="star" data-value="1">★</span>
+                    <span class="star" data-value="2">★</span>
+                    <span class="star" data-value="3">★</span>
+                    <span class="star" data-value="4">★</span>
+                    <span class="star" data-value="5">★</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>En beğendiğiniz özellik hangisi?</label>
+                <div class="options-grid" id="feature-options">
+                    <div class="option-item" data-value="automation">Klasör/Dosya Otomasyonu</div>
+                    <div class="option-item" data-value="gib">GİB Dosyası İşleme</div>
+                    <div class="option-item" data-value="email">E-Posta Gönderimi</div>
+                    <div class="option-item" data-value="speed">Hız ve Kolaylık</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Tam sürüme geçmeyi düşünüyor musunuz?</label>
+                <div class="options-grid" id="purchase-options">
+                    <div class="option-item" data-value="yes">Evet, hemen almak istiyorum</div>
+                    <div class="option-item" data-value="later">İleride düşünebilirim</div>
+                    <div class="option-item" data-value="no">Şu an düşünmüyorum</div>
+                </div>
+            </div>
+
+            <button class="submit-btn" id="submit-btn" disabled>Gönder ve Teklifi Gör</button>
+        </div>
+
+        <div id="success-state" class="success-box">
+            <div style="font-size: 64px; margin-bottom: 16px;">🎁</div>
+            <h2>Teşekkür Ederiz!</h2>
+            <p class="subtitle">Geri bildiriminiz başarıyla iletildi.</p>
+            
+            <div class="coupon-box">
+                <p style="font-size: 14px;">Size Özel İndirim Kodunuz:</p>
+                <div class="coupon-code">DEMO20</div>
+                <p style="font-size: 12px; opacity: 0.8;">Tam sürümde %20 indirim sağlar.</p>
+            </div>
+
+            <button class="close-btn" onclick="window.close()">Uygulamayı Kapat</button>
+        </div>
+    </div>
+
+    <script>
+        let answers = {
+            rating: 0,
+            feature: '',
+            purchase: ''
+        };
+
+        // Rating
+        document.querySelectorAll('.star').forEach(star => {
+            star.onclick = () => {
+                answers.rating = star.dataset.value;
+                document.querySelectorAll('.star').forEach(s => {
+                    s.classList.toggle('active', s.dataset.value <= answers.rating);
+                });
+                checkForm();
+            };
+        });
+
+        // Feature Selection
+        document.querySelectorAll('#feature-options .option-item').forEach(item => {
+            item.onclick = () => {
+                document.querySelectorAll('#feature-options .option-item').forEach(i => i.classList.remove('selected'));
+                item.classList.add('selected');
+                answers.feature = item.dataset.value;
+                checkForm();
+            };
+        });
+
+        // Purchase Selection
+        document.querySelectorAll('#purchase-options .option-item').forEach(item => {
+            item.onclick = () => {
+                document.querySelectorAll('#purchase-options .option-item').forEach(i => i.classList.remove('selected'));
+                item.classList.add('selected');
+                answers.purchase = item.dataset.value;
+                checkForm();
+            };
+        });
+
+        function checkForm() {
+            const btn = document.getElementById('submit-btn');
+            if (answers.rating > 0 && answers.feature && answers.purchase) {
+                btn.disabled = false;
+            }
+        }
+
+        document.getElementById('submit-btn').onclick = async () => {
+            const btn = document.getElementById('submit-btn');
+            btn.innerHTML = 'Gönderiliyor...';
+            btn.disabled = true;
+
+            try {
+                // Electron context üzerinden sonucu gönder
+                if (window.electronAPI) {
+                    await window.electronAPI.sendSurvey(answers);
+                }
+                
+                document.getElementById('survey-form').style.display = 'none';
+                document.getElementById('success-state').style.display = 'block';
+            } catch (e) {
+                alert('Gönderim sırasında bir hata oluştu. Lütfen tekrar deneyin.');
+                btn.innerHTML = 'Gönder ve Teklifi Gör';
+                btn.disabled = false;
+            }
+        };
+    </script>
+</body>
+</html>

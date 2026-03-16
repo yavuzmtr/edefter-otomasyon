@@ -27,20 +27,25 @@
 !macroend
 
 !macro customUnInit
-  ; Kaldırma öncesi - Çalışan uygulamayı sonlandır
-  DetailPrint "E-Defter Otomasyon kapatılıyor..."
+  ; Kaldırma öncesi - Çalışan uygulamaları sonlandır
+  DetailPrint "Uygulamalar kapatılıyor..."
   
-  nsExec::ExecToLog 'taskkill /F /IM "E-Defter Otomasyon.exe" /T'
-  nsExec::ExecToLog 'taskkill /F /IM "E-Defter Otomasyon DEMO.exe" /T'
-  nsExec::ExecToLog 'taskkill /F /IM "E-Defter Klasör Otomasyonu.exe" /T'
-  Pop $0
-  Sleep 1000
+  ; Taskkill ile zorlayarak sonlandır (Sessiz ve zorlamalı)
+  nsExec::Exec 'taskkill /F /IM "E-Defter Otomasyon.exe" /T'
+  nsExec::Exec 'taskkill /F /IM "E-Defter Otomasyon DEMO.exe" /T'
+  nsExec::Exec 'taskkill /F /IM "E-Defter Klasör Otomasyonu.exe" /T'
   
+  Sleep 2000
   DetailPrint "Uygulama kapatıldı"
 !macroend
 
 !macro customUninstall
-  ; Kaldırma sırasında - Tüm servisleri ve ayarları temizle
+  ; Kaldırma başlangıcında tekrar kontrol et (asılı kalan süreçler için)
+  nsExec::Exec 'taskkill /F /IM "E-Defter Otomasyon.exe" /T'
+  nsExec::Exec 'taskkill /F /IM "E-Defter Otomasyon DEMO.exe" /T'
+  nsExec::Exec 'taskkill /F /IM "E-Defter Klasör Otomasyonu.exe" /T'
+  
+  Sleep 500
   DetailPrint "Windows başlangıç ayarları temizleniyor..."
   
   ; Windows başlangıçtan kaldır (Registry temizliği)

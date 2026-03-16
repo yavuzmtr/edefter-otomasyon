@@ -142,62 +142,62 @@ function isTrialExpired() {
 }
 
 /**
- * Demo süresi uyarısı gösterir ve uygulamayı kapatır
+ * Demo süresi uyarısı gösterir ve anketi açar
  */
 async function showTrialExpiredDialog() {
+  const surveyWindow = require('./survey-window.cjs');
+  const { ipcMain, net } = require('electron');
+
   // Demo bitince bir daha otomatik başlatılmasın
   try {
     app.setLoginItemSettings({ openAtLogin: false });
-  } catch (e) {
-    // ignore
-  }
+  } catch (e) { }
 
-  // Kullanıcı tıklamasa bile kısa süre sonra uygulamayı kapat
-  const forceExitTimer = setTimeout(() => {
+  // Anket sonucunu yakala ve E-POSTA ile gönder
+  ipcMain.handle('submit-survey', async (event, surveyData) => {
+    safeLog('[DEMO] Anket yanıtı alındı, gönderiliyor...');
+    
+    const hwId = getHardwareId();
+    const reportData = {
+      subject: `Anket Sonucu: ${hwId.substring(0, 8)}`,
+      hardware_id: hwId,
+      rating: surveyData.rating,
+      favorite_feature: surveyData.feature,
+      purchase_intent: surveyData.purchase,
+      usage_duration: TRIAL_DURATION_DAYS + ' gün',
+      timestamp: new Date().toLocaleString('tr-TR'),
+      _replyto: 'no-reply@edefterotomasyon.com.tr' // Formspree için gerekli olabilir
+    };
+
+    // FORM SPREE veya benzeri bir servis üzerinden mail gönderimi
+    // Buraya kendi Formspree ID'nizi veya Webhook adresinizi ekleyebilirsiniz
+    const emailEndpoint = 'https://formspree.io/f/xvgzbgzl'; // Örnek endpoint
+
     try {
-      app.exit(0);
-    } catch (e) {
-      // ignore
-    }
-  }, 4000);
+      const request = net.request({
+        method: 'POST',
+        url: emailEndpoint
+      });
+      request.setHeader('Content-Type', 'application/json');
+      request.write(JSON.stringify(reportData));
+      request.on('response', (response) => {
+        safeLog(`[DEMO] Mail gönderim durumu: ${response.statusCode}`);
+      });
+      request.end();
 
-  // Süreyi dinamik olarak hesapla
-  const durationInDays = TRIAL_DURATION / (24 * 60 * 60 * 1000);
-  const durationInMinutes = TRIAL_DURATION / (60 * 1000);
-  
-  let durationText;
-  if (durationInDays >= 1) {
-    durationText = `${Math.floor(durationInDays)} günlük`;
-  } else if (durationInMinutes >= 60) {
-    durationText = `${Math.floor(durationInMinutes / 60)} saatlik`;
-  } else {
-    durationText = `${Math.floor(durationInMinutes)} dakikalık`;
-  }
-  
-  const response = await dialog.showMessageBox({
-    type: 'warning',
-    title: 'Demo Süresi Doldu',
-    message: 'E-Defter Klasör Otomasyonu - Demo Süresi Sona Erdi',
-    detail: `${durationText} demo süreniz sona erdi.\n\nTam sürüme geçmek için:\n\n✅ Web sitesinden tam sürümü indirin\n✅ veya lisans satın alın\n\nTeşekkür ederiz!`,
-    buttons: ['Web Sitesini Aç', 'Kapat'],
-    defaultId: 0,
-    cancelId: 1
+      // Yerel yedekle
+      const resultsPath = path.join(resolveTrialStoreDir(), 'survey-results.json');
+      fs.appendFileSync(resultsPath, JSON.stringify(reportData) + '\n');
+      
+      return { success: true };
+    } catch (err) {
+      safeLog('❌ Anket gönderim hatası:', err.message);
+      return { success: false, error: err.message };
+    }
   });
-  
-  if (response.response === 0) {
-    // Web sitesini aç
-    require('electron').shell.openExternal('https://yavuzmtr.github.io/edefter-otomasyon/');
-  }
-  
-  // Uygulamayı kapat
-  app.quit();
-  clearTimeout(forceExitTimer);
-  // Güvenli kapanış için
-  try {
-    app.exit(0);
-  } catch (e) {
-    // ignore
-  }
+
+  // Standart dialog yerine anketi aç
+  surveyWindow.create();
 }
 
 /**
@@ -216,7 +216,7 @@ async function checkTrial() {
   // Kalan süreyi hesapla (ms)
   const firstRunDate = trialStore.get('firstRunDate');
   const now = Date.now();
-  const elapsed = now - firstRunDate;
+  const elapsed = firstRunDate ? now - firstRunDate : 0;
   const remaining = TRIAL_DURATION - elapsed;
   const remainingMinutes = Math.ceil(remaining / 60000);
   const remainingHours = Math.ceil(remaining / 3600000);

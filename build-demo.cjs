@@ -167,9 +167,10 @@ ipcMain.handle('check-trial-status', async () => {
       installerIcon: 'icon.ico',
       uninstallerIcon: 'icon.ico',
       installerHeaderIcon: 'icon.ico',
-      deleteAppDataOnUninstall: false,
+      deleteAppDataOnUninstall: true,
       shortcutName: 'E-Defter Otomasyon DEMO',
-      license: 'docs/EULA.txt'
+      license: 'docs/EULA.txt',
+      include: 'scripts/installer.nsh'
     },
     publish: null
   };
