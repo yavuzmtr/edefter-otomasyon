@@ -30,6 +30,10 @@
   ; Kaldırma öncesi - Çalışan demo uygulamasını sonlandır
   DetailPrint "E-Defter Otomasyon DEMO kapatılıyor..."
   
+  ; Birkaç kez zorla kapat (tray arka planda kalmasın)
+  nsExec::ExecToLog 'taskkill /F /IM "E-Defter Otomasyon DEMO.exe" /T'
+  Pop $0
+  Sleep 1000
   nsExec::ExecToLog 'taskkill /F /IM "E-Defter Otomasyon DEMO.exe" /T'
   Pop $0
   Sleep 1000
@@ -40,6 +44,11 @@
 !macro customUninstall
   ; Kaldırma sırasında - Tüm servisleri, trial checker ve ayarları temizle
   DetailPrint "Windows başlangıç ayarları ve demo servisleri temizleniyor..."
+
+  ; Çalışan prosesleri tekrar kapat (uninstall sırasında arka planda kalmasın)
+  nsExec::ExecToLog 'taskkill /F /IM "E-Defter Otomasyon DEMO.exe" /T'
+  Pop $0
+  Sleep 1000
   
   ; Windows başlangıçtan kaldır (Registry temizliği)
   DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "E-Defter Otomasyon DEMO"
@@ -54,6 +63,7 @@
   RMDir /r "$APPDATA\e-defter-otomasyon-demo"
   RMDir /r "$APPDATA\edefter-automation-demo"
   RMDir /r "$APPDATA\edefter-automation"
+  RMDir /r "$APPDATA\edefter-automation-demo-updater"
   RMDir /r "$LOCALAPPDATA\e-defter-otomasyon-demo"
   RMDir /r "$LOCALAPPDATA\edefter-automation-demo-updater"
   RMDir /r "$LOCALAPPDATA\edefter-automation-updater"
