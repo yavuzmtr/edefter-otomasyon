@@ -301,8 +301,8 @@ function App() {
         <div className={isTrialExpired ? 'pointer-events-none select-none opacity-40' : ''}>
           <div className="flex h-screen">
             <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-            <main className="flex-1 overflow-auto" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-              <div className="p-8">
+            <main className="flex-1 min-w-0 overflow-auto layout-main" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+              <div className="p-8 layout-content">
                 {renderContent()}
               </div>
             </main>

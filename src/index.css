@@ -157,6 +157,17 @@ body {
   background-color: var(--bg-secondary, #f8fafc);
 }
 
+/* Layout: force main content to use full available width */
+.layout-main {
+  width: 100%;
+  max-width: none;
+}
+
+.layout-content {
+  width: 100%;
+  max-width: none;
+}
+
 
 /* Universal theme support for common elements */
 .themed-card {
