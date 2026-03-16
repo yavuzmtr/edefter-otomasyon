@@ -1177,7 +1177,7 @@ export const EmailSystem: React.FC<EmailSystemProps> = ({ triggerScan = 0 }) => 
         </div>
       )}
 
-      <div className="container mx-auto max-w-none px-6 py-8">
+      <div className="w-full px-6 py-8">
         {/* Compact Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
