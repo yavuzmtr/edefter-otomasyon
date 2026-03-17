@@ -35,6 +35,7 @@ TEST-*.md
 release/
 release-demo/
 release-demo-v2/
+release-demo-v3/
 *.exe
 *.blockmap
 build-log.txt
