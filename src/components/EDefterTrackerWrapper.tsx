@@ -531,7 +531,7 @@ const EDefterTrackerWrapper: React.FC = () => {
   // console.log('🎯 EDefterTracker Render:', {trackersLength: trackers.length, ...})
 
   return (
-    <div className="space-y-6">
+    <div className="w-full px-4 py-4 space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Calendar className="w-8 h-8 text-blue-600" />
@@ -779,3 +779,4 @@ const EDefterTrackerWrapper: React.FC = () => {
 };
 
 export default EDefterTrackerWrapper;
+

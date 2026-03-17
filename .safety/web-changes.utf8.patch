@@ -1,0 +1,86 @@
+﻿diff --git a/website/download-form.html b/website/download-form.html
+index 1b8ea19..d942785 100644
+--- a/website/download-form.html
++++ b/website/download-form.html
+@@ -135,8 +135,8 @@
+     <div class="download-form-container">
+         <div class="form-card">
+             <div class="form-header">
+-                <h1>🔧 Demo İndirme Geçici Olarak Kapalı</h1>
+-                <p>Teknik çalışma nedeniyle demo şu an indirilemiyor.</p>
++                <h1>🚀 Demo Sürümü İndirin</h1>
++                <p>15 günlük tam özellikli demo için bilgilerinizi girin.</p>
+             </div>
+             
+             <form id="downloadForm" action="https://formsubmit.co/edefterotomasyon@gmail.com" method="POST">
+@@ -167,11 +167,11 @@
+                 <input type="hidden" name="Tarih" id="timestamp">
+                 
+                 <button type="submit" class="submit-btn" id="submitBtn">
+-                    📩 Bilgilerimi Gönder
++                    📩 Bilgileri Gönder ve İndir
+                 </button>
+                 
+                 <div class="success-message" id="successMessage">
+-                    ✅ Bilgileriniz kaydedildi. Demo sürüm e‑posta ile paylaşılacaktır.
++                    ✅ Kayıt başarılı! İndirme işlemi otomatik başlayacaktır.
+                 </div>
+                 
+                 <p class="privacy-note">
+@@ -195,23 +195,16 @@
+         
+         // URL'den success parametresini kontrol et
+         const urlParams = new URLSearchParams(window.location.search);
++        
++        // Başarılı gönderimden sonra indirmeyi başlat
+         if (urlParams.get('success') === 'true') {
+-            successMessage.style.display = 'block';
+-            successMessage.textContent = '✅ Bilgileriniz kaydedildi. Demo sürüm e‑posta ile paylaşılacaktır.';
+-            
+-            // URL'i temizle
+-            setTimeout(() => {
+-                window.history.replaceState({}, document.title, 'download-form.html');
+-            }, 2000);
+-        }
+-
+-        // Demo indirmenin kapalı olduğunu vurgula
+-        const notice = document.createElement('div');
+-        notice.style.marginTop = '12px';
+-        notice.style.fontSize = '12px';
+-        notice.style.color = '#64748b';
+-        notice.textContent = 'Teknik çalışma bitince demo dosyası e‑posta ile paylaşılacaktır.';
+-        successMessage.parentNode.appendChild(notice);
++            const downloadLink = document.createElement('a');
++            downloadLink.href = DEMO_DOWNLOAD_URL;
++            downloadLink.download = 'E-Defter.Otomasyon.DEMO.Setup.1.0.1.exe';
++            document.body.appendChild(downloadLink);
++            downloadLink.click();
++            document.body.removeChild(downloadLink);
++        }
+         
+         // Tarih alanını otomatik doldur
+         document.getElementById('timestamp').value = new Date().toLocaleString('tr-TR');
+diff --git a/website/index.html b/website/index.html
+index afed5b4..2fcaf3b 100644
+--- a/website/index.html
++++ b/website/index.html
+@@ -209,13 +209,13 @@
+                     </ul>
+                 </div>
+                 <div class="feature-card">
+-                    <div class="feature-icon">📝</div>
+-                    <h3>Log ve Aktivite</h3>
+-                    <p>Tüm işlemleri kayıt altına alır, sistem aktivitelerini takip edin.</p>
++                    <div class="feature-icon">📅</div>
++                    <h3>E-Defter Berat Takibi</h3>
++                    <p>Berat yükleme sürelerini şirket bazlı takip edin, yasal süreleri kaçırmayın.</p>
+                     <ul class="feature-list">
+-                        <li>✓ Detaylı log sistemi</li>
+-                        <li>✓ Aktivite raporları</li>
+-                        <li>✓ Tarih bazlı filtreleme</li>
++                        <li>✓ Yaklaşan son tarihler için akıllı uyarılar</li>
++                        <li>✓ Tüm şirketlerin yükleme durumunu tek ekrandan görün</li>
++                        <li>✓ Gecikme riskine karşı otomatik bilgilendirme</li>
+                     </ul>
+                 </div>
+             </div>

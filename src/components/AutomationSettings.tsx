@@ -286,8 +286,8 @@ export const AutomationSettings: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="w-full px-6 py-8 space-y-6 animate-fade-in">
+    <div className="w-full px-4 py-4">
+      <div className="w-full space-y-6 animate-fade-in">
         {/* Notification */}
         {notification && (
           <div className="fixed top-6 right-6 z-50 animate-slide-down">
@@ -712,3 +712,4 @@ export const AutomationSettings: React.FC = () => {
     </div>
   );
 };
+

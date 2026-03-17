@@ -212,7 +212,7 @@ export const ReportSystem: React.FC = () => {
 
   // Ana render
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="w-full px-4 py-4">
       <div className="w-full px-6 py-8 space-y-6 animate-fade-in">
         {/* Notification */}
         {notification && (
@@ -532,3 +532,4 @@ export const ReportSystem: React.FC = () => {
     </div>
   );
 };
+

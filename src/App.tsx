@@ -248,8 +248,6 @@ function App() {
         case 'dashboard':
           return (
             <div className="w-full">
-              <h1 className="text-3xl font-bold mb-6">Kontrol Paneli</h1>
-              <p className="text-gray-600 mb-4">Dashboard yükleniyor...</p>
               <Dashboard />
             </div>
           );
@@ -274,8 +272,6 @@ function App() {
         default:
           return (
             <div className="w-full">
-              <h1 className="text-3xl font-bold mb-6">Kontrol Paneli</h1>
-              <p className="text-gray-600 mb-4">Dashboard yükleniyor...</p>
               <Dashboard />
             </div>
           );
@@ -298,7 +294,7 @@ function App() {
   return (
     <ThemeProvider>
       <div className="flex h-screen relative" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-        <div className={isTrialExpired ? 'pointer-events-none select-none opacity-40' : ''}>
+        <div className={`w-full ${isTrialExpired ? 'pointer-events-none select-none opacity-40' : ''}`}>
           <div className="flex h-screen">
             <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
             <main className="flex-1 min-w-0 overflow-auto layout-main" style={{ backgroundColor: 'var(--bg-secondary)' }}>

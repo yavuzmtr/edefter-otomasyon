@@ -1,0 +1,40 @@
+{
+  "posts": [
+    {
+      "id": "x-1772200948190-0",
+      "platform": "x",
+      "status": "ready",
+      "tone": "sade",
+      "createdAt": "2026-02-27T14:02:28.191Z",
+      "title": "e-defter berat takip otomasyonu | lead toplama",
+      "hook": "Hala manuel e-defter kontrolu mu?",
+      "body": "Hala manuel e-defter kontrolu mu?\n\nMail/berat durumunun tek tek kontrol edilmesi.\ne-defter berat takip otomasyonu ile bu sureci tek panelden takip edin.\n\nHedef: lead toplama\nDemo indir: https://edefterotomasyon.com.tr/download-form.html\n#edefter #muhasebe #maliMusavir #otomasyon",
+      "cta": "Demo indir: https://edefterotomasyon.com.tr/download-form.html",
+      "hashtags": [
+        "#edefter",
+        "#muhasebe",
+        "#maliMusavir",
+        "#otomasyon"
+      ],
+      "updatedAt": "2026-02-27T14:02:28.202Z"
+    },
+    {
+      "id": "x-1772200948191-1",
+      "platform": "x",
+      "status": "draft",
+      "tone": "sade",
+      "createdAt": "2026-02-27T14:02:28.191Z",
+      "title": "7/3/son gun e-posta uyari sistemi | lead toplama",
+      "hook": "Takvim yaklastiginda ekip zorlanmasin.",
+      "body": "Takvim yaklastiginda ekip zorlanmasin.\n\nEksik klasor veya geciken donemlerin gec fark edilmesi.\n7/3/son gun e-posta uyari sistemi ile bu sureci tek panelden takip edin.\n\nHedef: lead toplama\n15 gun demo: https://edefterotomasyon.com.tr/download-form.html\n#edefter #muhasebe #maliMusavir #otomasyon",
+      "cta": "15 gun demo: https://edefterotomasyon.com.tr/download-form.html",
+      "hashtags": [
+        "#edefter",
+        "#muhasebe",
+        "#maliMusavir",
+        "#otomasyon"
+      ]
+    }
+  ],
+  "createdAt": "2026-02-27T14:02:28.197Z"
+}

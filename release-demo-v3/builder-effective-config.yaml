@@ -1,0 +1,37 @@
+directories:
+  output: release-demo-v3
+  buildResources: build
+appId: com.edefter.klasorotomasyon.demo
+productName: E-Defter Otomasyon DEMO
+files:
+  - filter:
+      - dist/**/*
+      - electron/**/*
+      - '!electron/main.cjs'
+      - '!electron/main.cjs.backup'
+      - node_modules/**/*
+      - package.json
+extraResources:
+  - from: assets
+    to: assets
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: icon.ico
+  artifactName: ${productName} Setup ${version}.${ext}
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  installerIcon: icon.ico
+  uninstallerIcon: icon.ico
+  installerHeaderIcon: icon.ico
+  deleteAppDataOnUninstall: true
+  shortcutName: E-Defter Otomasyon DEMO
+  license: docs/EULA.txt
+  include: scripts/installer.nsh
+publish: null
+electronVersion: 38.7.2
