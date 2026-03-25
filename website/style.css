@@ -938,16 +938,16 @@ body {
 
 .footer-social {
     text-align: center;
-    padding: 1.25rem 0;
+    padding: 1.5rem 0;
     border-top: 1px solid #374151;
     border-bottom: 1px solid #374151;
     margin-bottom: 1.25rem;
 }
 
 .footer-social-title {
-    color: #e5e7eb;
+    color: #f3f4f6;
     font-weight: 600;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
 }
 
 .footer-social-links {
@@ -958,21 +958,21 @@ body {
 }
 
 .social-link {
-    width: 44px;
-    height: 44px;
-    border: 1px solid #6b7280;
-    border-radius: 8px;
+    width: 52px;
+    height: 52px;
+    border: 1px solid #94a3b8;
+    border-radius: 12px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: #e5e7eb;
-    background: rgba(255, 255, 255, 0.02);
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
     transition: transform 0.3s, background 0.3s, border-color 0.3s, color 0.3s, box-shadow 0.3s;
 }
 
 .social-link svg {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     fill: currentColor;
 }
 
