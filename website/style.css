@@ -936,6 +936,73 @@ body {
     color: white;
 }
 
+.footer-social {
+    text-align: center;
+    padding: 2rem 0;
+    border-top: 1px solid #374151;
+    border-bottom: 1px solid #374151;
+    margin-bottom: 2rem;
+}
+
+.footer-social-title {
+    color: #e5e7eb;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.footer-social-links {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.social-link {
+    width: 52px;
+    height: 52px;
+    border: 1px solid #6b7280;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #e5e7eb;
+    background: rgba(255, 255, 255, 0.02);
+    transition: transform 0.3s, background 0.3s, border-color 0.3s, color 0.3s, box-shadow 0.3s;
+}
+
+.social-link svg {
+    width: 26px;
+    height: 26px;
+    fill: currentColor;
+}
+
+.social-link:hover {
+    color: #ffffff;
+    border-color: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
+}
+
+.social-link.youtube:hover {
+    background: #ff0000;
+    border-color: #ff0000;
+}
+
+.social-link.linkedin:hover {
+    background: #0a66c2;
+    border-color: #0a66c2;
+}
+
+.social-link.instagram:hover {
+    background: radial-gradient(circle at 30% 110%, #fdf497 0, #fdf497 10%, #fd5949 40%, #d6249f 70%, #285aeb 100%);
+    border-color: transparent;
+}
+
+.social-link.x:hover {
+    background: #111827;
+    border-color: #111827;
+}
+
 .footer-bottom {
     text-align: center;
     padding-top: 2rem;
