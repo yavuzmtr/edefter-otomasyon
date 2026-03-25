@@ -998,6 +998,11 @@ body {
     border-color: transparent;
 }
 
+.social-link.facebook:hover {
+    background: #1877f2;
+    border-color: #1877f2;
+}
+
 .social-link.x:hover {
     background: #111827;
     border-color: #111827;
