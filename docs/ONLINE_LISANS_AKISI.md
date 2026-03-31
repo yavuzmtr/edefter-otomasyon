@@ -13,7 +13,15 @@ Repo > Settings > Secrets and variables > Actions > New repository secret:
 
 Not: Private key'i `.license-keys/license-private.pem` dosyasindan alabilirsin.
 
-## 2) Lisans Talebi (Issue) Akisi
+## 2) Web Formu (Satin Alma Talebi)
+
+Musteri web formunu doldurur. Ilk otomatik e-posta odeme adimini ister.
+
+Form: `https://edefterotomasyon.com.tr/purchase-form.html`
+
+Bu form talebi mail olarak iletir, odeme onayi sonrasi full kurulum linki ve cihaz kimligi adimi baslatilir.
+
+## 3) Lisans Talebi (Issue) Akisi
 
 Lisans talebi icin GitHub'da "Lisans Talebi" issue formu vardir.
 
@@ -24,7 +32,7 @@ Akis:
 4. GitHub Action otomatik calisir, lisansi uretir ve mail atar.
 5. Issue'ya "Lisans gonderildi" yorumu dusulur.
 
-## 3) Google Forms -> GitHub Issue (Ucretsiz)
+## 4) Google Forms -> GitHub Issue (Ucretsiz)
 
 Google Forms yanitlarini GitHub Issue acmaya baglamak icin Apps Script kullanabilirsin.
 
@@ -65,10 +73,9 @@ function onFormSubmit(e) {
 
 Not: Apps Script icin GitHub token'ini guvenli sakla.
 
-## 4) Test
+## 5) Test
 
 1. Issue ac.
 2. Issue'ya `approve` etiketi koy.
 3. Actions > "License Approval" icinde islem tamamlandigini kontrol et.
 4. Müşteriye mail gonderildigini dogrula.
-
