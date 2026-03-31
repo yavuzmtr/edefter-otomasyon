@@ -100,6 +100,16 @@ function normalizeLicenseKey(input) {
   return cleaned || `LCN-${Date.now()}`;
 }
 
+function generateReferralCode(customer) {
+  const base = String(customer || '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 12);
+  const suffix = String(Date.now()).slice(-4);
+  return `REF-${base || 'MUSTERI'}-${suffix}`;
+}
+
 function signLicensePayload(payload, privateKeyPem) {
   const signer = crypto.createSign('RSA-SHA256');
   signer.update(JSON.stringify(payload));
@@ -107,7 +117,7 @@ function signLicensePayload(payload, privateKeyPem) {
   return signer.sign(privateKeyPem, 'base64');
 }
 
-function createLicenseFile({ key, customer, hardwareId, expiresAt }) {
+function createLicenseFile({ key, customer, hardwareId, expiresAt, referralCode, referredByCode, referralDiscountApplied, referralNote }) {
   if (!hasPrivateKey()) {
     throw new Error('Private key bulunamadi. Once "Anahtar Olustur" butonuna basin.');
   }
@@ -117,11 +127,16 @@ function createLicenseFile({ key, customer, hardwareId, expiresAt }) {
     customer: String(customer || '').trim(),
     hardwareId: String(hardwareId || '').trim(),
     issuedAt: new Date().toISOString(),
-    expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null
+    expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
+    referralCode: String(referralCode || '').trim() || null,
+    referredByCode: String(referredByCode || '').trim() || null
   };
 
   if (!payload.customer) throw new Error('Musteri/Firma alani zorunlu.');
   if (!payload.hardwareId) throw new Error('Cihaz Kimligi alani zorunlu.');
+  if (!payload.referralCode) {
+    payload.referralCode = generateReferralCode(payload.customer);
+  }
 
   const signature = signLicensePayload(payload, privateKeyPem);
   const license = { ...payload, signature };
@@ -140,6 +155,10 @@ function createLicenseFile({ key, customer, hardwareId, expiresAt }) {
     issuedAt: payload.issuedAt,
     expiresAt: payload.expiresAt,
     status: 'active',
+    referralCode: payload.referralCode,
+    referredByCode: payload.referredByCode,
+    referralDiscountApplied: Boolean(referralDiscountApplied),
+    referralNote: String(referralNote || '').trim(),
     fileName,
     filePath
   };
@@ -233,6 +252,13 @@ function getUiHtml() {
     <input id="hardwareId" class="mono" placeholder="64 karakter hash" />
     <label>Bitis Tarihi (opsiyonel, YYYY-MM-DD)</label>
     <input id="expiresAt" placeholder="2027-12-31" />
+    <label>Referans Kodu (bos birakirsan otomatik)</label>
+    <input id="referralCode" placeholder="REF-ABC-1234" />
+    <label>Referans Eden Kodu (opsiyonel)</label>
+    <input id="referredByCode" placeholder="REF-XYZ-5678" />
+    <label><input type="checkbox" id="referralDiscountApplied" /> Referans indirimi uygulandi</label>
+    <label>Referans Notu (opsiyonel)</label>
+    <input id="referralNote" placeholder="Referans: Ali Yilmaz" />
     <div style="margin-top:10px;">
       <button id="btnGenerate" class="primary">Lisans Uret</button>
       <span id="genStatus" class="small mono"></span>
@@ -242,7 +268,7 @@ function getUiHtml() {
   <div class="card">
     <h2>Kayitlar</h2>
     <table>
-      <thead><tr><th>Lisans</th><th>Firma</th><th>Durum</th><th>Cihaz</th><th>Dosya</th><th>Islem</th></tr></thead>
+      <thead><tr><th>Lisans</th><th>Firma</th><th>Durum</th><th>Ref Kodu</th><th>Ref Eden</th><th>Indirim</th><th>Cihaz</th><th>Dosya</th><th>Islem</th></tr></thead>
       <tbody id="records"></tbody>
     </table>
   </div>
@@ -268,6 +294,9 @@ function getUiHtml() {
         tr.innerHTML = '<td class="mono">' + r.key + '</td>'
           + '<td>' + r.customer + '</td>'
           + '<td class="' + (r.status === 'active' ? 'ok' : 'bad') + '">' + r.status + '</td>'
+          + '<td class="mono">' + (r.referralCode || '-') + '</td>'
+          + '<td class="mono">' + (r.referredByCode || '-') + '</td>'
+          + '<td>' + (r.referralDiscountApplied ? 'Evet' : '-') + '</td>'
           + '<td class="mono" title="' + r.hardwareId + '">' + shortHw(r.hardwareId) + '</td>'
           + '<td class="mono">' + r.fileName + '</td>'
           + '<td>' + (r.status === 'active'
@@ -313,7 +342,11 @@ function getUiHtml() {
         key: document.getElementById('key').value,
         customer: document.getElementById('customer').value,
         hardwareId: document.getElementById('hardwareId').value,
-        expiresAt: document.getElementById('expiresAt').value
+        expiresAt: document.getElementById('expiresAt').value,
+        referralCode: document.getElementById('referralCode').value,
+        referredByCode: document.getElementById('referredByCode').value,
+        referralDiscountApplied: document.getElementById('referralDiscountApplied').checked,
+        referralNote: document.getElementById('referralNote').value
       };
       const res = await api('/api/generate', 'POST', payload);
       const out = document.getElementById('genStatus');
