@@ -151,10 +151,30 @@
                 </p>
             </form>
 
+            <div id="successMessage" class="flow-note" style="display:none; margin-top:16px;">
+                Talebiniz alinmistir. E-posta kutunuzu kontrol edin.
+            </div>
+
             <div class="back-link">
                 <a href="index.html">Ana Sayfaya Don</a>
             </div>
         </div>
     </div>
+    <script>
+        const form = document.getElementById('purchaseForm');
+        const successMessage = document.getElementById('successMessage');
+        const submitBtn = form.querySelector('.submit-btn');
+        const params = new URLSearchParams(window.location.search);
+
+        if (params.get('success') === 'true') {
+            form.style.display = 'none';
+            successMessage.style.display = 'block';
+        }
+
+        form.addEventListener('submit', () => {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Gonderiliyor...';
+        });
+    </script>
 </body>
 </html>
