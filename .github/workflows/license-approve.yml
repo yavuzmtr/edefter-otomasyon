@@ -1,0 +1,64 @@
+name: License Approval
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  generate_license:
+    if: github.event.label.name == 'approve' && contains(github.event.issue.labels.*.name, 'license-request')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install deps
+        run: npm ci --omit=dev
+
+      - name: Write private key
+        run: node -e "require('fs').writeFileSync(process.env.LICENSE_PRIVATE_KEY_PATH, process.env.LICENSE_PRIVATE_KEY_PEM)"
+        env:
+          LICENSE_PRIVATE_KEY_PEM: ${{ secrets.LICENSE_PRIVATE_KEY_PEM }}
+          LICENSE_PRIVATE_KEY_PATH: ./license-private.pem
+
+      - name: Generate and email license
+        run: node scripts/issue-license.cjs --event "$GITHUB_EVENT_PATH" --outDir ./artifacts --result ./license-result.json --privateKey ./license-private.pem
+        env:
+          BREVO_SMTP_USER: ${{ secrets.BREVO_SMTP_USER }}
+          BREVO_SMTP_KEY: ${{ secrets.BREVO_SMTP_KEY }}
+          BREVO_FROM: ${{ secrets.BREVO_FROM }}
+
+      - name: Upload license artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-${{ github.event.issue.number }}
+          path: ./artifacts
+
+      - name: Comment and label issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const result = JSON.parse(fs.readFileSync('./license-result.json', 'utf8'));
+            const issue_number = context.payload.issue.number;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number,
+              body: `Lisans gonderildi.\n\n- Musteri: ${result.customer}\n- Email: ${result.email}\n- Lisans: ${result.key}\n\nNot: Lisans dosyasi workflow artifact olarak kaydedildi.`
+            });
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number,
+              labels: ['fulfilled']
+            });

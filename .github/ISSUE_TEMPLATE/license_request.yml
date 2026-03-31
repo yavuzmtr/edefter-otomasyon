@@ -1,0 +1,50 @@
+name: Lisans Talebi
+description: Lisans talebi gonder (formlardan otomatik doldurulabilir)
+title: "Lisans Talebi - {{ company }}"
+labels:
+  - license-request
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Bu form lisans talebi icindir. Odeme onaylandiktan sonra "approve" etiketi eklenirse lisans otomatik gonderilir.
+  - type: input
+    id: company
+    attributes:
+      label: Musteri / Firma
+      description: Firma adi
+      placeholder: ABC Muhasebe
+    validations:
+      required: true
+  - type: input
+    id: email
+    attributes:
+      label: Musteri E-posta
+      description: Lisansin gonderilecegi email
+      placeholder: musteri@firma.com
+    validations:
+      required: true
+  - type: input
+    id: hardware
+    attributes:
+      label: Cihaz Kimligi
+      description: Uygulamada gorunen cihaz kimligi
+      placeholder: 64 karakter hash
+    validations:
+      required: true
+  - type: input
+    id: expires
+    attributes:
+      label: Bitis Tarihi
+      description: Opsiyonel, YYYY-MM-DD
+      placeholder: 2027-12-31
+    validations:
+      required: false
+  - type: input
+    id: key
+    attributes:
+      label: Lisans Kodu
+      description: Opsiyonel, bos birakilabilir
+      placeholder: LCN-0001
+    validations:
+      required: false

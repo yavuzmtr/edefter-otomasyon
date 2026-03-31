@@ -334,19 +334,30 @@ function getUiHtml() {
   <div class="card">
     <h2>Kayitlar</h2>
     <table>
-      <thead><tr><th>Lisans</th><th>Firma</th><th>Durum</th><th>E-posta</th><th>Ref Kodu</th><th>Ref Eden</th><th>Indirim</th><th>Cihaz</th><th>Dosya</th><th>Islem</th></tr></thead>
+      <thead><tr><th>Lisans</th><th>Firma</th><th>Durum</th><th>E-posta</th><th>Gonderim</th><th>Ref Kodu</th><th>Ref Eden</th><th>Indirim</th><th>Cihaz</th><th>Dosya</th><th>Islem</th></tr></thead>
       <tbody id="records"></tbody>
     </table>
   </div>
 
   <script>
     async function api(url, method='GET', body=null) {
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: body ? JSON.stringify(body) : null
-      });
-      return res.json();
+      let res;
+      try {
+        res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: body ? JSON.stringify(body) : null
+        });
+      } catch (err) {
+        throw new Error('Sunucuya baglanilamadi. Lisans yoneticisi calisiyor mu?');
+      }
+      let data = null;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error('Sunucu yaniti okunamadi.');
+      }
+      return data;
     }
 
     function shortHw(v='') { return v.length > 16 ? v.slice(0, 16) + '...' : v; }
@@ -357,18 +368,21 @@ function getUiHtml() {
       tbody.innerHTML = '';
       (data.records || []).forEach(r => {
         const tr = document.createElement('tr');
+        const emailStatus = r.emailSentAt ? ('Gonderildi: ' + new Date(r.emailSentAt).toLocaleString('tr-TR')) : '-';
+        const canResend = r.customerEmail ? '<button data-key="' + r.key + '" class="muted resend">Yeniden Gonder</button>' : '-';
         tr.innerHTML = '<td class="mono">' + r.key + '</td>'
           + '<td>' + r.customer + '</td>'
           + '<td class="' + (r.status === 'active' ? 'ok' : 'bad') + '">' + r.status + '</td>'
           + '<td>' + (r.customerEmail || '-') + '</td>'
+          + '<td>' + emailStatus + '</td>'
           + '<td class="mono">' + (r.referralCode || '-') + '</td>'
           + '<td class="mono">' + (r.referredByCode || '-') + '</td>'
           + '<td>' + (r.referralDiscountApplied ? 'Evet' : '-') + '</td>'
           + '<td class="mono" title="' + r.hardwareId + '">' + shortHw(r.hardwareId) + '</td>'
           + '<td class="mono">' + r.fileName + '</td>'
           + '<td>' + (r.status === 'active'
-            ? '<button data-key="' + r.key + '" class="warn revoke">Iptal</button>'
-            : '-') + '</td>';
+            ? '<button data-key="' + r.key + '" class="warn revoke">Iptal</button> ' + canResend
+            : canResend) + '</td>';
         tbody.appendChild(tr);
       });
       document.querySelectorAll('.revoke').forEach(btn => {
@@ -377,6 +391,24 @@ function getUiHtml() {
           if (!confirm(key + ' lisansini iptal etmek istiyor musun?')) return;
           const res = await api('/api/revoke', 'POST', { key });
           if (!res.success) alert(res.error || 'Iptal hatasi');
+          await refreshRecords();
+        };
+      });
+      document.querySelectorAll('.resend').forEach(btn => {
+        btn.onclick = async () => {
+          const key = btn.getAttribute('data-key');
+          const originalText = btn.textContent;
+          btn.textContent = 'Gonderiliyor...';
+          btn.disabled = true;
+          try {
+            const res = await api('/api/resend', 'POST', { key });
+            if (!res.success) throw new Error(res.error || 'Gonderim hatasi');
+          } catch (err) {
+            alert(err.message || 'Gonderim hatasi');
+          } finally {
+            btn.textContent = originalText;
+            btn.disabled = false;
+          }
           await refreshRecords();
         };
       });
@@ -478,6 +510,19 @@ async function requestHandler(req, res) {
     if (req.method === 'POST' && req.url === '/api/revoke') {
       const body = await parseBody(req);
       revokeLicense(body.key);
+      json(res, 200, { success: true });
+      return;
+    }
+
+    if (req.method === 'POST' && req.url === '/api/resend') {
+      const body = await parseBody(req);
+      const records = loadRecords();
+      const record = records.find((r) => r.key === body.key);
+      if (!record) throw new Error('Lisans kaydi bulunamadi.');
+      if (!record.customerEmail) throw new Error('Bu kayitta e-posta yok.');
+      await sendLicenseEmail({ to: record.customerEmail, record });
+      record.emailSentAt = new Date().toISOString();
+      saveRecords(records);
       json(res, 200, { success: true });
       return;
     }
