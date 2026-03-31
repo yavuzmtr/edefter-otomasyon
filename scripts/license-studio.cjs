@@ -3,6 +3,13 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const os = require('os');
+let nodemailer;
+try {
+  nodemailer = require('nodemailer');
+  if (nodemailer.default) nodemailer = nodemailer.default;
+} catch (err) {
+  nodemailer = null;
+}
 
 const PORT = 8787;
 const HOST = '127.0.0.1';
@@ -16,6 +23,12 @@ const APP_PUBLIC_KEY_PATH = path.join(ROOT_DIR, 'electron', 'license-public.pem'
 const DATA_DIR = path.join(ROOT_DIR, 'data', 'license-studio');
 const LICENSE_DIR = path.join(DATA_DIR, 'licenses');
 const RECORDS_PATH = path.join(DATA_DIR, 'records.json');
+
+const SMTP_HOST = process.env.BREVO_SMTP_HOST || 'smtp-relay.brevo.com';
+const SMTP_PORT = Number(process.env.BREVO_SMTP_PORT || 587);
+const SMTP_USER = process.env.BREVO_SMTP_USER || '';
+const SMTP_KEY = process.env.BREVO_SMTP_KEY || '';
+const SMTP_FROM = process.env.BREVO_FROM || SMTP_USER;
 
 function ensureDir(dirPath) {
   if (!fs.existsSync(dirPath)) {
@@ -100,6 +113,10 @@ function normalizeLicenseKey(input) {
   return cleaned || `LCN-${Date.now()}`;
 }
 
+function isSmtpConfigured() {
+  return Boolean(SMTP_USER && SMTP_KEY && SMTP_FROM && nodemailer);
+}
+
 function generateReferralCode(customer) {
   const base = String(customer || '')
     .toUpperCase()
@@ -117,7 +134,47 @@ function signLicensePayload(payload, privateKeyPem) {
   return signer.sign(privateKeyPem, 'base64');
 }
 
-function createLicenseFile({ key, customer, hardwareId, expiresAt, referralCode, referredByCode, referralDiscountApplied, referralNote }) {
+async function sendLicenseEmail({ to, record }) {
+  if (!isSmtpConfigured()) {
+    throw new Error('SMTP ayarlari eksik. BREVO_SMTP_USER / BREVO_SMTP_KEY / BREVO_FROM gerekli.');
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_PORT === 465,
+    auth: { user: SMTP_USER, pass: SMTP_KEY }
+  });
+
+  const subject = `E-Defter Lisans Dosyaniz (${record.key})`;
+  const bodyText = [
+    `Merhaba ${record.customer},`,
+    '',
+    'Lisans dosyaniz ektedir.',
+    '',
+    'Lisans dosyasini programin belirledigi dizine kopyalayin.',
+    'Genelde dizin: %APPDATA%\\edefter-automation',
+    '',
+    'Sorun yasarsaniz bu e-postayi yanitlayabilirsiniz.',
+    '',
+    'E-Defter Otomasyon'
+  ].join('\n');
+
+  await transporter.sendMail({
+    from: SMTP_FROM,
+    to,
+    subject,
+    text: bodyText,
+    attachments: [
+      {
+        filename: record.fileName,
+        path: record.filePath
+      }
+    ]
+  });
+}
+
+async function createLicenseFile({ key, customer, hardwareId, expiresAt, referralCode, referredByCode, referralDiscountApplied, referralNote, customerEmail }) {
   if (!hasPrivateKey()) {
     throw new Error('Private key bulunamadi. Once "Anahtar Olustur" butonuna basin.');
   }
@@ -159,11 +216,18 @@ function createLicenseFile({ key, customer, hardwareId, expiresAt, referralCode,
     referredByCode: payload.referredByCode,
     referralDiscountApplied: Boolean(referralDiscountApplied),
     referralNote: String(referralNote || '').trim(),
+    customerEmail: String(customerEmail || '').trim(),
     fileName,
     filePath
   };
   records.unshift(record);
   saveRecords(records);
+
+  if (record.customerEmail) {
+    await sendLicenseEmail({ to: record.customerEmail, record });
+    record.emailSentAt = new Date().toISOString();
+    saveRecords(records);
+  }
 
   return record;
 }
@@ -252,6 +316,8 @@ function getUiHtml() {
     <input id="hardwareId" class="mono" placeholder="64 karakter hash" />
     <label>Bitis Tarihi (opsiyonel, YYYY-MM-DD)</label>
     <input id="expiresAt" placeholder="2027-12-31" />
+    <label>Musteri E-posta (opsiyonel, lisans otomatik gonderilir)</label>
+    <input id="customerEmail" placeholder="musteri@firma.com" />
     <label>Referans Kodu (bos birakirsan otomatik)</label>
     <input id="referralCode" placeholder="REF-ABC-1234" />
     <label>Referans Eden Kodu (opsiyonel)</label>
@@ -268,7 +334,7 @@ function getUiHtml() {
   <div class="card">
     <h2>Kayitlar</h2>
     <table>
-      <thead><tr><th>Lisans</th><th>Firma</th><th>Durum</th><th>Ref Kodu</th><th>Ref Eden</th><th>Indirim</th><th>Cihaz</th><th>Dosya</th><th>Islem</th></tr></thead>
+      <thead><tr><th>Lisans</th><th>Firma</th><th>Durum</th><th>E-posta</th><th>Ref Kodu</th><th>Ref Eden</th><th>Indirim</th><th>Cihaz</th><th>Dosya</th><th>Islem</th></tr></thead>
       <tbody id="records"></tbody>
     </table>
   </div>
@@ -294,6 +360,7 @@ function getUiHtml() {
         tr.innerHTML = '<td class="mono">' + r.key + '</td>'
           + '<td>' + r.customer + '</td>'
           + '<td class="' + (r.status === 'active' ? 'ok' : 'bad') + '">' + r.status + '</td>'
+          + '<td>' + (r.customerEmail || '-') + '</td>'
           + '<td class="mono">' + (r.referralCode || '-') + '</td>'
           + '<td class="mono">' + (r.referredByCode || '-') + '</td>'
           + '<td>' + (r.referralDiscountApplied ? 'Evet' : '-') + '</td>'
@@ -343,6 +410,7 @@ function getUiHtml() {
         customer: document.getElementById('customer').value,
         hardwareId: document.getElementById('hardwareId').value,
         expiresAt: document.getElementById('expiresAt').value,
+        customerEmail: document.getElementById('customerEmail').value,
         referralCode: document.getElementById('referralCode').value,
         referredByCode: document.getElementById('referredByCode').value,
         referralDiscountApplied: document.getElementById('referralDiscountApplied').checked,
@@ -380,6 +448,8 @@ async function requestHandler(req, res) {
         success: true,
         hasPrivateKey: hasPrivateKey(),
         fingerprint: getPublicKeyFingerprint(),
+        smtpConfigured: isSmtpConfigured(),
+        smtpFrom: SMTP_FROM || null,
         dataDir: DATA_DIR,
         licenseDir: LICENSE_DIR
       });
@@ -400,7 +470,7 @@ async function requestHandler(req, res) {
 
     if (req.method === 'POST' && req.url === '/api/generate') {
       const body = await parseBody(req);
-      const record = createLicenseFile(body);
+      const record = await createLicenseFile(body);
       json(res, 200, { success: true, record });
       return;
     }
