@@ -22,7 +22,7 @@ jobs:
           node-version: '20'
 
       - name: Install deps
-        run: npm ci --omit=dev
+        run: npm ci --omit=dev --ignore-scripts
 
       - name: Write private key
         run: node -e "require('fs').writeFileSync(process.env.LICENSE_PRIVATE_KEY_PATH, process.env.LICENSE_PRIVATE_KEY_PEM)"
