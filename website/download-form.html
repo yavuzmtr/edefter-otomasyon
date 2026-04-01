@@ -3,14 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="E-Defter Klasör Otomasyonu 15 günlük ücretsiz demo versiyonunu indirin. Mali müşavir ofisleri için tam özellikli deneme sürümü.">
-    <meta name="keywords" content="e-defter demo indir, ücretsiz deneme, mali müşavir yazılımı demo">
+    <meta name="description" content="E-Defter Klasor Otomasyonu demo indirme sayfasi">
     <meta name="robots" content="index, follow">
-    
-    <!-- Canonical URL -->
     <link rel="canonical" href="https://edefterotomasyon.com.tr/download-form.html">
-    
-    <title>Demo İndir - E-Defter Klasör Otomasyonu</title>
+    <title>Demo Indir</title>
     <link rel="stylesheet" href="style.css">
     <style>
         .download-form-container {
@@ -21,88 +17,36 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             padding: 2rem;
         }
-        
         .form-card {
             background: white;
             border-radius: 20px;
             padding: 3rem;
-            max-width: 500px;
+            max-width: 520px;
             width: 100%;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        }
-        
-        .form-header {
             text-align: center;
-            margin-bottom: 2rem;
         }
-        
-        .form-header h1 {
+        .form-card h1 {
             font-size: 2rem;
             margin-bottom: 0.5rem;
             color: #1a202c;
         }
-        
-        .form-header p {
+        .form-card p {
             color: #718096;
-        }
-        
-        .form-group {
             margin-bottom: 1.5rem;
+            line-height: 1.6;
         }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: #2d3748;
-            font-weight: 500;
-        }
-        
-        .form-group input {
-            width: 100%;
-            padding: 0.75rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: border-color 0.3s;
-        }
-        
-        .form-group input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        
-        .form-group input.error {
-            border-color: #f56565;
-        }
-        
-        .error-message {
-            color: #f56565;
-            font-size: 0.875rem;
-            margin-top: 0.25rem;
-        }
-        
         .submit-btn {
+            display: inline-block;
             width: 100%;
             padding: 1rem;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            border: none;
             border-radius: 8px;
             font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s;
+            font-weight: 700;
+            text-decoration: none;
         }
-        
-        .submit-btn:hover {
-            transform: translateY(-2px);
-        }
-        
-        .submit-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-        
         .success-message {
             background: #48bb78;
             color: white;
@@ -110,21 +54,17 @@
             border-radius: 8px;
             text-align: center;
             margin-top: 1rem;
-            display: none;
         }
-        
         .privacy-note {
             font-size: 0.875rem;
             color: #718096;
             text-align: center;
             margin-top: 1rem;
         }
-        
         .back-link {
             text-align: center;
             margin-top: 1.5rem;
         }
-        
         .back-link a {
             color: #667eea;
             text-decoration: none;
@@ -134,88 +74,15 @@
 <body>
     <div class="download-form-container">
         <div class="form-card">
-            <div class="form-header">
-                <h1>🚀 Demo Sürümü İndirin</h1>
-                <p>15 günlük tam özellikli demo için bilgilerinizi girin.</p>
-            </div>
-            
-            <form id="downloadForm" action="https://formsubmit.co/edefterotomasyon@gmail.com" method="POST">
-                <!-- FormSubmit Ayarları -->
-                <input type="hidden" name="_subject" value="🎯 Yeni Demo İndirme Talebi - E-Defter Otomasyon">
-                <input type="hidden" name="_captcha" value="false">
-                <input type="hidden" name="_template" value="table">
-                <input type="hidden" name="_next" value="https://yavuzmtr.github.io/edefter-otomasyon/download-form.html?success=true">
-                <input type="text" name="_honey" style="display:none">
-                
-                <div class="form-group">
-                    <label for="name">Ad Soyad *</label>
-                    <input type="text" id="name" name="İsim" required placeholder="Örn: Ahmet Yılmaz">
-                    <div class="error-message" id="nameError"></div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="email">E-posta Adresi *</label>
-                    <input type="email" id="email" name="E-posta" required placeholder="ornek@mail.com">
-                    <div class="error-message" id="emailError"></div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="company">Şirket Adı (Opsiyonel)</label>
-                    <input type="text" id="company" name="Şirket" placeholder="Muhasebe Ofisi Adı">
-                </div>
-                
-                <input type="hidden" name="Tarih" id="timestamp">
-                
-                <button type="submit" class="submit-btn" id="submitBtn">
-                    📩 Bilgileri Gönder ve İndir
-                </button>
-                
-                <div class="success-message" id="successMessage">
-                    ✅ Kayıt başarılı! İndirme işlemi otomatik başlayacaktır.
-                </div>
-                
-                <p class="privacy-note">
-                    Bilgileriniz sadece demo paylaşımı için kullanılacaktır. Spam göndermiyoruz.
-                </p>
-            </form>
-            
+            <h1>Demo Sürümü Indirin</h1>
+            <p>Form servisi gecici sorun yasadigi icin demo indirmeyi dogrudan yapiyoruz.</p>
+            <a class="submit-btn" href="https://github.com/yavuzmtr/edefter-otomasyon/releases/download/v1.0.0-demo/E-Defter.Otomasyon.DEMO.Setup.1.0.1.exe">Demo Indir (15 Gun)</a>
+            <div class="success-message">Demo indirme baglantisi yukaridadir.</div>
+            <p class="privacy-note">Demo surum 15 gun tam ozelliklidir.</p>
             <div class="back-link">
-                <a href="index.html">← Ana Sayfaya Dön</a>
+                <a href="index.html">Ana Sayfaya Don</a>
             </div>
         </div>
     </div>
-    
-    <script>
-        const form = document.getElementById('downloadForm');
-        const submitBtn = document.getElementById('submitBtn');
-        const successMessage = document.getElementById('successMessage');
-        const DEMO_DOWNLOAD_URL = 'https://github.com/yavuzmtr/edefter-otomasyon/releases/download/v1.0.0-demo/E-Defter.Otomasyon.DEMO.Setup.1.0.1.exe';
-        const DEMO_FILE_SIZE = '106 MB';
-        const DEMO_SHA256 = 'E749945AAC987451F345E5E5F76ADB62783E3783BF0ECC35401466EADB5D2FEE';
-        
-        // URL'den success parametresini kontrol et
-        const urlParams = new URLSearchParams(window.location.search);
-        
-        // Başarılı gönderimden sonra indirmeyi başlat
-        if (urlParams.get('success') === 'true') {
-            const downloadLink = document.createElement('a');
-            downloadLink.href = DEMO_DOWNLOAD_URL;
-            downloadLink.download = 'E-Defter.Otomasyon.DEMO.Setup.1.0.1.exe';
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
-        }
-        
-        // Tarih alanını otomatik doldur
-        document.getElementById('timestamp').value = new Date().toLocaleString('tr-TR');
-        
-        form.addEventListener('submit', (e) => {
-            submitBtn.disabled = true;
-            submitBtn.textContent = '⏳ Gönderiliyor...';
-            
-            // Form FormSubmit'e gönderilecek
-            // FormSubmit otomatik olarak email gönderecek ve yönlendirecek
-        });
-    </script>
 </body>
 </html>
