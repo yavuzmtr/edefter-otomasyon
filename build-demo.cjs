@@ -34,6 +34,11 @@ if (whenReadyPattern.test(mainContent)) {
     mainContent = trialImport + mainContent;
   }
   
+  // Demo build flag ekle
+  if (!mainContent.includes('const IS_DEMO_BUILD = true;')) {
+    mainContent = trialImport + `const IS_DEMO_BUILD = true;\n\n` + mainContent.replace(trialImport, '');
+  }
+
   // whenReady içine trial kontrolü ekle
   mainContent = mainContent.replace(
     whenReadyPattern,
@@ -45,6 +50,12 @@ if (whenReadyPattern.test(mainContent)) {
   }
   // ==================================================
 `
+  );
+
+  // Demo build'de full lisans zorunluluğunu devre dışı bırak (sadece lisans kontrol bloğu)
+  mainContent = mainContent.replace(
+    /if \(app\.isPackaged\)\s*\{\s*const licenseStatus = licenseManager\.validateInstalledLicense\(\);/,
+    'if (app.isPackaged && !IS_DEMO_BUILD) {\n    const licenseStatus = licenseManager.validateInstalledLicense();'
   );
   
   // 4. IPC handler ekle (trial bilgisi için)
