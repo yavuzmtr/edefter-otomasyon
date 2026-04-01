@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="E-Defter Klasor Otomasyonu satin alma talep formu. Odeme sonrasi full kurulum ve lisans sureci baslar.">
-    <meta name="keywords" content="e-defter satin al, lisans talebi, e-defter otomasyon">
+    <meta name="description" content="E-Defter Klasor Otomasyonu satin alma talep formu">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://edefterotomasyon.com.tr/purchase-form.html">
-    <title>Satin Alma Talebi - E-Defter Klasor Otomasyonu</title>
+    <title>Satin Alma Talebi</title>
     <link rel="stylesheet" href="style.css">
     <style>
         .download-form-container {
@@ -25,164 +24,48 @@
             max-width: 560px;
             width: 100%;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        }
-        .form-header {
             text-align: center;
-            margin-bottom: 1.5rem;
         }
-        .form-header h1 {
+        .form-card h1 {
             font-size: 2rem;
             margin-bottom: 0.5rem;
             color: #0f172a;
         }
-        .form-header p {
+        .form-card p {
             color: #64748b;
-        }
-        .flow-note {
-            background: #f1f5f9;
-            border-radius: 12px;
-            padding: 12px 14px;
-            font-size: 0.95rem;
-            color: #0f172a;
             margin-bottom: 1.5rem;
-            line-height: 1.5;
+            line-height: 1.6;
         }
-        .form-group {
-            margin-bottom: 1.2rem;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: #1f2937;
-            font-weight: 600;
-        }
-        .form-group input, .form-group textarea {
-            width: 100%;
-            padding: 0.75rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 1rem;
-        }
-        .form-group textarea {
-            min-height: 90px;
-            resize: vertical;
-        }
-        .submit-btn {
-            width: 100%;
-            padding: 1rem;
+        .cta-btn {
+            display: inline-block;
+            padding: 1rem 1.5rem;
             background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
             color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 700;
-            cursor: pointer;
-        }
-        .privacy-note {
-            font-size: 0.85rem;
-            color: #64748b;
-            text-align: center;
-            margin-top: 1rem;
-        }
-        .back-link {
-            text-align: center;
-            margin-top: 1.5rem;
-        }
-        .back-link a {
-            color: #2563eb;
+            border-radius: 10px;
             text-decoration: none;
+            font-weight: 700;
+        }
+        .note {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: #475569;
         }
     </style>
 </head>
 <body>
     <div class="download-form-container">
         <div class="form-card">
-            <div class="form-header">
-                <h1>Satin Alma Talebi</h1>
-                <p>Talebinizi alalim, odeme sonrasi full kurulum ve lisans sureci baslar.</p>
-            </div>
-
-            <div class="flow-note">
-                Surec Ozeti: Talep -> Odeme -> Full Kurulum -> Cihaz Kimligi -> Lisans Maili
-            </div>
-
-            <form id="purchaseForm" action="https://formsubmit.co/satis@edefterotomasyon.com.tr" method="POST">
-                <input type="hidden" name="_subject" value="Yeni Satin Alma Talebi - E-Defter Otomasyon">
-                <input type="hidden" name="_captcha" value="false">
-                <input type="hidden" name="_template" value="table">
-                <input type="hidden" name="_next" value="https://edefterotomasyon.com.tr/purchase-form.html?success=true">
-                <input type="hidden" name="_autoresponse" value="Merhaba,\n\nSatin alma talebiniz alindi. Islemi tamamlamak icin odeme bilgileri asagidadir:\n\nAlici: Yavuz Mercimek\nIBAN: TR95 0020 5000 0101 8288 4000 08\n\nOdeme yaptiktan sonra bu e-postayi yanitlayip dekontu paylasmaniz yeterlidir.\nOdeme onayinin ardindan full kurulum linki ve cihaz kimligi adimlari tarafiniza iletilecektir.\n\nTesekkurler,\nE-Defter Otomasyon">
-                <input type="text" name="_honey" style="display:none">
-
-                <div class="form-group">
-                    <label for="name">Ad Soyad *</label>
-                    <input type="text" id="name" name="Isim" required placeholder="Orn: Ahmet Yilmaz">
-                </div>
-
-                <div class="form-group">
-                    <label for="email">E-posta Adresi *</label>
-                    <input type="email" id="email" name="E-posta" required placeholder="ornek@mail.com">
-                </div>
-
-                <div class="form-group">
-                    <label for="phone">Telefon (Opsiyonel)</label>
-                    <input type="text" id="phone" name="Telefon" placeholder="05xx xxx xx xx">
-                </div>
-
-                <div class="form-group">
-                    <label for="company">Musteri / Firma *</label>
-                    <input type="text" id="company" name="Firma" required placeholder="ABC Muhasebe">
-                </div>
-
-                <div class="form-group">
-                    <label for="hardware">Cihaz Kimligi (Varsa)</label>
-                    <input type="text" id="hardware" name="Cihaz Kimligi" placeholder="64 karakter hash">
-                </div>
-
-                <div class="form-group">
-                    <label for="note">Not (Opsiyonel)</label>
-                    <textarea id="note" name="Not" placeholder="Kisa notunuz varsa yazabilirsiniz"></textarea>
-                </div>
-
-                <button type="submit" class="submit-btn">Talebi Gonder</button>
-
-                <p class="privacy-note">
-                    Talebiniz alindiktan sonra odeme bilgileri ve sonraki adimlar e-posta ile iletilir.
-                </p>
-            </form>
-
-            <div id="successMessage" class="flow-note" style="display:none; margin-top:16px;">
-                <strong>Talebiniz alinmistir.</strong><br>
-                Odeme bilgileri asagidadir:
-                <div style="margin-top:8px;">
-                    Alici: Yavuz Mercimek<br>
-                    IBAN: TR95 0020 5000 0101 8288 4000 08
-                </div>
-                <div style="margin-top:8px;">
-                    Odeme sonrasi bu e-postayi yanitlayip dekont paylasmaniz yeterlidir.
-                </div>
-            </div>
-
-            <div class="back-link">
-                <a href="index.html">Ana Sayfaya Don</a>
-            </div>
+            <h1>Satin Alma Talebi</h1>
+            <p>Talebinizi Google Form uzerinden aliyoruz. Birazdan yonlendirileceksiniz.</p>
+            <a id="formLink" class="cta-btn" href="https://docs.google.com/forms/d/e/1FAIpQLScWrmyZz4Edj69VXIBtfNaP7uSNMHhxCIFILZT0Et2yMPt-tA/viewform?usp=publish-editor" target="_blank" rel="noopener">Formu Ac</a>
+            <div class="note">Yonlendirme olmazsa yukaridaki butona tiklayin.</div>
         </div>
     </div>
     <script>
-        const form = document.getElementById('purchaseForm');
-        const successMessage = document.getElementById('successMessage');
-        const submitBtn = form.querySelector('.submit-btn');
-        const params = new URLSearchParams(window.location.search);
-
-        if (params.get('success') === 'true') {
-            form.style.display = 'none';
-            successMessage.style.display = 'block';
-        }
-
-        form.addEventListener('submit', () => {
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Gonderiliyor...';
-        });
+        const FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScWrmyZz4Edj69VXIBtfNaP7uSNMHhxCIFILZT0Et2yMPt-tA/viewform?usp=publish-editor";
+        setTimeout(() => {
+            window.location.href = FORM_URL;
+        }, 1200);
     </script>
 </body>
 </html>
