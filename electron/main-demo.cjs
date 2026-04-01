@@ -120,6 +120,7 @@ try {
 }
 const archiver = require('archiver');
 const Store = require('electron-store');
+const licenseManager = require('./license-manager.cjs');
 
 // Handle Squirrel Windows installer events
 if (require('electron-squirrel-startup')) app.quit();
@@ -1116,6 +1117,7 @@ async function performBackendEmailAutomation(automationSettings) {
             const sourcePath = monitoringSettings.sourcePath;
             
             if (sourcePath && fs.existsSync(sourcePath)) {
+              // Şirket klasörünü bul (recursive arama ile)
               const companyFolder = findTaxIdFolder(sourcePath, record.companyId) || path.join(sourcePath, record.companyId);
               
               if (fs.existsSync(companyFolder)) {
@@ -1389,14 +1391,18 @@ ipcMain.handle('scan-folder-structure', async (event, sourcePath, selectedYear) 
 });
 
 // ✅ Recursive klasör arama: Vergi/TC no klasörünü alt klasörlerde de arar
-function findTaxIdFolder(basePath, taxId, maxDepth = 2, currentDepth = 0) {
+function findTaxIdFolder(basePath, taxId, maxDepth = 4, currentDepth = 0) {
+  // Önce doğrudan kontrol
   const directPath = path.join(basePath, taxId);
   try {
     if (fs.existsSync(directPath) && fs.statSync(directPath).isDirectory()) {
       return directPath;
     }
   } catch (e) { /* ignore */ }
+  
   if (currentDepth >= maxDepth) return null;
+  
+  // Alt klasörlerde ara
   try {
     const subDirs = fs.readdirSync(basePath).filter(item => {
       try {
@@ -1405,7 +1411,9 @@ function findTaxIdFolder(basePath, taxId, maxDepth = 2, currentDepth = 0) {
       } catch (e) { return false; }
     });
     for (const subDir of subDirs) {
+      // Alt klasör zaten farklı bir vergi/tc no ise derinlere inme
       if (subDir.match(/^\d{10,11}$/) && subDir !== taxId) continue;
+      // Yıl klasörü formatı ise atla
       if (subDir.match(/^\d{2}\.\d{2}\.\d{4}-\d{2}\.\d{2}\.\d{4}$/)) continue;
       const found = findTaxIdFolder(path.join(basePath, subDir), taxId, maxDepth, currentDepth + 1);
       if (found) return found;
@@ -1414,17 +1422,21 @@ function findTaxIdFolder(basePath, taxId, maxDepth = 2, currentDepth = 0) {
   return null;
 }
 
-function findAllTaxIdFolders(basePath, maxDepth = 2, currentDepth = 0) {
-  const results = [];
+// ✅ Tüm vergi/tc no klasörlerini recursive olarak bul
+function findAllTaxIdFolders(basePath, maxDepth = 4, currentDepth = 0) {
+  const results = []; // [{id, path}]
   try {
     const items = fs.readdirSync(basePath);
     for (const item of items) {
       try {
         const fullPath = path.join(basePath, item);
         if (!fs.statSync(fullPath).isDirectory()) continue;
+        
+        // Bu klasör adı vergi/tc no mu?
         if (item.match(/^\d{10,11}$/)) {
           results.push({ id: item, path: fullPath });
         } else if (currentDepth < maxDepth && !item.startsWith('.') && !item.match(/^\d{2}\.\d{2}\.\d{4}/)) {
+          // Yıl klasörü değilse alt klasörlere dal
           const subResults = findAllTaxIdFolders(fullPath, maxDepth, currentDepth + 1);
           results.push(...subResults);
         }
@@ -1467,7 +1479,7 @@ const performScan = async (sourcePath, selectedYear, companies) => {
         const companyPath = findTaxIdFolder(sourcePath, id);
         if (companyPath) {
           foundCompanyPath = companyPath;
-          actualCompanyId = id;
+          actualCompanyId = id; // BULUNAN ID'yi kaydet
           logToFile('debug', 'Şirket', `${company.name} - Klasör bulundu: ${id} (${id.length === 11 ? 'TC' : 'Vergi'}) -> ${companyPath}`);
           break;
         }
@@ -1657,6 +1669,7 @@ const performScan = async (sourcePath, selectedYear, companies) => {
     
     try {
       if (fs.existsSync(sourcePath)) {
+        // ✅ Recursive: Alt klasörlerde de vergi/tc no ara
         const foundTaxFolders = findAllTaxIdFolders(sourcePath);
         const allFolders = foundTaxFolders.map(f => f.id);
 
@@ -1670,6 +1683,7 @@ const performScan = async (sourcePath, selectedYear, companies) => {
         logToFile('info', 'Tarama', `${allFolders.length} klasör bulundu, ${unregisteredFolders.length} tanımlanmamış`);
 
         for (const companyId of unregisteredFolders) {
+          // ✅ Recursive: Alt klasörlerde de ara
           const taxFolderEntry = foundTaxFolders.find(f => f.id === companyId);
           const companyPath = taxFolderEntry ? taxFolderEntry.path : path.join(sourcePath, companyId);
           
@@ -3179,6 +3193,22 @@ ipcMain.handle('check-trial-status', async () => {
   };
 });
 
+ipcMain.handle('check-license-status', async () => {
+  try {
+    return { success: true, ...licenseManager.validateInstalledLicense() };
+  } catch (error) {
+    return { success: false, valid: false, reason: error.message };
+  }
+});
+
+ipcMain.handle('get-license-hardware-id', async () => {
+  try {
+    return { success: true, hardwareId: licenseManager.getHardwareFingerprint() };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
 // ✅ YENİ: Email kontrolünü manuel tetikle (tarama bitince hemen çalışsın)
 ipcMain.handle('trigger-email-check', async () => {
   try {
@@ -3751,6 +3781,28 @@ app.whenReady().then(async () => {
     return; // Trial expired, app will quit
   }
   // ==================================================
+
+  if (app.isPackaged) {
+    const licenseStatus = licenseManager.validateInstalledLicense();
+    if (!licenseStatus.valid) {
+      const detail = [
+        `Neden: ${licenseStatus.reason || 'Lisans gecersiz'}`,
+        '',
+        `Cihaz Kimligi: ${licenseStatus.hardwareId || '-'}`,
+        `Lisans Dosya Yolu: ${licenseStatus.licensePath || '-'}`
+      ].join('\n');
+
+      dialog.showMessageBoxSync({
+        type: 'error',
+        title: 'Lisans Dogrulama Basarisiz',
+        message: 'Bu cihazda gecerli bir Full lisans bulunamadi.',
+        detail
+      });
+
+      app.quit();
+      return;
+    }
+  }
 
   createWindow();
   createTray(); // ✅ Sistem tepsisi ikonu oluştur

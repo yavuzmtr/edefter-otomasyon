@@ -1380,7 +1380,7 @@ ipcMain.handle('scan-folder-structure', async (event, sourcePath, selectedYear) 
 });
 
 // ✅ Recursive klasör arama: Vergi/TC no klasörünü alt klasörlerde de arar
-function findTaxIdFolder(basePath, taxId, maxDepth = 2, currentDepth = 0) {
+function findTaxIdFolder(basePath, taxId, maxDepth = 4, currentDepth = 0) {
   // Önce doğrudan kontrol
   const directPath = path.join(basePath, taxId);
   try {
@@ -1412,7 +1412,7 @@ function findTaxIdFolder(basePath, taxId, maxDepth = 2, currentDepth = 0) {
 }
 
 // ✅ Tüm vergi/tc no klasörlerini recursive olarak bul
-function findAllTaxIdFolders(basePath, maxDepth = 2, currentDepth = 0) {
+function findAllTaxIdFolders(basePath, maxDepth = 4, currentDepth = 0) {
   const results = []; // [{id, path}]
   try {
     const items = fs.readdirSync(basePath);
