@@ -1106,8 +1106,8 @@ async function performBackendEmailAutomation(automationSettings) {
             const sourcePath = monitoringSettings.sourcePath;
             
             if (sourcePath && fs.existsSync(sourcePath)) {
-              // Şirket klasörünü bul
-              const companyFolder = path.join(sourcePath, record.companyId);
+              // Şirket klasörünü bul (recursive arama ile)
+              const companyFolder = findTaxIdFolder(sourcePath, record.companyId) || path.join(sourcePath, record.companyId);
               
               if (fs.existsSync(companyFolder)) {
                 // ZIP oluştur
@@ -1379,7 +1379,63 @@ ipcMain.handle('scan-folder-structure', async (event, sourcePath, selectedYear) 
   }
 });
 
-// ✅ YENİ: Tarama fonksiyonu (non-blocking)
+// ✅ Recursive klasör arama: Vergi/TC no klasörünü alt klasörlerde de arar
+function findTaxIdFolder(basePath, taxId, maxDepth = 2, currentDepth = 0) {
+  // Önce doğrudan kontrol
+  const directPath = path.join(basePath, taxId);
+  try {
+    if (fs.existsSync(directPath) && fs.statSync(directPath).isDirectory()) {
+      return directPath;
+    }
+  } catch (e) { /* ignore */ }
+  
+  if (currentDepth >= maxDepth) return null;
+  
+  // Alt klasörlerde ara
+  try {
+    const subDirs = fs.readdirSync(basePath).filter(item => {
+      try {
+        const fullPath = path.join(basePath, item);
+        return fs.statSync(fullPath).isDirectory() && !item.startsWith('.');
+      } catch (e) { return false; }
+    });
+    for (const subDir of subDirs) {
+      // Alt klasör zaten farklı bir vergi/tc no ise derinlere inme
+      if (subDir.match(/^\d{10,11}$/) && subDir !== taxId) continue;
+      // Yıl klasörü formatı ise atla
+      if (subDir.match(/^\d{2}\.\d{2}\.\d{4}-\d{2}\.\d{2}\.\d{4}$/)) continue;
+      const found = findTaxIdFolder(path.join(basePath, subDir), taxId, maxDepth, currentDepth + 1);
+      if (found) return found;
+    }
+  } catch (e) { /* ignore */ }
+  return null;
+}
+
+// ✅ Tüm vergi/tc no klasörlerini recursive olarak bul
+function findAllTaxIdFolders(basePath, maxDepth = 2, currentDepth = 0) {
+  const results = []; // [{id, path}]
+  try {
+    const items = fs.readdirSync(basePath);
+    for (const item of items) {
+      try {
+        const fullPath = path.join(basePath, item);
+        if (!fs.statSync(fullPath).isDirectory()) continue;
+        
+        // Bu klasör adı vergi/tc no mu?
+        if (item.match(/^\d{10,11}$/)) {
+          results.push({ id: item, path: fullPath });
+        } else if (currentDepth < maxDepth && !item.startsWith('.') && !item.match(/^\d{2}\.\d{2}\.\d{4}/)) {
+          // Yıl klasörü değilse alt klasörlere dal
+          const subResults = findAllTaxIdFolders(fullPath, maxDepth, currentDepth + 1);
+          results.push(...subResults);
+        }
+      } catch (e) { /* ignore */ }
+    }
+  } catch (e) { /* ignore */ }
+  return results;
+}
+
+// ✅ Tarama fonksiyonu (non-blocking)
 const performScan = async (sourcePath, selectedYear, companies) => {
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
@@ -1409,11 +1465,11 @@ const performScan = async (sourcePath, selectedYear, companies) => {
       let actualCompanyId = null; // Bulunan gerçek ID
       
       for (const id of priorityOrder) {
-        const companyPath = path.join(sourcePath, id);
-        if (fs.existsSync(companyPath)) {
+        const companyPath = findTaxIdFolder(sourcePath, id);
+        if (companyPath) {
           foundCompanyPath = companyPath;
           actualCompanyId = id; // BULUNAN ID'yi kaydet
-          logToFile('debug', 'Şirket', `${company.name} - Klasör bulundu: ${id} (${id.length === 11 ? 'TC' : 'Vergi'})`);
+          logToFile('debug', 'Şirket', `${company.name} - Klasör bulundu: ${id} (${id.length === 11 ? 'TC' : 'Vergi'}) -> ${companyPath}`);
           break;
         }
       }
@@ -1602,10 +1658,9 @@ const performScan = async (sourcePath, selectedYear, companies) => {
     
     try {
       if (fs.existsSync(sourcePath)) {
-        const allFolders = fs.readdirSync(sourcePath).filter(folder => {
-          const fullPath = path.join(sourcePath, folder);
-          return fs.statSync(fullPath).isDirectory() && folder.match(/^\d{10,11}$/); // 10-11 haneli sayı (vergi/tc no)
-        });
+        // ✅ Recursive: Alt klasörlerde de vergi/tc no ara
+        const foundTaxFolders = findAllTaxIdFolders(sourcePath);
+        const allFolders = foundTaxFolders.map(f => f.id);
 
         const registeredCompanyIds = [];
         companies.forEach(c => {
@@ -1617,7 +1672,9 @@ const performScan = async (sourcePath, selectedYear, companies) => {
         logToFile('info', 'Tarama', `${allFolders.length} klasör bulundu, ${unregisteredFolders.length} tanımlanmamış`);
 
         for (const companyId of unregisteredFolders) {
-          const companyPath = path.join(sourcePath, companyId);
+          // ✅ Recursive: Alt klasörlerde de ara
+          const taxFolderEntry = foundTaxFolders.find(f => f.id === companyId);
+          const companyPath = taxFolderEntry ? taxFolderEntry.path : path.join(sourcePath, companyId);
           
           logToFile('info', 'Tanımlanmamış', `Şirket klasörü bulundu ancak tanımlanmamış: ${companyId}`);
 
