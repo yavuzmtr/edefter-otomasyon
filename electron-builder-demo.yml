@@ -1,12 +1,12 @@
 appId: com.edefter.klasorotomasyon.demo
 productName: E-Defter Otomasyon DEMO
 directories:
-  output: release-demo-v3
+  output: release-demo
 files:
   - dist/**/*
-  - electron/**/*
-  - '!electron/main.cjs'
-  - '!electron/main.cjs.backup'
+  - electron/main-demo.cjs
+  - electron/preload.cjs
+  - electron/trial-checker.cjs
   - node_modules/**/*
   - package.json
 extraResources:
@@ -27,8 +27,6 @@ nsis:
   installerIcon: icon.ico
   uninstallerIcon: icon.ico
   installerHeaderIcon: icon.ico
-  deleteAppDataOnUninstall: true
+  deleteAppDataOnUninstall: false
   shortcutName: E-Defter Otomasyon DEMO
-  license: docs/EULA.txt
-  include: scripts/installer.nsh
 publish: null
