@@ -93,6 +93,7 @@ ipcMain.handle('get-trial-info', async () => {
       'dist/**/*',
       'electron/main-demo.cjs',
       'electron/preload.cjs',
+      'electron/license-manager.cjs',
       'electron/trial-checker.cjs',
       'node_modules/**/*',
       'package.json'
