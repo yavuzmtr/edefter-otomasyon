@@ -121,6 +121,7 @@
       "runAfterFinish": true,
       "uninstallDisplayName": "E-Defter Otomasyon Sistemi",
       "deleteAppDataOnUninstall": true,
+      "license": "docs/EULA.txt",
       "include": "scripts/installer.nsh",
       "allowElevation": true,
       "perMachine": false
