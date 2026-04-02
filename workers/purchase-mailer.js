@@ -39,7 +39,7 @@ function buildCustomerMail(data) {
       `Alici: ${data.paymentName}\n` +
       `IBAN: ${data.paymentIban}\n\n` +
       'Lutfen odeme aciklama kismina Ad Soyad veya Firma Unvani yaziniz.\n' +
-      'Odeme sonrasi bu e-postayi yanitlayarak veya destek@edefterotomasyon.com.tr adresine dekont iletebilirsiniz.\n' +
+      'Odeme sonrasi bu e-postayi yanitlayarak veya satis@edefterotomasyon.com.tr adresine dekont iletebilirsiniz.\n' +
       'Odeme onayi sonrasinda full kurulum linki ve cihaz kimligi adimlari tarafiniza iletilecektir.\n\n' +
       'Saygilarimizla,\nE-Defter Otomasyon',
     html:
@@ -48,7 +48,7 @@ function buildCustomerMail(data) {
       `<p><strong>Alici:</strong> ${data.paymentName}<br>` +
       `<strong>IBAN:</strong> ${data.paymentIban}</p>` +
       '<p><strong>Not:</strong> Lutfen odeme aciklama kismina <strong>Ad Soyad</strong> veya <strong>Firma Unvani</strong> yaziniz.</p>' +
-      '<p>Odeme sonrasi bu e-postayi yanitlayarak veya <strong>destek@edefterotomasyon.com.tr</strong> adresine dekont paylasabilirsiniz.<br>' +
+      '<p>Odeme sonrasi bu e-postayi yanitlayarak veya <strong>satis@edefterotomasyon.com.tr</strong> adresine dekont paylasabilirsiniz.<br>' +
       'Odeme onayi sonrasinda full kurulum linki ve cihaz kimligi adimlari tarafiniza iletilecektir.</p>' +
       '<p>Saygilarimizla,<br><strong>E-Defter Otomasyon</strong></p>'
   };
