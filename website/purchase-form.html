@@ -57,7 +57,14 @@
         <div class="form-card">
             <h1>Satin Alma Talebi</h1>
             <p>Formu doldurun, odeme bilgileri ve sonraki adimlar mail olarak gonderilecektir.</p>
-            <form action="https://formsubmit.co/edefterotomasyon@gmail.com" method="POST">
+            <div class="note" style="margin-bottom:1rem; text-align:left;">
+                <strong>Cihaz Kimligini nasil alirim?</strong><br>
+                1. Full kurulum dosyasini indirip kurun.<br>
+                2. Programi acin, lisans ekrani cihaz kimligini gosterir.<br>
+                3. Bu kodu asagidaki alana yazin (opsiyonel).<br>
+                Kisa video: <a href="#" target="_blank" rel="noopener">izlemek icin tiklayin</a>
+            </div>
+            <form action="https://formsubmit.co/edefterotomasyon@gmail.com" method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="_subject" value="E-Defter Otomasyon - Satin Alma Talebi">
                 <input type="hidden" name="_template" value="box">
                 <input type="hidden" name="_captcha" value="false">
@@ -79,6 +86,10 @@
                 <div class="form-group">
                     <label for="device">Cihaz Kimligi (opsiyonel)</label>
                     <input id="device" name="Cihaz Kimligi" type="text">
+                </div>
+                <div class="form-group">
+                    <label for="receipt">Dekont Yukle (opsiyonel)</label>
+                    <input id="receipt" name="attachment" type="file">
                 </div>
                 <div class="form-group">
                     <label for="notes">Notlar</label>
