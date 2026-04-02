@@ -146,25 +146,80 @@ async function sendLicenseEmail({ to, record }) {
     auth: { user: SMTP_USER, pass: SMTP_KEY }
   });
 
-  const subject = `E-Defter Lisans Dosyaniz (${record.key})`;
+  const subject = `E-Defter Otomasyon | Lisans Dosyaniz (${record.key})`;
   const bodyText = [
-    `Merhaba ${record.customer},`,
+    `Sayin ${record.customer},`,
     '',
-    'Lisans dosyaniz ektedir.',
+    'Lisans dosyaniz ektedir. Kurulum ve aktivasyon icin asagidaki adimlari izleyiniz:',
     '',
-    'Lisans dosyasini programin belirledigi dizine kopyalayin.',
-    'Genelde dizin: %APPDATA%\\edefter-automation',
+    '1) Program kurulumu',
+    '- Size iletilen kurulum dosyasini calistirin ve kurulumu tamamlayin.',
+    '- Kurulum tamamlandiktan sonra uygulamayi acin.',
     '',
-    'Sorun yasarsaniz bu e-postayi yanitlayabilirsiniz.',
+    '2) Lisans dosyasini yerlestirme',
+    '- Bu e-postaya ekli lisans dosyasini oldugu gibi kopyalayin (adi degistirmeyin).',
+    '- Dizine kopyalayin: %APPDATA%\\edefter-automation',
+    '  Ornek yol: C:\\Users\\<Kullanici>\\AppData\\Roaming\\edefter-automation',
     '',
-    'E-Defter Otomasyon'
+    '3) Aktivasyon',
+    '- Uygulama aciksa kapatin ve tekrar acin.',
+    '- Lisans otomatik olarak algilanacaktir.',
+    '',
+    '4) Kullanici kaynaklari',
+    '- Kullanim kilavuzu: https://edefterotomasyon.com.tr/kullanim-kilavuzu.html',
+    '- Kurulum videosu: https://www.youtube.com/watch?v=sGD8BrVTwI8',
+    '- Cihaz kimligi nasil alinir: https://www.youtube.com/watch?v=Bcc4_BaMpOc',
+    '',
+    'Herhangi bir sorun olursa bu e-postayi yanitlayabilir veya satis@edefterotomasyon.com.tr adresine yazabilirsiniz.',
+    '',
+    'Saygilarimizla,',
+    'E-Defter Otomasyon',
+    'satis@edefterotomasyon.com.tr'
   ].join('\n');
+
+  const bodyHtml = `
+  <div style="font-family:Segoe UI, Arial, sans-serif; color:#1d2b3a; line-height:1.5;">
+    <p>Sayin <strong>${record.customer}</strong>,</p>
+    <p>Lisans dosyaniz ektedir. Kurulum ve aktivasyon icin asagidaki adimlari izleyiniz:</p>
+    <ol>
+      <li><strong>Program kurulumu</strong>
+        <ul>
+          <li>Size iletilen kurulum dosyasini calistirin ve kurulumu tamamlayin.</li>
+          <li>Kurulum tamamlandiktan sonra uygulamayi acin.</li>
+        </ul>
+      </li>
+      <li><strong>Lisans dosyasini yerlestirme</strong>
+        <ul>
+          <li>Bu e-postaya ekli lisans dosyasini oldugu gibi kopyalayin (adi degistirmeyin).</li>
+          <li>Dizine kopyalayin: <code>%APPDATA%\\edefter-automation</code></li>
+          <li>Ornek yol: <code>C:\\Users\\&lt;Kullanici&gt;\\AppData\\Roaming\\edefter-automation</code></li>
+        </ul>
+      </li>
+      <li><strong>Aktivasyon</strong>
+        <ul>
+          <li>Uygulama aciksa kapatin ve tekrar acin.</li>
+          <li>Lisans otomatik olarak algilanacaktir.</li>
+        </ul>
+      </li>
+      <li><strong>Kullanici kaynaklari</strong>
+        <ul>
+          <li>Kullanim kilavuzu: <a href="https://edefterotomasyon.com.tr/kullanim-kilavuzu.html">Kullanim Kilavuzu</a></li>
+          <li>Kurulum videosu: <a href="https://www.youtube.com/watch?v=sGD8BrVTwI8">YouTube</a></li>
+          <li>Cihaz kimligi nasil alinir: <a href="https://www.youtube.com/watch?v=Bcc4_BaMpOc">YouTube</a></li>
+        </ul>
+      </li>
+    </ol>
+    <p>Herhangi bir sorun olursa bu e-postayi yanitlayabilir veya satis@edefterotomasyon.com.tr adresine yazabilirsiniz.</p>
+    <p>Saygilarimizla,<br><strong>E-Defter Otomasyon</strong><br>satis@edefterotomasyon.com.tr</p>
+  </div>
+  `.trim();
 
   await transporter.sendMail({
     from: SMTP_FROM,
     to,
     subject,
     text: bodyText,
+    html: bodyHtml,
     attachments: [
       {
         filename: record.fileName,
@@ -551,4 +606,5 @@ server.listen(PORT, HOST, () => {
   console.log(`Lisans Yoneticisi hazir: ${url}`);
   openBrowser(url);
 });
+
 
