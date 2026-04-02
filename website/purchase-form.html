@@ -64,12 +64,13 @@
                 3. Bu kodu asagidaki alana yazin (opsiyonel).<br>
                 Kisa video: <a href="https://www.youtube.com/watch?v=Bcc4_BaMpOc" target="_blank" rel="noopener">izlemek icin tiklayin</a>
             </div>
-            <form action="https://formsubmit.co/edefterotomasyon@gmail.com" method="POST" enctype="multipart/form-data">
+            <form id="purchaseForm" action="https://formsubmit.co/edefterotomasyon@gmail.com" method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="_subject" value="E-Defter Otomasyon - Satin Alma Talebi">
                 <input type="hidden" name="_template" value="box">
                 <input type="hidden" name="_captcha" value="false">
                 <input type="hidden" name="_next" value="https://edefterotomasyon.com.tr/purchase-thanks.html">
                 <input type="hidden" name="_autoresponse" value="Merhaba, satin alma talebiniz alinmistir. Islemleri tamamlamak icin asagidaki adimlari takip edin: (1) Odeme yapin. Alici: Yavuz Mercimek, IBAN: TR95 0020 5000 0101 8288 4000 08. (2) Odeme sonrasi bu e-postaya dekont gonderebilirsiniz. (3) Kurulum ve cihaz kimligi icin tarafinizla iletisim kuracagiz.">
+                <input type="hidden" id="replyto" name="_replyto" value="">
 
                 <div class="form-group">
                     <label for="company">Musteri/Firma</label>
@@ -104,5 +105,18 @@
             <div class="note">Form gonderildiginde odeme bilgileri e-posta ile iletilecektir.</div>
         </div>
     </div>
+    <script>
+        (function () {
+            var form = document.getElementById('purchaseForm');
+            if (!form) return;
+            form.addEventListener('submit', function () {
+                var emailInput = document.getElementById('email');
+                var replyTo = document.getElementById('replyto');
+                if (emailInput && replyTo) {
+                    replyTo.value = emailInput.value || '';
+                }
+            });
+        })();
+    </script>
 </body>
 </html>
