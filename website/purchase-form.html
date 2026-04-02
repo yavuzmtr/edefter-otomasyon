@@ -108,14 +108,16 @@
     <script>
         (function () {
             var form = document.getElementById('purchaseForm');
-            if (!form) return;
-            form.addEventListener('submit', function () {
-                var emailInput = document.getElementById('email');
-                var replyTo = document.getElementById('replyto');
-                if (emailInput && replyTo) {
-                    replyTo.value = emailInput.value || '';
-                }
-            });
+            var emailInput = document.getElementById('email');
+            var replyTo = document.getElementById('replyto');
+            if (!form || !emailInput || !replyTo) return;
+
+            function syncReplyTo() {
+                replyTo.value = emailInput.value || '';
+            }
+
+            emailInput.addEventListener('input', syncReplyTo);
+            form.addEventListener('submit', syncReplyTo);
         })();
     </script>
 </body>
