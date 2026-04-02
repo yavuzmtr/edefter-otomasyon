@@ -38,16 +38,18 @@ function buildCustomerMail(data) {
       'Satin alma talebiniz alinmistir. Odeme bilgileri asagidadir:\n\n' +
       `Alici: ${data.paymentName}\n` +
       `IBAN: ${data.paymentIban}\n\n` +
-      'Odeme sonrasi bu e-postayi yanitlayarak dekont paylasabilirsiniz.\n' +
-      'Kurulum ve cihaz kimligi adimlari icin sizinle iletisime gececegiz.\n\n' +
+      'Lutfen odeme aciklama kismina Ad Soyad veya Firma Unvani yaziniz.\n' +
+      'Odeme sonrasi bu e-postayi yanitlayarak veya destek@edefterotomasyon.com.tr adresine dekont iletebilirsiniz.\n' +
+      'Odeme onayi sonrasinda full kurulum linki ve cihaz kimligi adimlari tarafiniza iletilecektir.\n\n' +
       'Saygilarimizla,\nE-Defter Otomasyon',
     html:
       `<p>Sayin <strong>${firma}</strong>,</p>` +
       '<p>Satin alma talebiniz alinmistir. Odeme bilgileri asagidadir:</p>' +
       `<p><strong>Alici:</strong> ${data.paymentName}<br>` +
       `<strong>IBAN:</strong> ${data.paymentIban}</p>` +
-      '<p>Odeme sonrasi bu e-postayi yanitlayarak dekont paylasabilirsiniz.<br>' +
-      'Kurulum ve cihaz kimligi adimlari icin sizinle iletisime gececegiz.</p>' +
+      '<p><strong>Not:</strong> Lutfen odeme aciklama kismina <strong>Ad Soyad</strong> veya <strong>Firma Unvani</strong> yaziniz.</p>' +
+      '<p>Odeme sonrasi bu e-postayi yanitlayarak veya <strong>destek@edefterotomasyon.com.tr</strong> adresine dekont paylasabilirsiniz.<br>' +
+      'Odeme onayi sonrasinda full kurulum linki ve cihaz kimligi adimlari tarafiniza iletilecektir.</p>' +
       '<p>Saygilarimizla,<br><strong>E-Defter Otomasyon</strong></p>'
   };
 }
