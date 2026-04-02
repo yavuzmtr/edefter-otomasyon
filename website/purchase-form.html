@@ -64,13 +64,8 @@
                 3. Bu kodu asagidaki alana yazin (opsiyonel).<br>
                 Kisa video: <a href="https://www.youtube.com/watch?v=Bcc4_BaMpOc" target="_blank" rel="noopener">izlemek icin tiklayin</a>
             </div>
-            <form id="purchaseForm" action="https://formsubmit.co/edefterotomasyon@gmail.com" method="POST" enctype="multipart/form-data">
-                <input type="hidden" name="_subject" value="E-Defter Otomasyon - Satin Alma Talebi">
-                <input type="hidden" name="_template" value="box">
-                <input type="hidden" name="_captcha" value="false">
-                <input type="hidden" name="_next" value="https://edefterotomasyon.com.tr/purchase-thanks.html">
-                <input type="hidden" name="_autoresponse" value="Merhaba, satin alma talebiniz alinmistir. Islemleri tamamlamak icin asagidaki adimlari takip edin: (1) Odeme yapin. Alici: Yavuz Mercimek, IBAN: TR95 0020 5000 0101 8288 4000 08. (2) Odeme sonrasi bu e-postaya dekont gonderebilirsiniz. (3) Kurulum ve cihaz kimligi icin tarafinizla iletisim kuracagiz.">
-                <input type="hidden" id="replyto" name="_replyto" value="">
+            <form id="purchaseForm" action="https://purchase-mailer.edefterotomasyon.workers.dev/submit" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="source" value="purchase-form">
 
                 <div class="form-group">
                     <label for="company">Musteri/Firma</label>
@@ -108,16 +103,14 @@
     <script>
         (function () {
             var form = document.getElementById('purchaseForm');
-            var emailInput = document.getElementById('email');
-            var replyTo = document.getElementById('replyto');
-            if (!form || !emailInput || !replyTo) return;
-
-            function syncReplyTo() {
-                replyTo.value = emailInput.value || '';
-            }
-
-            emailInput.addEventListener('input', syncReplyTo);
-            form.addEventListener('submit', syncReplyTo);
+            if (!form) return;
+            form.addEventListener('submit', function () {
+                var btn = form.querySelector('button[type="submit"]');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.textContent = 'Gonderiliyor...';
+                }
+            });
         })();
     </script>
 </body>
