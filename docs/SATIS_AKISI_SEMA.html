@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E-Defter Otomasyon | Satin Alma Akisi (Tek Sayfa)</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #ffffff;
+      --accent: #2563eb;
+      --muted: #64748b;
+      --line: #e2e8f0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #0f172a;
+    }
+    .wrap {
+      max-width: 980px;
+      margin: 32px auto 60px;
+      padding: 0 20px;
+    }
+    .header {
+      color: #fff;
+      margin-bottom: 18px;
+    }
+    .header h1 { margin: 0 0 6px; font-size: 28px; }
+    .header p { margin: 0; color: #cbd5f5; }
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 16px;
+    }
+    @media (max-width: 760px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    .step {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px;
+      min-height: 150px;
+    }
+    .step h2 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      color: var(--accent);
+    }
+    .step p { margin: 6px 0; color: #334155; line-height: 1.5; }
+    .link {
+      display: inline-block;
+      margin-top: 6px;
+      font-family: Consolas, monospace;
+      font-size: 13px;
+      color: #1d4ed8;
+      word-break: break-all;
+    }
+    .badge {
+      display: inline-block;
+      background: #eff6ff;
+      color: #1e3a8a;
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-right: 6px;
+    }
+    .footer {
+      margin-top: 14px;
+      color: #e2e8f0;
+      font-size: 12px;
+    }
+    .flow {
+      margin-top: 14px;
+      padding: 12px;
+      border: 1px dashed #93c5fd;
+      border-radius: 12px;
+      background: #eff6ff;
+      color: #1e3a8a;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <h1>Satin Alma Akisi (Tek Sayfa)</h1>
+      <p>Hangi adimda hangi link kullanilacak: tek sayfada ozet.</p>
+    </div>
+
+    <div class="card">
+      <div class="grid">
+        <div class="step">
+          <h2>1) Satin Alma Talebi</h2>
+          <p><span class="badge">MUSTERI</span> Web formu doldurur.</p>
+          <p><span class="badge">SISTEM</span> Otomatik bilgilendirme maili gider.</p>
+          <div class="link">https://edefterotomasyon.com.tr/purchase-form.html</div>
+        </div>
+
+        <div class="step">
+          <h2>2) Odeme ve Dekont</h2>
+          <p><span class="badge">MUSTERI</span> IBAN uzerinden odeme yapar.</p>
+          <p><span class="badge">MUSTERI</span> Dekontu mail ile iletir.</p>
+          <p><strong>Dekont mail:</strong> satis@edefterotomasyon.com.tr</p>
+        </div>
+
+        <div class="step">
+          <h2>3) Full Kurulum Linki</h2>
+          <p><span class="badge">SEN</span> Odeme onayi sonrasi full kurulum linkini gonderirsin.</p>
+          <div class="link">https://edefterotomasyon.com.tr/full-download-portal-7f3a9c.html?code=Bilgehan-2026</div>
+        </div>
+
+        <div class="step">
+          <h2>4) Cihaz Kimligi</h2>
+          <p><span class="badge">MUSTERI</span> Programi kurar, cihaz kimligini gorur ve sana iletir.</p>
+          <div class="link">https://www.youtube.com/watch?v=Bcc4_BaMpOc</div>
+        </div>
+
+        <div class="step">
+          <h2>5) Lisans Uretimi (Otomatik)</h2>
+          <p><span class="badge">SEN</span> GitHub issue'ya <strong>approve</strong> etiketi eklersin.</p>
+          <p><span class="badge">SISTEM</span> Lisans uretir ve otomatik mail gonderir.</p>
+          <div class="link">https://github.com/yavuzmtr/edefter-otomasyon/issues</div>
+        </div>
+
+        <div class="step">
+          <h2>6) Lisans Kurulumu</h2>
+          <p><span class="badge">MUSTERI</span> Lisans dosyasini kopyalar ve programi yeniden acar.</p>
+          <p><strong>Dizin:</strong> %APPDATA%\\edefter-automation</p>
+          <div class="link">https://edefterotomasyon.com.tr/kullanim-kilavuzu.html</div>
+        </div>
+
+        <div class="step">
+          <h2>7) Kurulum Videosu</h2>
+          <p><span class="badge">MUSTERI</span> Kurulum videosu ile adimlari izler.</p>
+          <div class="link">https://www.youtube.com/watch?v=sGD8BrVTwI8</div>
+        </div>
+
+        <div class="step">
+          <h2>8) Tesekkur Sayfasi (Otomatik)</h2>
+          <p><span class="badge">SISTEM</span> Form sonrasi otomatik gosterilir.</p>
+          <div class="link">https://edefterotomasyon.com.tr/purchase-thanks.html</div>
+        </div>
+      </div>
+
+      <div class="flow">
+        Form -> Odeme -> Full Kurulum Linki -> Cihaz Kimligi -> Issue + Approve -> Lisans Mail -> Aktivasyon
+      </div>
+    </div>
+
+    <div class="footer">
+      E-Defter Otomasyon | 2026
+    </div>
+  </div>
+</body>
+</html>
