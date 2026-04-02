@@ -79,3 +79,16 @@ Not: Apps Script icin GitHub token'ini guvenli sakla.
 2. Issue'ya `approve` etiketi koy.
 3. Actions > "License Approval" icinde islem tamamlandigini kontrol et.
 4. Müşteriye mail gonderildigini dogrula.
+
+## 6) Tam Satis Senaryosu (Adim Adim)
+
+Bu bolum, sahadaki gercek akisi tek sayfada ozetler.
+
+1. Musteri web sitesinden "Satin Alma Talebi" formunu doldurur.
+2. Sistem, musterinin e-postasina otomatik "Talebiniz alindi + odeme bilgileri" maili gonderir.
+3. Musteri IBAN uzerinden odeme yapar, aciklamaya firma adini yazar.
+4. Sen odemeyi gorunce GitHub'daki ilgili issue'ya `approve` etiketi eklersin.
+5. GitHub Action otomatik calisir, lisans dosyasini uretir ve musterinin e-postasina gonderir.
+6. Musteri lisans dosyasini `%APPDATA%\\edefter-automation` dizinine kopyalar.
+7. Musteri programi kapatip yeniden acarak aktivasyonu tamamlar.
+8. Gerekirse destek verilir; aksi halde sistem aktif kullanima baslar.
