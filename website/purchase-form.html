@@ -56,16 +56,39 @@
     <div class="download-form-container">
         <div class="form-card">
             <h1>Satin Alma Talebi</h1>
-            <p>Talebinizi Google Form uzerinden aliyoruz. Birazdan yonlendirileceksiniz.</p>
-            <a id="formLink" class="cta-btn" href="https://docs.google.com/forms/d/e/1FAIpQLScWrmyZz4Edj69VXIBtfNaP7uSNMHhxCIFILZT0Et2yMPt-tA/viewform?usp=publish-editor" target="_blank" rel="noopener">Formu Ac</a>
-            <div class="note">Yonlendirme olmazsa yukaridaki butona tiklayin.</div>
+            <p>Formu doldurun, odeme bilgileri ve sonraki adimlar mail olarak gonderilecektir.</p>
+            <form action="https://formsubmit.co/edefterotomasyon@gmail.com" method="POST">
+                <input type="hidden" name="_subject" value="E-Defter Otomasyon - Satin Alma Talebi">
+                <input type="hidden" name="_template" value="box">
+                <input type="hidden" name="_captcha" value="false">
+                <input type="hidden" name="_next" value="https://edefterotomasyon.com.tr/purchase-thanks.html">
+                <input type="hidden" name="_autoresponse" value="Merhaba, satin alma talebiniz alinmistir. Odeme bilgileri: Alici: Yavuz Mercimek, IBAN: TR95 0020 5000 0101 8288 4000 08. Odeme sonrasi bu e-postaya dekont gonderebilirsiniz.">
+
+                <div class="form-group">
+                    <label for="company">Musteri/Firma</label>
+                    <input id="company" name="Musteri/Firma" type="text" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">E-posta</label>
+                    <input id="email" name="email" type="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="phone">Telefon numarasi</label>
+                    <input id="phone" name="Telefon numarasi" type="text" required>
+                </div>
+                <div class="form-group">
+                    <label for="device">Cihaz Kimligi (opsiyonel)</label>
+                    <input id="device" name="Cihaz Kimligi" type="text">
+                </div>
+                <div class="form-group">
+                    <label for="notes">Notlar</label>
+                    <textarea id="notes" name="Notlar" rows="4"></textarea>
+                </div>
+
+                <button type="submit" class="cta-btn">Talebi Gonder</button>
+            </form>
+            <div class="note">Form gonderildiginde odeme bilgileri e-posta ile iletilecektir.</div>
         </div>
     </div>
-    <script>
-        const FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScWrmyZz4Edj69VXIBtfNaP7uSNMHhxCIFILZT0Et2yMPt-tA/viewform?usp=publish-editor";
-        setTimeout(() => {
-            window.location.href = FORM_URL;
-        }, 1200);
-    </script>
 </body>
 </html>

@@ -56,16 +56,35 @@
     <div class="download-form-container">
         <div class="form-card">
             <h1>Demo Talep Formu</h1>
-            <p>Demo indirmek icin once formu doldurun. Boylece kimin indirdigi kayit altinda olur.</p>
-            <a id="formLink" class="cta-btn" href="https://docs.google.com/forms/d/e/1FAIpQLSeK2B3b8UrnriUDkU3bGlDAmUqCwjG8-tGSDB00f1kJGqPEOw/viewform?usp=dialog" target="_blank" rel="noopener">Formu Ac</a>
-            <div class="note">Yonlendirme olmazsa yukaridaki butona tiklayin.</div>
+            <p>Formu doldurun, demo indirme linki mail olarak gönderilecektir.</p>
+            <form action="https://formsubmit.co/edefterotomasyon@gmail.com" method="POST">
+                <input type="hidden" name="_subject" value="E-Defter Otomasyon - Demo Talebi">
+                <input type="hidden" name="_template" value="box">
+                <input type="hidden" name="_captcha" value="false">
+                <input type="hidden" name="_next" value="https://edefterotomasyon.com.tr/download-thanks.html">
+                <input type="hidden" name="_autoresponse" value="Merhaba, demo talebiniz alinmistir. Demo indirme linki: https://github.com/yavuzmtr/edefter-otomasyon/releases/download/v1.0.1-demo/E-Defter.Otomasyon.DEMO.Setup.1.0.1.exe">
+
+                <div class="form-group">
+                    <label for="company">Musteri/Firma</label>
+                    <input id="company" name="Musteri/Firma" type="text" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">E-posta</label>
+                    <input id="email" name="email" type="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="phone">Telefon numarasi</label>
+                    <input id="phone" name="Telefon numarasi" type="text">
+                </div>
+                <div class="form-group">
+                    <label for="notes">Notlar</label>
+                    <textarea id="notes" name="Notlar" rows="4"></textarea>
+                </div>
+
+                <button type="submit" class="cta-btn">Talebi Gonder</button>
+            </form>
+            <div class="note">Form gonderildiginde demo linki e-posta ile iletilecektir.</div>
         </div>
     </div>
-    <script>
-        const FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSeK2B3b8UrnriUDkU3bGlDAmUqCwjG8-tGSDB00f1kJGqPEOw/viewform?usp=dialog";
-        setTimeout(() => {
-            window.location.href = FORM_URL;
-        }, 1200);
-    </script>
 </body>
 </html>
