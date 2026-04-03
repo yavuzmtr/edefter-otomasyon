@@ -26,9 +26,25 @@ function escapeRegExp(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+function normalizeLabelText(value) {
+  return String(value || '')
+    .replace(/[\u2010\u2011\u2012\u2013\u2014\u2212\u00ad]/g, '-')
+    .replace(/[*`_]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+function normalizeLineLabel(line) {
+  return normalizeLabelText(String(line || '').replace(/^[\s>*-]+/, '').replace(/:+$/, ''));
+}
+
 function getSectionValue(body, labelVariants) {
   for (const label of labelVariants) {
-    const re = new RegExp(`^###\\s*${escapeRegExp(label)}\\s*$([\\s\\S]*?)(?=^###\\s|\\Z)`, 'mi');
+    const re = new RegExp(
+      `^###\\s*${escapeRegExp(label)}\\s*$([\\s\\S]*?)(?=^###\\s|\\Z)`,
+      'mi'
+    );
     const match = body.match(re);
     if (match) {
       const lines = match[1]
@@ -42,16 +58,58 @@ function getSectionValue(body, labelVariants) {
 }
 
 function getInlineValue(body, labelVariants) {
-  for (const label of labelVariants) {
-    const re = new RegExp(`^${escapeRegExp(label)}\\s*:\\s*(.+)$`, 'mi');
-    const match = body.match(re);
-    if (match) return String(match[1]).trim();
+  const lines = String(body || '').split(/\r?\n/);
+  for (const rawLine of lines) {
+    const line = String(rawLine || '').trim();
+    if (!line) continue;
+    for (const label of labelVariants) {
+      const normalizedLabel = normalizeLabelText(label);
+      const normalizedLine = normalizeLineLabel(line);
+      if (normalizedLine.startsWith(`${normalizedLabel}:`)) {
+        return String(line.split(':').slice(1).join(':')).trim();
+      }
+    }
   }
   return '';
 }
 
+function getBlockValue(body, labelVariants) {
+  const lines = String(body || '').split(/\r?\n/).map((line) => line.trim());
+  for (const label of labelVariants) {
+    const normalizedLabel = normalizeLabelText(label);
+    for (let i = 0; i < lines.length; i += 1) {
+      if (normalizeLineLabel(lines[i]) === normalizedLabel) {
+        for (let j = i + 1; j < lines.length; j += 1) {
+          const value = lines[j];
+          if (!value || value === '---') continue;
+          return value;
+        }
+      }
+    }
+  }
+  return '';
+}
+
+function normalizeEmail(value) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  const mailtoMatch = text.match(/mailto:([^\s)\]]+)/i);
+  if (mailtoMatch) return mailtoMatch[1];
+  const emailMatch = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+  return emailMatch ? emailMatch[0] : text;
+}
+
+function normalizeText(value) {
+  return String(value || '').replace(/`/g, '').trim();
+}
+
 function getValue(body, variants) {
-  return getSectionValue(body, variants) || getInlineValue(body, variants) || '';
+  return (
+    getSectionValue(body, variants) ||
+    getInlineValue(body, variants) ||
+    getBlockValue(body, variants) ||
+    ''
+  );
 }
 
 function ensureDir(dirPath) {
@@ -130,11 +188,19 @@ async function main() {
   const issue = event.issue || {};
   const body = String(issue.body || '');
 
-  const customer = getValue(body, ['Musteri / Firma', 'Musteri/Firma', 'Customer', 'Firma']);
-  const email = getValue(body, ['Musteri E-posta', 'Musteri Email', 'Customer Email', 'Email']);
-  const hardwareId = getValue(body, ['Cihaz Kimligi', 'Hardware ID', 'HardwareId']);
-  const expiresAtRaw = getValue(body, ['Bitis Tarihi', 'Expires At', 'Expiry Date']);
-  const keyRaw = getValue(body, ['Lisans Kodu', 'License Key', 'Key']);
+  const customer = normalizeText(
+    getValue(body, ['Musteri / Firma', 'Musteri/Firma', 'Customer', 'Firma'])
+  );
+  const email = normalizeEmail(
+    getValue(body, ['Musteri E-posta', 'Musteri Email', 'Customer Email', 'Email', 'E-posta'])
+  );
+  const hardwareId = normalizeText(
+    getValue(body, ['Cihaz Kimligi', 'Hardware ID', 'HardwareId'])
+  );
+  const expiresAtRaw = normalizeText(
+    getValue(body, ['Bitis Tarihi', 'Expires At', 'Expiry Date'])
+  );
+  const keyRaw = normalizeText(getValue(body, ['Lisans Kodu', 'License Key', 'Key']));
 
   if (!customer) throw new Error('Musteri/Firma alani bulunamadi.');
   if (!email) throw new Error('Musteri e-posta alani bulunamadi.');
