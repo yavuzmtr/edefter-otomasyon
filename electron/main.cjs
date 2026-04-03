@@ -96,6 +96,7 @@ if (!process.env.NODE_ENV) {
 console.log(`🟢 NODE_ENV: ${process.env.NODE_ENV}`);
 
 const { app, BrowserWindow, ipcMain, dialog, Tray, Menu } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs-extra');
 const chokidar = require('chokidar');
@@ -309,6 +310,57 @@ function logToFile(level, category, message, details = '') {
       // Stream closed, silent ignore
     }
   }
+}
+
+function setupAutoUpdater() {
+  if (!app.isPackaged) {
+    return;
+  }
+
+  autoUpdater.autoDownload = false;
+
+  autoUpdater.on('error', (err) => {
+    const message = err && err.message ? err.message : String(err);
+    logToFile('error', 'Guncelleme', 'Auto-updater hatasi', message);
+  });
+
+  autoUpdater.on('update-available', async (info) => {
+    const version = info && info.version ? info.version : 'yeni';
+    const result = await dialog.showMessageBox({
+      type: 'info',
+      title: 'Guncelleme Bulundu',
+      message: `Yeni surum (${version}) mevcut.`,
+      detail: 'Indirmek ve kurmak ister misiniz?',
+      buttons: ['Indir', 'Daha Sonra'],
+      defaultId: 0,
+      cancelId: 1
+    });
+
+    if (result.response === 0) {
+      autoUpdater.downloadUpdate();
+    }
+  });
+
+  autoUpdater.on('update-downloaded', async () => {
+    const result = await dialog.showMessageBox({
+      type: 'info',
+      title: 'Guncelleme Hazir',
+      message: 'Guncelleme indirildi.',
+      detail: 'Uygulama yeniden baslatilarak kurulacak.',
+      buttons: ['Simdi Kur', 'Sonra'],
+      defaultId: 0,
+      cancelId: 1
+    });
+
+    if (result.response === 0) {
+      autoUpdater.quitAndInstall();
+    }
+  });
+
+  autoUpdater.checkForUpdates().catch((err) => {
+    const message = err && err.message ? err.message : String(err);
+    logToFile('error', 'Guncelleme', 'Guncelleme kontrolu basarisiz', message);
+  });
 }
 
 // Batch log flush function - Performance optimization
@@ -3788,6 +3840,7 @@ app.whenReady().then(() => {
 
   createWindow();
   createTray(); // ✅ Sistem tepsisi ikonu oluştur
+  setupAutoUpdater();
   logToFile('info', 'Sistem', 'App başlatıldı, pencere ve tray oluşturuldu');
 }).catch(err => {
   logToFile('error', 'Sistem', 'App başlatma hatası', err.message);

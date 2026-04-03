@@ -39,6 +39,7 @@
     "chokidar": "^3.5.3",
     "electron-squirrel-startup": "^1.0.1",
     "electron-store": "^8.1.0",
+    "electron-updater": "^6.8.3",
     "exceljs": "^4.4.0",
     "fs-extra": "^11.2.0",
     "lucide-react": "^0.344.0",
@@ -133,6 +134,13 @@
     "linux": {
       "target": "AppImage",
       "icon": "assets/icon.png"
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "yavuzmtr",
+        "repo": "edefter-otomasyon"
+      }
+    ]
   }
 }
