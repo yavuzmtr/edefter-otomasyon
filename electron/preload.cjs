@@ -37,6 +37,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Veri saklama
   saveData: (key, data) => ipcRenderer.invoke('save-data', key, data),
   loadData: (key, defaultValue) => ipcRenderer.invoke('load-data', key, defaultValue),
+  syncMobileNow: () => ipcRenderer.invoke('mobile-sync-now'),
+  getMobileSyncStatus: () => ipcRenderer.invoke('mobile-sync-status'),
   
   // Rapor oluşturma
   generateReport: (data, filePath) => ipcRenderer.invoke('generate-report', data, filePath),

@@ -253,3 +253,18 @@ YAVUZ MERCİMEK
 
 - Gateway calistirma: `npm run wa:gateway`
 - Ayrintili kurulum: [docs/WHATSAPP_BUSINESS_KURULUM.md](docs/WHATSAPP_BUSINESS_KURULUM.md)
+
+
+## Mobil Senkron
+
+Masaustu uygulamadan mobil Supabase verisini gondermek icin `Ayarlar > Mobil Senkron` bolumundeki
+`Mobil ile Senkronize Et` dugmesini kullanin.
+
+Gerekli ortam degiskenleri:
+
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `MOBILE_SYNC_EMAIL`
+- `MOBILE_SYNC_PASSWORD`
+- `MOBILE_OFFICE_ID`
+- `MOBILE_SYNC_AUTO`

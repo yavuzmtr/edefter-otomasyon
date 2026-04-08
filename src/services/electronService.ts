@@ -26,6 +26,8 @@ declare global {
       getBackgroundServiceStatus: () => Promise<{success: boolean, isRunning?: boolean, lastCheck?: Date, error?: string}>;
       saveData: (key: string, data: any) => Promise<{success: boolean, error?: string}>;
       loadData: (key: string, defaultValue?: any) => Promise<{success: boolean, data?: any, error?: string}>;
+      syncMobileNow: () => Promise<{success: boolean, data?: any, error?: string}>;
+      getMobileSyncStatus: () => Promise<{success: boolean, data?: any, error?: string}>;
       generateReport: (data: any[], filePath: string) => Promise<{success: boolean, filePath?: string, error?: string}>;
       generateDetailedGIBReport: (data: any[], filePath: string, metadata: any) => Promise<{success: boolean, filePath?: string, error?: string}>;
       createExcelTemplate: (data: any[][], options?: any) => Promise<{success: boolean, filePath?: string, error?: string}>;
@@ -146,6 +148,29 @@ export class ElectronService {
       return await window.electronAPI.loadData(key, defaultValue);
     } catch (error: unknown) {
       console.error('Veri yükleme hatası:', error);
+      return { success: false, error: getErrorMessage(error) };
+    }
+  }
+  static async syncMobileNow(): Promise<{success: boolean, data?: any, error?: string}> {
+    if (!this.isElectron()) {
+      return { success: false, error: 'Mobil senkron sadece Electron uygulamasinda calisir' };
+    }
+    try {
+      return await window.electronAPI.syncMobileNow();
+    } catch (error: unknown) {
+      console.error('Mobil senkron hatasi:', error);
+      return { success: false, error: getErrorMessage(error) };
+    }
+  }
+
+  static async getMobileSyncStatus(): Promise<{success: boolean, data?: any, error?: string}> {
+    if (!this.isElectron()) {
+      return { success: false, error: 'Mobil senkron durumu sadece Electron uygulamasinda calisir' };
+    }
+    try {
+      return await window.electronAPI.getMobileSyncStatus();
+    } catch (error: unknown) {
+      console.error('Mobil senkron durumu alinamadi:', error);
       return { success: false, error: getErrorMessage(error) };
     }
   }
@@ -530,3 +555,4 @@ export class ElectronService {
     }
   }
 }
+

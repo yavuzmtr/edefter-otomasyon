@@ -118,6 +118,7 @@ try {
 const archiver = require('archiver');
 const Store = require('electron-store');
 const licenseManager = require('./license-manager.cjs');
+const { registerMobileSync } = require('./mobile-sync.cjs');
 
 // Handle Squirrel Windows installer events
 if (require('electron-squirrel-startup')) app.quit();
@@ -311,6 +312,8 @@ function logToFile(level, category, message, details = '') {
     }
   }
 }
+
+registerMobileSync({ ipcMain, store, logToFile });
 
 function setupAutoUpdater() {
   if (!app.isPackaged) {

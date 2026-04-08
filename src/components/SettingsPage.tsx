@@ -32,6 +32,8 @@ export const SettingsPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
   const [notification, setNotification] = useState<{type: 'success' | 'error', message: string} | null>(null);
+  const [syncingMobile, setSyncingMobile] = useState(false);
+  const [mobileSyncStatus, setMobileSyncStatus] = useState<{running: boolean; lastRunAt: string | null; lastSuccessAt: string | null; lastError: string | null; lastSummary: any | null} | null>(null);
   const { theme, setTheme } = useTheme();
   const [emailNotificationConfig, setEmailNotificationConfig] = useState<EmailNotificationConfig>({
     accountantEmail: '',
@@ -79,6 +81,20 @@ export const SettingsPage: React.FC = () => {
       }
     };
     loadEmailNotificationConfig();
+  }, []);
+
+  useEffect(() => {
+    const loadMobileSyncStatus = async () => {
+      try {
+        const result = await ElectronService.getMobileSyncStatus();
+        if (result.success && result.data) {
+          setMobileSyncStatus(result.data);
+        }
+      } catch (error) {
+        console.error('Mobile sync status yukleme hatasi:', error);
+      }
+    };
+    loadMobileSyncStatus();
   }, []);
 
   const themes: { id: Theme; name: string; description: string; colors: string[] }[] = [
@@ -216,6 +232,29 @@ export const SettingsPage: React.FC = () => {
       showNotification('error', `Hata: ${error?.message || 'Test email gönderilemedi'}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const syncMobileNow = async () => {
+    try {
+      setSyncingMobile(true);
+      const result = await ElectronService.syncMobileNow();
+      if (result.success) {
+        setMobileSyncStatus({
+          running: false,
+          lastRunAt: new Date().toISOString(),
+          lastSuccessAt: new Date().toISOString(),
+          lastError: null,
+          lastSummary: result.data || null,
+        });
+        showNotification('success', 'Mobil uygulama ile senkron tamamlandi');
+      } else {
+        showNotification('error', `Mobil senkron hatasi: ${result.error || 'Bilinmeyen hata'}`);
+      }
+    } catch (error: any) {
+      showNotification('error', `Mobil senkron hatasi: ${error?.message || 'Bilinmeyen hata'}`);
+    } finally {
+      setSyncingMobile(false);
     }
   };
 
@@ -589,6 +628,29 @@ export const SettingsPage: React.FC = () => {
                 </ul>
               </div>
             </div>
+          </div>
+
+          <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h4 className="font-medium text-gray-900 dark:text-white">Mobil Senkron</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Desktop verisini mobil uygulama icin Supabase'e aktar.</p>
+              </div>
+              <button
+                onClick={syncMobileNow}
+                disabled={syncingMobile}
+                className="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-gray-400 transition-colors flex items-center space-x-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${syncingMobile ? 'animate-spin' : ''}`} />
+                <span>{syncingMobile ? 'Esitleniyor...' : 'Mobil ile Senkronize Et'}</span>
+              </button>
+            </div>
+            {mobileSyncStatus?.lastSuccessAt && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">Son basarili senkron: {new Date(mobileSyncStatus.lastSuccessAt).toLocaleString('tr-TR')}</p>
+            )}
+            {mobileSyncStatus?.lastError && (
+              <p className="text-xs text-red-600 mt-2">Son hata: {mobileSyncStatus.lastError}</p>
+            )}
           </div>
 
           {/* Save Button */}
